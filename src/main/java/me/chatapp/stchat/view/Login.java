@@ -20,6 +20,9 @@ import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
+import me.chatapp.stchat.dao.UserDAO;
+import me.chatapp.stchat.database.DatabaseConnection;
+
 import java.util.logging.Logger;
 
 public class Login {
@@ -28,11 +31,13 @@ public class Login {
     private final Stage stage;
     private final Runnable onSwitchToSignUp;
     private final Runnable onLoginSuccess;
+    private final UserDAO userDAO;
 
     public Login(Runnable onSwitchToSignUp, Runnable onLoginSuccess) {
         this.stage = new Stage();
         this.onSwitchToSignUp = onSwitchToSignUp;
         this.onLoginSuccess = onLoginSuccess;
+        this.userDAO = new UserDAO();
         setupUI();
     }
 
@@ -122,6 +127,11 @@ public class Login {
 
         formContainer.getChildren().addAll(usernameContainer, passwordContainer);
 
+        // Database connection status
+        Text dbStatus = new Text();
+        dbStatus.setFont(Font.font("System", FontWeight.NORMAL, 12));
+        updateDatabaseStatus(dbStatus);
+
         // Login button
         Button loginButton = new Button("Sign In");
         loginButton.setPrefWidth(300);
@@ -175,6 +185,7 @@ public class Login {
                 title,
                 subtitle,
                 formContainer,
+                dbStatus,
                 loginButton,
                 forgotPasswordButton,
                 signUpContainer,
@@ -193,7 +204,7 @@ public class Login {
             stage.close();
             onSwitchToSignUp.run();
         });
-        forgotPasswordButton. setOnAction(event -> {
+        forgotPasswordButton.setOnAction(event -> {
             statusMessage.setText("Forgot Password feature coming soon!");
             statusMessage.setFill(Color.web("#3182ce"));
         });
@@ -203,13 +214,23 @@ public class Login {
         passwordField.setOnAction(event -> loginButton.fire());
 
         // Create scene
-        Scene scene = new Scene(root, 500, 700);
+        Scene scene = new Scene(root, 500, 750);
         stage.setTitle("ST Chat - Sign In");
         stage.setScene(scene);
         stage.setResizable(false);
 
         // Add entrance animation
         addEntranceAnimation(card);
+    }
+
+    private void updateDatabaseStatus(Text dbStatus) {
+        if (DatabaseConnection.testConnection()) {
+            dbStatus.setText("🟢 Database Connected");
+            dbStatus.setFill(Color.web("#38a169"));
+        } else {
+            dbStatus.setText("🔴 Database Disconnected");
+            dbStatus.setFill(Color.web("#e53e3e"));
+        }
     }
 
     private void createBackgroundCircles(StackPane root) {
@@ -299,7 +320,7 @@ public class Login {
     }
 
     private void handleLogin(TextField userField, PasswordField passField, Text statusMessage) {
-        String username = userField.getText();
+        String username = userField.getText().trim();
         String password = passField.getText();
 
         if (username.isEmpty() || password.isEmpty()) {
@@ -308,7 +329,15 @@ public class Login {
             return;
         }
 
-        if (authenticate(username, password)) {
+        // Kiểm tra kết nối database
+        if (!DatabaseConnection.testConnection()) {
+            statusMessage.setText("Database connection failed. Please try again later.");
+            statusMessage.setFill(Color.web("#e53e3e"));
+            return;
+        }
+
+        // Xác thực với database
+        if (userDAO.authenticateUser(username, password)) {
             statusMessage.setText("Login successful!");
             statusMessage.setFill(Color.web("#38a169"));
 
@@ -336,9 +365,5 @@ public class Login {
 
     public void show() {
         stage.show();
-    }
-
-    private boolean authenticate(String username, String password) {
-        return !username.isEmpty() && !password.isEmpty();
     }
 }
