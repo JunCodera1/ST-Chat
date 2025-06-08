@@ -10,6 +10,7 @@ module me.chatapp.stchat {
     requires org.kordamp.bootstrapfx.core;
     requires eu.hansolo.tilesfx;
     requires com.almasb.fxgl.all;
+    requires java.logging;
 
     opens me.chatapp.stchat to javafx.fxml;
     exports me.chatapp.stchat;

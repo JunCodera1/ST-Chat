@@ -1,30 +1,42 @@
 package me.chatapp.stchat;
 
 import javafx.application.Application;
-import javafx.scene.Scene;
 import javafx.stage.Stage;
 import me.chatapp.stchat.controller.ChatController;
 import me.chatapp.stchat.model.ChatModel;
-import me.chatapp.stchat.service.ChatService;
 import me.chatapp.stchat.view.ChatView;
+import me.chatapp.stchat.view.Login;
+import me.chatapp.stchat.view.SignUp;
 
 public class Main extends Application {
+
     @Override
     public void start(Stage primaryStage) {
-        // Initialize MVC components
-        ChatModel model = new ChatModel();
-        ChatView view = new ChatView();
-        ChatController controller = new ChatController(model, view);
+        // Start with SignUp stage
+        showSignUpStage(primaryStage);
+    }
 
-        // Setup stage
-        primaryStage.setTitle("ST Chat - Modern Chat Application");
-        primaryStage.setScene(view.getScene());
-        primaryStage.setMinWidth(600);
-        primaryStage.setMinHeight(500);
-        primaryStage.show();
+    private void showSignUpStage(Stage primaryStage) {
+        SignUp signUp = new SignUp(() -> showLoginStage(primaryStage));
+        signUp.show();
+    }
 
-        // Initialize controller after view is shown
-        controller.initialize();
+    private void showLoginStage(Stage primaryStage) {
+        Login login = new Login(() -> showSignUpStage(primaryStage), () -> {
+            // On successful login, show chat application
+            ChatModel model = new ChatModel();
+            ChatView view = new ChatView();
+            ChatController controller = new ChatController(model, view);
+
+            primaryStage.setTitle("ST Chat - Modern Chat Application");
+            primaryStage.setScene(view.getScene());
+            primaryStage.setMinWidth(600);
+            primaryStage.setMinHeight(500);
+            primaryStage.show();
+
+            controller.initialize();
+        });
+        login.show();
     }
 
     public static void main(String[] args) {

@@ -3,89 +3,120 @@ package me.chatapp.stchat.controller;
 import javafx.application.Platform;
 import javafx.scene.input.KeyCode;
 import me.chatapp.stchat.model.ChatModel;
-import me.chatapp.stchat.service.ChatService;
+import me.chatapp.stchat.model.MessageType;
 import me.chatapp.stchat.view.ChatView;
 
 public class ChatController implements ChatModel.ChatModelListener {
     private final ChatModel model;
     private final ChatView view;
-    private final ChatService chatService;
 
     public ChatController(ChatModel model, ChatView view) {
         this.model = model;
         this.view = view;
-        this.chatService = new ChatService();
 
-        // Register as listener
+        // Register this controller as listener
         model.addListener(this);
+
+        // Set up view action handlers
+        view.setOnConnectAction(this::handleConnect);
+        view.setOnDisconnectAction(this::handleDisconnect);
+        view.setOnSendMessageAction(this::handleSendMessage);
 
         setupEventHandlers();
         bindProperties();
     }
 
+    private void handleConnect(String host, String port, String username) {
+        try {
+            int portNum = Integer.parseInt(port);
+            if (username.trim().isEmpty()) {
+                view.showError("Vui lòng nhập tên người dùng");
+                return;
+            }
+            model.connect(host, portNum, username);
+        } catch (NumberFormatException e) {
+            view.showError("Port phải là số");
+        }
+    }
+
+    private void handleDisconnect() {
+        model.disconnect();
+    }
+
+    private void handleSendMessage(String message) {
+        if (!message.trim().isEmpty()) {
+            if (message.startsWith("/msg")) {
+                // Đánh dấu tin nhắn riêng trên giao diện
+                model.addMessage(model.getUserName(), "(Private) " + message, MessageType.USER);
+            } else {
+                model.addMessage(model.getUserName(), message, MessageType.USER);
+            }
+            model.sendMessage(message); // Gửi đến server
+            Platform.runLater(() -> {
+                view.getMessageField().clear();
+                view.getSendButton().setDisable(false);
+            });
+        }
+    }
+
     public void initialize() {
         view.getStatusLabel().setText("Ứng dụng đã sẵn sàng");
-        view.getInputField().requestFocus();
+        if (view.getMessageField() != null) {
+            view.getMessageField().requestFocus();
+        }
     }
 
     private void setupEventHandlers() {
         // Send button click
-        view.getSendButton().setOnAction(e -> sendMessage());
+        if (view.getSendButton() != null) {
+            view.getSendButton().setOnAction(e -> sendMessage());
+        }
 
         // Enter key press in input field
-        view.getInputField().setOnKeyPressed(e -> {
-            if (e.getCode() == KeyCode.ENTER) {
-                sendMessage();
-            }
-        });
+        if (view.getMessageField() != null) {
+            view.getMessageField().setOnKeyPressed(e -> {
+                if (e.getCode() == KeyCode.ENTER) {
+                    sendMessage();
+                }
+            });
+        }
 
         // Clear button click
-        view.getClearButton().setOnAction(e -> clearChat());
+        if (view.getClearButton() != null) {
+            view.getClearButton().setOnAction(e -> clearChat());
+        }
 
-        // Username field change
-        view.getUserNameField().textProperty().addListener((obs, oldVal, newVal) -> {
-            model.userNameProperty().set(newVal.trim().isEmpty() ? "User" : newVal.trim());
-        });
+        // Username field change listener
+        if (view.getUserNameField() != null) {
+            view.getUserNameField().textProperty().addListener((obs, oldVal, newVal) -> {
+                // Handle username change if needed
+            });
+        }
     }
 
     private void bindProperties() {
         // Bind message list
-        view.getMessageListView().setItems(model.getMessages());
-
-        // Bind current message
-        view.getInputField().textProperty().bindBidirectional(model.currentMessageProperty());
+        if (view.getMessageListView() != null) {
+            view.getMessageListView().setItems(model.getMessages());
+        }
     }
 
     private void sendMessage() {
-        String message = model.currentMessageProperty().get().trim();
-        if (message.isEmpty()) {
-            return;
+        if (view.getMessageField() != null && view.getSendButton() != null) {
+            String message = view.getMessageField().getText().trim();
+            if (!message.isEmpty()) {
+                view.getStatusLabel().setText("Đang gửi...");
+
+                // Disable send button temporarily
+                view.getSendButton().setDisable(true);
+
+                // Handle send message
+                handleSendMessage(message);
+
+                // Scroll to bottom
+                scrollToBottom();
+            }
         }
-
-        // Add user message
-        model.addUserMessage(message);
-
-        // Clear input
-        model.currentMessageProperty().set("");
-
-        // Update status
-        view.getStatusLabel().setText("Đang xử lý...");
-
-        // Disable send button temporarily
-        view.getSendButton().setDisable(true);
-
-        // Process message asynchronously
-        chatService.processMessage(message, response -> {
-            Platform.runLater(() -> {
-                model.addBotMessage(response);
-                view.getStatusLabel().setText("Sẵn sàng");
-                view.getSendButton().setDisable(false);
-                view.getInputField().requestFocus();
-            });
-        });
-
-        // Scroll to bottom
-        scrollToBottom();
     }
 
     private void clearChat() {
@@ -96,15 +127,71 @@ public class ChatController implements ChatModel.ChatModelListener {
 
     private void scrollToBottom() {
         Platform.runLater(() -> {
-            int lastIndex = model.getMessages().size() - 1;
-            if (lastIndex >= 0) {
-                view.getMessageListView().scrollTo(lastIndex);
+            if (view.getMessageListView() != null) {
+                int lastIndex = model.getMessages().size() - 1;
+                if (lastIndex >= 0) {
+                    view.getMessageListView().scrollTo(lastIndex);
+                }
+            }
+        });
+    }
+
+    // ChatModelListener implementation
+    @Override
+    public void onMessageAdded() {
+        Platform.runLater(() -> {
+            scrollToBottom();
+            view.getStatusLabel().setText("Tin nhắn mới");
+        });
+    }
+
+    @Override
+    public void onMessageReceived(String message) {
+        Platform.runLater(() -> {
+            if (message.startsWith("Private from ")) {
+                // Xử lý tin nhắn riêng
+                String[] parts = message.split(":", 2);
+                if (parts.length == 2) {
+                    String senderInfo = parts[0].replace("Private from ", "").trim();
+                    String content = parts[1].trim();
+                    model.addMessage(senderInfo, content, MessageType.BOT); // Có thể tạo MessageType.PRIVATE nếu muốn
+                    view.getStatusLabel().setText("Nhận tin nhắn riêng mới");
+                }
+            } else {
+                // Xử lý tin nhắn broadcast hoặc hệ thống
+                String[] parts = message.split(":", 2);
+                if (parts.length == 2) {
+                    String sender = parts[0].trim();
+                    String content = parts[1].trim();
+                    model.addMessage(sender, content, MessageType.BOT);
+                } else {
+                    model.addSystemMessage(message);
+                }
+                view.getStatusLabel().setText("Nhận tin nhắn mới");
             }
         });
     }
 
     @Override
-    public void onMessageAdded() {
-        scrollToBottom();
+    public void onConnectionStatusChanged(boolean connected) {
+        Platform.runLater(() -> {
+            view.updateConnectionStatus(connected);
+            if (connected) {
+                view.getStatusLabel().setText("Đã kết nối thành công");
+                model.addSystemMessage("Đã kết nối tới server");
+            } else {
+                view.getStatusLabel().setText("Đã ngắt kết nối");
+                model.addSystemMessage("Đã ngắt kết nối khỏi server");
+            }
+        });
+    }
+
+    @Override
+    public void onError(String error) {
+        Platform.runLater(() -> {
+            view.showError(error);
+            view.getStatusLabel().setText("Lỗi: " + error);
+            model.addSystemMessage("Lỗi: " + error);
+        });
     }
 }

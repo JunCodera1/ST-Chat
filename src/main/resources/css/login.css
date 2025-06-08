@@ -1,0 +1,185 @@
+/* Modern Login CSS */
+.root {
+    -fx-font-family: "System", "Segoe UI", "Roboto", sans-serif;
+}
+
+/* Text Field Animations */
+.text-field, .password-field {
+    -fx-background-color: #f7fafc;
+    -fx-border-color: #e2e8f0;
+    -fx-border-width: 2px;
+    -fx-border-radius: 12px;
+    -fx-background-radius: 12px;
+    -fx-padding: 0 15px;
+    -fx-font-size: 14px;
+    -fx-prompt-text-fill: #a0aec0;
+    -fx-text-fill: #2d3748;
+    -fx-effect: null;
+    -fx-transition: -fx-border-color 0.3s ease, -fx-background-color 0.3s ease;
+}
+
+.text-field:focused, .password-field:focused {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #667eea;
+    -fx-effect: dropshadow(gaussian, rgba(102,126,234,0.3), 10, 0, 0, 2);
+}
+
+.text-field:hover, .password-field:hover {
+    -fx-border-color: #cbd5e0;
+}
+
+/* Button Styles */
+.button {
+    -fx-background-radius: 25px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-transition: all 0.3s ease;
+}
+
+/* Primary Button */
+#login-button {
+    -fx-background-color: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-effect: dropshadow(gaussian, rgba(102,126,234,0.4), 15, 0, 0, 5);
+}
+
+#login-button:hover {
+    -fx-background-color: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+    -fx-effect: dropshadow(gaussian, rgba(102,126,234,0.6), 20, 0, 0, 8);
+    -fx-scale-x: 1.02;
+    -fx-scale-y: 1.02;
+}
+
+#login-button:pressed {
+    -fx-scale-x: 0.98;
+    -fx-scale-y: 0.98;
+}
+
+/* Link Buttons */
+.link-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #667eea;
+    -fx-underline: false;
+    -fx-cursor: hand;
+    -fx-transition: all 0.2s ease;
+}
+
+.link-button:hover {
+    -fx-text-fill: #5a67d8;
+    -fx-underline: true;
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+}
+
+/* Labels */
+.field-label {
+    -fx-text-fill: #4a5568;
+    -fx-font-weight: 500;
+    -fx-font-size: 14px;
+}
+
+/* Title Text */
+.title-text {
+    -fx-fill: linear-gradient(to right, #2d3748, #4a5568);
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 5, 0, 0, 2);
+}
+
+.subtitle-text {
+    -fx-fill: #718096;
+    -fx-font-size: 14px;
+}
+
+/* Status Messages */
+.status-message {
+    -fx-font-weight: 500;
+    -fx-font-size: 12px;
+    -fx-text-alignment: center;
+}
+
+.error-message {
+    -fx-fill: #e53e3e;
+}
+
+.success-message {
+    -fx-fill: #38a169;
+}
+
+.info-message {
+    -fx-fill: #3182ce;
+}
+
+/* Card Container */
+.login-card {
+    -fx-background-color: rgba(255, 255, 255, 0.95);
+    -fx-background-radius: 20px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 25, 0, 0, 10);
+    -fx-padding: 50px 40px;
+}
+
+/* Logo Container */
+.logo-container {
+    -fx-effect: dropshadow(gaussian, rgba(102,126,234,0.3), 15, 0, 0, 5);
+}
+
+/* Forgot Password Link */
+#forgot-password-link {
+    -fx-background-color: transparent;
+    -fx-text-fill: #667eea;
+    -fx-underline: true;
+    -fx-cursor: hand;
+    -fx-font-size: 13px;
+    -fx-transition: all 0.2s ease;
+}
+
+#forgot-password-link:hover {
+    -fx-text-fill: #5a67d8;
+    -fx-effect: dropshadow(gaussian, rgba(102,126,234,0.2), 5, 0, 0, 2);
+}
+
+/* Responsive Design */
+@media screen and (max-width: 600px) {
+    .login-card {
+        -fx-padding: 30px 25px;
+    }
+
+    .title-text {
+        -fx-font-size: 22px;
+    }
+
+    .text-field, .password-field {
+        -fx-font-size: 13px;
+    }
+}
+
+/* Animation Classes */
+.fade-in {
+    -fx-opacity: 0;
+    -fx-transition: -fx-opacity 0.6s ease;
+}
+
+.fade-in-active {
+    -fx-opacity: 1;
+}
+
+.scale-in {
+    -fx-scale-x: 0.8;
+    -fx-scale-y: 0.8;
+    -fx-transition: -fx-scale-x 0.6s ease, -fx-scale-y 0.6s ease;
+}
+
+.scale-in-active {
+    -fx-scale-x: 1.0;
+    -fx-scale-y: 1.0;
+}
+
+/* Glassmorphism Effect */
+.glass-effect {
+    -fx-background-color: rgba(255, 255, 255, 0.1);
+    -fx-background-radius: 20px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 20, 0, 0, 10);
+    -fx-border-color: rgba(255, 255, 255, 0.2);
+    -fx-border-width: 1px;
+    -fx-border-radius: 20px;
+}

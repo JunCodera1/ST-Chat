@@ -175,3 +175,10 @@
 .scroll-bar .thumb:hover {
   -fx-background-color: #adb5bd;
 }
+
+.private-message {
+    -fx-background-color: #f3e5f5;
+    -fx-border-color: #ce93d8;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+}
