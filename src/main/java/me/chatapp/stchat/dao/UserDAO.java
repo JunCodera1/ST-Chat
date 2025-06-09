@@ -20,23 +20,21 @@ public class UserDAO {
     public boolean registerUser(String username, String email, String password) {
         String sql = "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)";
 
+        // Kiểm tra trước khi tạo kết nối
+        if (isUsernameExists(username)) {
+            LOGGER.warning("Username đã tồn tại: " + username);
+            return false;
+        }
+
+        if (isEmailExists(email)) {
+            LOGGER.warning("Email đã tồn tại: " + email);
+            return false;
+        }
+
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            // Kiểm tra xem username hoặc email đã tồn tại chưa
-            if (isUsernameExists(username)) {
-                LOGGER.warning("Username đã tồn tại: " + username);
-                return false;
-            }
-
-            if (isEmailExists(email)) {
-                LOGGER.warning("Email đã tồn tại: " + email);
-                return false;
-            }
-
-            // Hash password
             String hashedPassword = hashPassword(password);
-
             pstmt.setString(1, username);
             pstmt.setString(2, email);
             pstmt.setString(3, hashedPassword);
