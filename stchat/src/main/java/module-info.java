@@ -12,6 +12,7 @@ module me.chatapp.stchat {
     requires com.almasb.fxgl.all;
     requires java.logging;
     requires java.sql;
+    requires jakarta.persistence;
 
     opens me.chatapp.stchat to javafx.fxml;
     exports me.chatapp.stchat;
