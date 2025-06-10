@@ -12,30 +12,196 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 import me.chatapp.stchat.model.Message;
+import me.chatapp.stchat.view.components.*;
+import me.chatapp.stchat.view.handlers.ConnectionHandler;
+import me.chatapp.stchat.view.handlers.MessageHandler;
+import me.chatapp.stchat.view.handlers.UIStateHandler;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
 public class ChatView extends Application {
+    private static final String CHAT_CSS = """
+        .root {
+            -fx-background-color: linear-gradient(to bottom, #f8f9fa, #e9ecef);
+            -fx-font-family: 'Segoe UI', 'Arial', sans-serif;
+        }
+        
+        .main-container {
+            -fx-background-color: white;
+            -fx-background-radius: 15;
+            -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 2);
+        }
+        
+        .header-panel {
+            -fx-background-color: linear-gradient(to right, #667eea, #764ba2);
+            -fx-background-radius: 15 15 0 0;
+            -fx-padding: 20;
+        }
+        
+        .app-title {
+            -fx-text-fill: white;
+            -fx-font-size: 28px;
+            -fx-font-weight: bold;
+        }
+        
+        .connection-panel {
+            -fx-background-color: #f8f9fa;
+            -fx-padding: 20;
+            -fx-spacing: 15;
+        }
+        
+        .input-group {
+            -fx-spacing: 8;
+        }
+        
+        .input-label {
+            -fx-font-weight: bold;
+            -fx-text-fill: #495057;
+            -fx-font-size: 14px;
+        }
+        
+        .modern-text-field {
+            -fx-background-color: white;
+            -fx-border-color: #dee2e6;
+            -fx-border-radius: 8;
+            -fx-background-radius: 8;
+            -fx-padding: 10 15;
+            -fx-font-size: 14px;
+            -fx-effect: dropshadow(one-pass-box, rgba(0,0,0,0.05), 2, 0, 0, 1);
+        }
+        
+        .modern-text-field:focused {
+            -fx-border-color: #667eea;
+            -fx-effect: dropshadow(one-pass-box, rgba(102,126,234,0.3), 5, 0, 0, 0);
+        }
+        
+        .primary-button {
+            -fx-background-color: linear-gradient(to bottom, #667eea, #764ba2);
+            -fx-text-fill: white;
+            -fx-border-radius: 8;
+            -fx-background-radius: 8;
+            -fx-padding: 12 25;
+            -fx-font-size: 14px;
+            -fx-font-weight: bold;
+            -fx-cursor: hand;
+        }
+        
+        .primary-button:hover {
+            -fx-background-color: linear-gradient(to bottom, #5a67d8, #6b46a8);
+            -fx-effect: dropshadow(one-pass-box, rgba(102,126,234,0.4), 8, 0, 0, 2);
+        }
+        
+        .secondary-button {
+            -fx-background-color: #6c757d;
+            -fx-text-fill: white;
+            -fx-border-radius: 8;
+            -fx-background-radius: 8;
+            -fx-padding: 12 25;
+            -fx-font-size: 14px;
+            -fx-font-weight: bold;
+            -fx-cursor: hand;
+        }
+        
+        .secondary-button:hover {
+            -fx-background-color: #5a6268;
+        }
+        
+        .danger-button {
+            -fx-background-color: #dc3545;
+            -fx-text-fill: white;
+            -fx-border-radius: 8;
+            -fx-background-radius: 8;
+            -fx-padding: 10 20;
+            -fx-font-size: 14px;
+            -fx-cursor: hand;
+        }
+        
+        .danger-button:hover {
+            -fx-background-color: #c82333;
+        }
+        
+        .status-connected {
+            -fx-text-fill: #28a745;
+            -fx-font-weight: bold;
+            -fx-font-size: 14px;
+        }
+        
+        .status-disconnected {
+            -fx-text-fill: #dc3545;
+            -fx-font-weight: bold;
+            -fx-font-size: 14px;
+        }
+        
+        .chat-area {
+            -fx-background-color: white;
+            -fx-padding: 20;
+        }
+        
+        .message-input-area {
+            -fx-background-color: #f8f9fa;
+            -fx-padding: 15;
+            -fx-spacing: 10;
+            -fx-border-color: #dee2e6;
+            -fx-border-width: 1 0 0 0;
+        }
+        
+        .user-message {
+            -fx-background-color: #e3f2fd;
+            -fx-background-radius: 15 15 5 15;
+            -fx-padding: 12 15;
+            -fx-border-color: #2196f3;
+            -fx-border-width: 0 0 0 3;
+        }
+        
+        .bot-message {
+            -fx-background-color: #f1f8e9;
+            -fx-background-radius: 15 15 15 5;
+            -fx-padding: 12 15;
+            -fx-border-color: #4caf50;
+            -fx-border-width: 0 0 0 3;
+        }
+        
+        .system-message {
+            -fx-background-color: #fff3e0;
+            -fx-background-radius: 10;
+            -fx-padding: 10 15;
+            -fx-border-color: #ff9800;
+            -fx-border-width: 0 0 0 3;
+        }
+        
+        .private-message {
+            -fx-background-color: #fce4ec;
+            -fx-background-radius: 15 15 15 5;
+            -fx-padding: 12 15;
+            -fx-border-color: #e91e63;
+            -fx-border-width: 0 0 0 3;
+        }
+        """;
+
+    // Core components
     private final BorderPane root;
     private final Scene scene;
-    private ListView<Message> messageListView;
-    private Button clearButton;
-    private TextField usernameField;
-    private TextField hostField;
-    private TextField portField;
-    private Button connectButton;
-    private Button disconnectButton;
-    private Label statusLabel;
 
-    // Chat components
-    private TextArea chatArea;
-    private TextField messageField;
-    private Button sendButton;
+    // UI Components - now using modular approach
+    private HeaderComponent headerComponent;
+    private ConnectionPanel connectionPanel;
+    private ChatPanel chatPanel;
+    private MessageInputPanel messageInputPanel;
+    private StatusBar statusBar;
+
+    // Handlers
+    private ConnectionHandler connectionHandler;
+    private MessageHandler messageHandler;
+    private UIStateHandler uiStateHandler;
 
     // Functional interfaces for controller communication
     public interface ConnectAction {
         void execute(String host, String port, String username);
+    }
+
+    public HeaderComponent getHeaderComponent(){
+        return headerComponent;
     }
 
     public interface DisconnectAction {
@@ -52,292 +218,162 @@ public class ChatView extends Application {
 
     public ChatView() {
         root = new BorderPane();
-        scene = new Scene(root, 800, 600);
+        scene = new Scene(root, 1000, 700);
+        scene.getStylesheets().add("data:text/css;base64," +
+                java.util.Base64.getEncoder().encodeToString(CHAT_CSS.getBytes()));
 
-        setupHeader();
-        setupChatArea();
-        setupInputArea();
-        setupStatusBar();
+        initializeComponents();
+        initializeHandlers();
+        setupLayout();
+        setupEventHandlers();
 
         root.getStyleClass().add("root");
     }
 
+    private void initializeComponents() {
+        headerComponent = new HeaderComponent();
+        connectionPanel = new ConnectionPanel();
+        chatPanel = new ChatPanel();
+        messageInputPanel = new MessageInputPanel();
+        statusBar = new StatusBar();
+    }
+
+    private void initializeHandlers() {
+        connectionHandler = new ConnectionHandler(this);
+        messageHandler = new MessageHandler(this);
+        uiStateHandler = new UIStateHandler(this);
+    }
+
+    private void setupLayout() {
+        VBox mainContainer = new VBox();
+        mainContainer.getStyleClass().add("main-container");
+
+        // Header
+        root.setTop(headerComponent.getComponent());
+
+        // Center content
+        VBox centerContent = new VBox();
+        centerContent.getChildren().addAll(
+                connectionPanel.getComponent(),
+                chatPanel.getComponent()
+        );
+        VBox.setVgrow(chatPanel.getComponent(), Priority.ALWAYS);
+
+        root.setCenter(centerContent);
+
+        // Bottom
+        VBox bottomContent = new VBox();
+        bottomContent.getChildren().addAll(
+                messageInputPanel.getComponent(),
+                statusBar.getComponent()
+        );
+
+        root.setBottom(bottomContent);
+    }
+
+    private void setupEventHandlers() {
+        // Connection events
+        connectionPanel.getConnectButton().setOnAction(e -> {
+            if (onConnectAction != null) {
+                onConnectAction.execute(
+                        connectionPanel.getHostField().getText(),
+                        connectionPanel.getPortField().getText(),
+                        connectionPanel.getUsernameField().getText()
+                );
+            }
+        });
+
+        connectionPanel.getDisconnectButton().setOnAction(e -> {
+            if (onDisconnectAction != null) {
+                onDisconnectAction.execute();
+            }
+        });
+
+        // Message events
+        messageInputPanel.getSendButton().setOnAction(e -> sendMessage());
+        messageInputPanel.getMessageField().setOnAction(e -> sendMessage());
+        messageInputPanel.getClearButton().setOnAction(e -> chatPanel.clearMessages());
+
+        // Enter key support
+        connectionPanel.getUsernameField().setOnAction(e ->
+                connectionPanel.getConnectButton().fire());
+    }
+
+    private void sendMessage() {
+        String message = messageInputPanel.getMessageField().getText().trim();
+        if (!message.isEmpty() && onSendMessageAction != null) {
+            onSendMessageAction.execute(message);
+            messageInputPanel.getMessageField().clear();
+        }
+    }
+
     @Override
     public void start(Stage primaryStage) {
-        primaryStage.setTitle("Chat Client");
-        primaryStage.setScene(new Scene(createMainLayout(), 500, 600));
+        primaryStage.setTitle("ST Chat - Modern Interface");
+        primaryStage.setScene(scene);
+        primaryStage.setMinWidth(800);
+        primaryStage.setMinHeight(600);
+
         primaryStage.setOnCloseRequest(e -> {
             if (onDisconnectAction != null) {
                 onDisconnectAction.execute();
             }
             Platform.exit();
         });
-        primaryStage.show();
 
-        // Set initial state
+        primaryStage.show();
         updateConnectionStatus(false);
     }
 
     public void updateConnectionStatus(boolean connected) {
         Platform.runLater(() -> {
+            uiStateHandler.updateConnectionState(connected);
+
             if (connected) {
-                statusLabel.setText("Connected");
-                statusLabel.setStyle("-fx-text-fill: green; -fx-font-weight: bold;");
-                connectButton.setDisable(true);
-                disconnectButton.setDisable(false);
-                hostField.setDisable(true);
-                portField.setDisable(true);
-                usernameField.setDisable(true);
-                messageField.setDisable(false);
-                sendButton.setDisable(false);
-                messageField.requestFocus();
+                statusBar.setStatus("Connected", true);
+                messageInputPanel.getMessageField().requestFocus();
             } else {
-                statusLabel.setText("Still not connected");
-                statusLabel.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
-                connectButton.setDisable(false);
-                disconnectButton.setDisable(true);
-                hostField.setDisable(false);
-                portField.setDisable(false);
-                usernameField.setDisable(false);
-                messageField.setDisable(true);
-                sendButton.setDisable(true);
+                statusBar.setStatus("Disconnected", false);
             }
         });
     }
 
     public void addMessage(String message) {
         Platform.runLater(() -> {
-            if (chatArea != null) {
-                String timestamp = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-                chatArea.appendText("[" + timestamp + "] " + message + "\n");
-            }
+            String timestamp = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+            chatPanel.addMessage("[" + timestamp + "] " + message);
         });
     }
 
-    private VBox createMainLayout() {
-        VBox root = new VBox(10);
-        root.setPadding(new Insets(10));
-
-        // Connection panel
-        TitledPane connectionPane = new TitledPane("Connect", createConnectionPanel());
-        connectionPane.setCollapsible(false);
-
-        // Chat panel
-        TitledPane chatPane = new TitledPane("Chat", createChatPanel());
-        chatPane.setCollapsible(false);
-
-        root.getChildren().addAll(connectionPane, chatPane);
-        VBox.setVgrow(chatPane, Priority.ALWAYS);
-
-        return root;
-    }
-
-    private VBox createConnectionPanel() {
-        VBox connectionBox = new VBox(5);
-
-        // Host input
-        HBox hostBox = new HBox(5);
-        hostBox.setAlignment(Pos.CENTER_LEFT);
-        Label hostLabel = new Label("Server:");
-        hostLabel.setMinWidth(80);
-        hostField = new TextField("localhost");
-        hostField.setPromptText("localhost");
-        hostBox.getChildren().addAll(hostLabel, hostField);
-
-        // Port input
-        HBox portBox = new HBox(5);
-        portBox.setAlignment(Pos.CENTER_LEFT);
-        Label portLabel = new Label("Port:");
-        portLabel.setMinWidth(80);
-        portField = new TextField("12345");
-        portField.setPromptText("12345");
-        portBox.getChildren().addAll(portLabel, portField);
-
-        // Username input
-        HBox usernameBox = new HBox(5);
-        usernameBox.setAlignment(Pos.CENTER_LEFT);
-        Label usernameLabel = new Label("Name:");
-        usernameLabel.setMinWidth(80);
-        usernameField = new TextField();
-        usernameField.setPromptText("Enter your name");
-        usernameBox.getChildren().addAll(usernameLabel, usernameField);
-
-        // Buttons
-        HBox buttonBox = new HBox(10);
-        buttonBox.setAlignment(Pos.CENTER);
-        connectButton = new Button("Connect");
-        disconnectButton = new Button("Disconnect");
-
-        connectButton.setOnAction(e -> {
-            if (onConnectAction != null) {
-                onConnectAction.execute(hostField.getText(), portField.getText(), usernameField.getText());
-            }
+    public void addMessage(Message message) {
+        Platform.runLater(() -> {
+            chatPanel.addMessage(message);
         });
-
-        disconnectButton.setOnAction(e -> {
-            if (onDisconnectAction != null) {
-                onDisconnectAction.execute();
-            }
-        });
-
-        buttonBox.getChildren().addAll(connectButton, disconnectButton);
-
-        // Status
-        statusLabel = new Label("Still not connect");
-        statusLabel.setStyle("-fx-font-weight: bold;");
-
-        connectionBox.getChildren().addAll(hostBox, portBox, usernameBox, buttonBox, statusLabel);
-
-        // Enter key support
-        usernameField.setOnAction(e -> connectButton.fire());
-
-        return connectionBox;
-    }
-
-    private VBox createChatPanel() {
-        VBox chatBox = new VBox(5);
-
-        // Chat area
-        chatArea = new TextArea();
-        chatArea.setEditable(false);
-        chatArea.setWrapText(true);
-        chatArea.setStyle("-fx-font-family: 'Courier New', monospace;");
-        VBox.setVgrow(chatArea, Priority.ALWAYS);
-
-        // Message input
-        HBox messageBox = new HBox(5);
-        messageField = new TextField();
-        messageField.setPromptText("Enter a message...");
-        sendButton = new Button("Send");
-
-        messageField.setOnAction(e -> sendButton.fire());
-        sendButton.setOnAction(e -> {
-            String message = messageField.getText().trim();
-            if (!message.isEmpty() && onSendMessageAction != null) {
-                onSendMessageAction.execute(message);
-                messageField.clear();
-            }
-        });
-
-        HBox.setHgrow(messageField, Priority.ALWAYS);
-        messageBox.getChildren().addAll(messageField, sendButton);
-
-        chatBox.getChildren().addAll(chatArea, messageBox);
-
-        return chatBox;
-    }
-
-    private void setupHeader() {
-        VBox header = new VBox();
-        header.getStyleClass().add("header");
-        header.setPadding(new Insets(15));
-        header.setSpacing(10);
-
-        Label titleLabel = new Label("ST Chat Application");
-        titleLabel.getStyleClass().add("title");
-        titleLabel.setFont(Font.font("System", FontWeight.BOLD, 24));
-
-        HBox userBox = new HBox(10);
-        userBox.setAlignment(Pos.CENTER_LEFT);
-        Label userLabel = new Label("Username:");
-        userLabel.getStyleClass().add("user-label");
-
-        // Initialize usernameField if not already done
-        if (usernameField == null) {
-            usernameField = new TextField("User");
-        }
-        usernameField.getStyleClass().add("user-field");
-        usernameField.setPrefWidth(150);
-
-        userBox.getChildren().addAll(userLabel, usernameField);
-        header.getChildren().addAll(titleLabel, userBox);
-
-        root.setTop(header);
-    }
-
-    private void setupChatArea() {
-        VBox chatContainer = new VBox();
-        chatContainer.getStyleClass().add("chat-container");
-        chatContainer.setPadding(new Insets(10));
-
-        Label chatLabel = new Label("Message:");
-        chatLabel.getStyleClass().add("section-label");
-
-        messageListView = new ListView<>();
-        messageListView.getStyleClass().add("message-list");
-        messageListView.setCellFactory(listView -> new MessageListCell());
-
-        VBox.setVgrow(messageListView, Priority.ALWAYS);
-        chatContainer.getChildren().addAll(chatLabel, messageListView);
-
-        root.setCenter(chatContainer);
-    }
-
-    private void setupInputArea() {
-        VBox inputContainer = new VBox();
-        inputContainer.getStyleClass().add("input-container");
-        inputContainer.setPadding(new Insets(15));
-        inputContainer.setSpacing(10);
-
-        Label inputLabel = new Label("Enter a message:");
-        inputLabel.getStyleClass().add("section-label");
-
-        HBox inputBox = new HBox(10);
-        inputBox.setAlignment(Pos.CENTER);
-
-        // Initialize messageField if not already done
-        if (messageField == null) {
-            messageField = new TextField();
-        }
-        messageField.getStyleClass().add("input-field");
-        messageField.setPromptText("Enter your message...");
-        HBox.setHgrow(messageField, Priority.ALWAYS);
-
-        // Initialize sendButton if not already done
-        if (sendButton == null) {
-            sendButton = new Button("Send");
-        }
-        sendButton.getStyleClass().addAll("button", "send-button");
-        sendButton.setPrefWidth(80);
-
-        clearButton = new Button("Delete");
-        clearButton.getStyleClass().addAll("button", "clear-button");
-        clearButton.setPrefWidth(80);
-
-        inputBox.getChildren().addAll(messageField, sendButton, clearButton);
-        inputContainer.getChildren().addAll(inputLabel, inputBox);
-
-        root.setBottom(inputContainer);
-    }
-
-    private void setupStatusBar() {
-        HBox statusBar = new HBox();
-        statusBar.getStyleClass().add("status-bar");
-        statusBar.setPadding(new Insets(5, 15, 5, 15));
-
-        // Initialize statusLabel if not already done
-        if (statusLabel == null) {
-            statusLabel = new Label("Ready");
-        }
-        statusLabel.getStyleClass().add("status-label");
-
-        statusBar.getChildren().add(statusLabel);
-
-        VBox bottomContainer = new VBox();
-        bottomContainer.getChildren().addAll(root.getBottom(), statusBar);
-        root.setBottom(bottomContainer);
     }
 
     public void showError(String error) {
         Platform.runLater(() -> {
             Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle("Error");
-            alert.setHeaderText(null);
+            alert.setTitle("Connection Error");
+            alert.setHeaderText("Unable to connect");
             alert.setContentText(error);
+            alert.getDialogPane().getStylesheets().add(scene.getStylesheets().get(0));
             alert.showAndWait();
         });
     }
 
+    public void showInfo(String title, String message) {
+        Platform.runLater(() -> {
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle(title);
+            alert.setHeaderText(null);
+            alert.setContentText(message);
+            alert.getDialogPane().getStylesheets().add(scene.getStylesheets().get(0));
+            alert.showAndWait();
+        });
+    }
+
+    // Setters for actions
     public void setOnConnectAction(ConnectAction action) {
         this.onConnectAction = action;
     }
@@ -350,87 +386,18 @@ public class ChatView extends Application {
         this.onSendMessageAction = action;
     }
 
-    // Getters
-    public Scene getScene() {
-        return scene;
-    }
+    // Getters for components (for external access if needed)
+    public ConnectionPanel getConnectionPanel() { return connectionPanel; }
+    public ChatPanel getChatPanel() { return chatPanel; }
+    public MessageInputPanel getMessageInputPanel() { return messageInputPanel; }
+    public StatusBar getStatusBar() { return statusBar; }
+    public Scene getScene() { return scene; }
 
-    public ListView<Message> getMessageListView() {
-        return messageListView;
-    }
-
-    public TextField getMessageField() {
-        return messageField;
-    }
-
-    public Button getSendButton() {
-        return sendButton;
-    }
-
-    public Button getClearButton() {
-        return clearButton;
-    }
-
-    public Label getStatusLabel() {
-        return statusLabel;
-    }
-
-    public TextField getUserNameField() {
-        return usernameField;
-    }
-
-    private static class MessageListCell extends ListCell<Message> {
-        @Override
-        protected void updateItem(Message message, boolean empty) {
-            super.updateItem(message, empty);
-
-            if (empty || message == null) {
-                setGraphic(null);
-                setText(null);
-            } else {
-                VBox messageBox = new VBox(5);
-                messageBox.setPadding(new Insets(8));
-
-                HBox headerBox = new HBox();
-                headerBox.setSpacing(10);
-
-                Label senderLabel = new Label(message.getSender());
-                senderLabel.setFont(Font.font("System", FontWeight.BOLD, 12));
-
-                Label timeLabel = new Label(message.getFormattedTime());
-                timeLabel.setFont(Font.font("System", 10));
-                timeLabel.setTextFill(Color.GRAY);
-
-                headerBox.getChildren().addAll(senderLabel, timeLabel);
-
-                Label contentLabel = new Label(message.getContent());
-                contentLabel.setWrapText(true);
-                contentLabel.setFont(Font.font("System", 13));
-
-                messageBox.getChildren().addAll(headerBox, contentLabel);
-
-                switch (message.getType()) {
-                    case USER:
-                        messageBox.getStyleClass().add("user-message");
-                        senderLabel.setTextFill(Color.BLUE);
-                        break;
-                    case BOT:
-                        messageBox.getStyleClass().add("bot-message");
-                        senderLabel.setTextFill(message.getContent().startsWith("(Private)") ? Color.PURPLE : Color.GREEN);
-                        if (message.getContent().startsWith("(Private)")) {
-                            contentLabel.setText("(Private) " + message.getContent());
-                        }
-                        break;
-                    case SYSTEM:
-                        messageBox.getStyleClass().add("system-message");
-                        senderLabel.setTextFill(Color.ORANGE);
-                        break;
-                }
-
-                setGraphic(messageBox);
-                setText(null);
-            }
-        }
-    }
+    // Legacy getters for backward compatibility
+    public ListView<Message> getMessageListView() { return chatPanel.getMessageListView(); }
+    public TextField getMessageField() { return messageInputPanel.getMessageField(); }
+    public Button getSendButton() { return messageInputPanel.getSendButton(); }
+    public Button getClearButton() { return messageInputPanel.getClearButton(); }
+    public Label getStatusLabel() { return statusBar.getStatusLabel(); }
+    public TextField getUserNameField() { return connectionPanel.getUsernameField(); }
 }
-
