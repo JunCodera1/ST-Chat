@@ -237,7 +237,7 @@ public class UserDAO {
             }
 
         } catch (SQLException e) {
-            LOGGER.severe("Lỗi khi cập nhật user: " + e.getMessage());
+            LOGGER.severe("Error when update user: " + e.getMessage());
         }
 
         return false;
