@@ -22,12 +22,12 @@ public class UserDAO {
 
         // Kiểm tra trước khi tạo kết nối
         if (isUsernameExists(username)) {
-            LOGGER.warning("Username đã tồn tại: " + username);
+            LOGGER.warning("Username already exist: " + username);
             return false;
         }
 
         if (isEmailExists(email)) {
-            LOGGER.warning("Email đã tồn tại: " + email);
+            LOGGER.warning("Email already exist: " + email);
             return false;
         }
 
@@ -42,12 +42,12 @@ public class UserDAO {
             int rowsAffected = pstmt.executeUpdate();
 
             if (rowsAffected > 0) {
-                LOGGER.info("Đăng ký thành công cho user: " + username);
+                LOGGER.info("Login success: " + username);
                 return true;
             }
 
         } catch (SQLException e) {
-            LOGGER.severe("Lỗi khi đăng ký user: " + e.getMessage());
+            LOGGER.severe("Error occured when login: " + e.getMessage());
         }
 
         return false;
@@ -70,24 +70,24 @@ public class UserDAO {
                 String inputHash = hashPassword(password);
 
                 if (storedHash.equals(inputHash)) {
-                    LOGGER.info("Đăng nhập thành công: " + username);
+                    LOGGER.info("Login success: " + username);
                     return true;
                 } else {
-                    LOGGER.warning("Sai mật khẩu cho user: " + username);
+                    LOGGER.warning("Password is not correct: " + username);
                 }
             } else {
-                LOGGER.warning("Không tìm thấy user: " + username);
+                LOGGER.warning("Not found a user: " + username);
             }
 
         } catch (SQLException e) {
-            LOGGER.severe("Lỗi khi xác thực user: " + e.getMessage());
+            LOGGER.severe("Error when authenticating: " + e.getMessage());
         }
 
         return false;
     }
 
     /**
-     * Lấy thông tin người dùng theo username
+     * Get info by username
      */
     public User getUserByUsername(String username) {
         String sql = "SELECT id, username, email, created_at FROM users WHERE username = ?";
@@ -108,14 +108,14 @@ public class UserDAO {
             }
 
         } catch (SQLException e) {
-            LOGGER.severe("Lỗi khi lấy thông tin user: " + e.getMessage());
+            LOGGER.severe("Error occurred when get user: " + e.getMessage());
         }
 
         return null;
     }
 
     /**
-     * Lấy thông tin người dùng theo email
+     * get info by email
      */
     public User getUserByEmail(String email) {
         String sql = "SELECT id, username, email, created_at FROM users WHERE email = ?";
@@ -136,14 +136,14 @@ public class UserDAO {
             }
 
         } catch (SQLException e) {
-            LOGGER.severe("Lỗi khi lấy thông tin user theo email: " + e.getMessage());
+            LOGGER.severe("Error occurred when get user: " + e.getMessage());
         }
 
         return null;
     }
 
     /**
-     * Kiểm tra username đã tồn tại chưa
+     * Username it exists ?
      */
     public boolean isUsernameExists(String username) {
         String sql = "SELECT COUNT(*) FROM users WHERE username = ?";
@@ -159,14 +159,14 @@ public class UserDAO {
             }
 
         } catch (SQLException e) {
-            LOGGER.severe("Lỗi khi kiểm tra username: " + e.getMessage());
+            LOGGER.severe("Error occurred when check username: " + e.getMessage());
         }
 
         return false;
     }
 
     /**
-     * Kiểm tra email đã tồn tại chưa
+     * Email is already exist ?
      */
     public boolean isEmailExists(String email) {
         String sql = "SELECT COUNT(*) FROM users WHERE email = ?";
@@ -182,14 +182,14 @@ public class UserDAO {
             }
 
         } catch (SQLException e) {
-            LOGGER.severe("Lỗi khi kiểm tra email: " + e.getMessage());
+            LOGGER.severe("Error occurred when checking email: " + e.getMessage());
         }
 
         return false;
     }
 
     /**
-     * Lấy danh sách tất cả người dùng
+     * Get all users
      */
     public List<User> getAllUsers() {
         List<User> users = new ArrayList<>();
@@ -210,14 +210,14 @@ public class UserDAO {
             }
 
         } catch (SQLException e) {
-            LOGGER.severe("Lỗi khi lấy danh sách users: " + e.getMessage());
+            LOGGER.severe("Error occurred when get list user: " + e.getMessage());
         }
 
         return users;
     }
 
     /**
-     * Cập nhật thông tin người dùng
+     * Update info user
      */
     public boolean updateUser(int userId, String username, String email) {
         String sql = "UPDATE users SET username = ?, email = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
@@ -232,7 +232,7 @@ public class UserDAO {
             int rowsAffected = pstmt.executeUpdate();
 
             if (rowsAffected > 0) {
-                LOGGER.info("Cập nhật thành công user ID: " + userId);
+                LOGGER.info("Update success : " + userId);
                 return true;
             }
 
@@ -244,12 +244,11 @@ public class UserDAO {
     }
 
     /**
-     * Đổi mật khẩu người dùng
+     * Change pass
      */
     public boolean changePassword(String username, String oldPassword, String newPassword) {
-        // Kiểm tra mật khẩu cũ trước
         if (!authenticateUser(username, oldPassword)) {
-            LOGGER.warning("Mật khẩu cũ không đúng cho user: " + username);
+            LOGGER.warning("Old password is not corrected: " + username);
             return false;
         }
 
@@ -266,19 +265,19 @@ public class UserDAO {
             int rowsAffected = pstmt.executeUpdate();
 
             if (rowsAffected > 0) {
-                LOGGER.info("Đổi mật khẩu thành công cho user: " + username);
+                LOGGER.info("Changed password for " + username);
                 return true;
             }
 
         } catch (SQLException e) {
-            LOGGER.severe("Lỗi khi đổi mật khẩu: " + e.getMessage());
+            LOGGER.severe("Error occurred when changing password:  " + e.getMessage());
         }
 
         return false;
     }
 
     /**
-     * Xóa người dùng
+     * Delete user
      */
     public boolean deleteUser(int userId) {
         String sql = "DELETE FROM users WHERE id = ?";
@@ -291,12 +290,12 @@ public class UserDAO {
             int rowsAffected = pstmt.executeUpdate();
 
             if (rowsAffected > 0) {
-                LOGGER.info("Xóa thành công user ID: " + userId);
+                LOGGER.info("Delete success user: " + userId);
                 return true;
             }
 
         } catch (SQLException e) {
-            LOGGER.severe("Lỗi khi xóa user: " + e.getMessage());
+            LOGGER.severe("Error is occurred when deleting a user : " + e.getMessage());
         }
 
         return false;
@@ -323,13 +322,13 @@ public class UserDAO {
             return hexString.toString();
 
         } catch (NoSuchAlgorithmException e) {
-            LOGGER.severe("Lỗi khi hash password: " + e.getMessage());
-            throw new RuntimeException("Không thể hash password", e);
+            LOGGER.severe("Error when hash the password: " + e.getMessage());
+            throw new RuntimeException("Can't hash the password", e);
         }
     }
 
     /**
-     * Đếm tổng số người dùng
+     * Count user
      */
     public int getUserCount() {
         String sql = "SELECT COUNT(*) FROM users";
@@ -343,7 +342,7 @@ public class UserDAO {
             }
 
         } catch (SQLException e) {
-            LOGGER.severe("Lỗi khi đếm số user: " + e.getMessage());
+            LOGGER.severe("Error occured when counting user: " + e.getMessage());
         }
 
         return 0;
