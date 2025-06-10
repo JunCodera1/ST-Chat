@@ -81,7 +81,7 @@ public class ChatView extends Application {
     public void updateConnectionStatus(boolean connected) {
         Platform.runLater(() -> {
             if (connected) {
-                statusLabel.setText("Đã kết nối");
+                statusLabel.setText("Connected");
                 statusLabel.setStyle("-fx-text-fill: green; -fx-font-weight: bold;");
                 connectButton.setDisable(true);
                 disconnectButton.setDisable(false);
@@ -92,7 +92,7 @@ public class ChatView extends Application {
                 sendButton.setDisable(false);
                 messageField.requestFocus();
             } else {
-                statusLabel.setText("Chưa kết nối");
+                statusLabel.setText("Still not connected");
                 statusLabel.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
                 connectButton.setDisable(false);
                 disconnectButton.setDisable(true);
@@ -119,7 +119,7 @@ public class ChatView extends Application {
         root.setPadding(new Insets(10));
 
         // Connection panel
-        TitledPane connectionPane = new TitledPane("Kết nối", createConnectionPanel());
+        TitledPane connectionPane = new TitledPane("Connect", createConnectionPanel());
         connectionPane.setCollapsible(false);
 
         // Chat panel
@@ -156,17 +156,17 @@ public class ChatView extends Application {
         // Username input
         HBox usernameBox = new HBox(5);
         usernameBox.setAlignment(Pos.CENTER_LEFT);
-        Label usernameLabel = new Label("Tên:");
+        Label usernameLabel = new Label("Name:");
         usernameLabel.setMinWidth(80);
         usernameField = new TextField();
-        usernameField.setPromptText("Nhập tên của bạn");
+        usernameField.setPromptText("Enter your name");
         usernameBox.getChildren().addAll(usernameLabel, usernameField);
 
         // Buttons
         HBox buttonBox = new HBox(10);
         buttonBox.setAlignment(Pos.CENTER);
-        connectButton = new Button("Kết nối");
-        disconnectButton = new Button("Ngắt kết nối");
+        connectButton = new Button("Connect");
+        disconnectButton = new Button("Disconnect");
 
         connectButton.setOnAction(e -> {
             if (onConnectAction != null) {
@@ -183,7 +183,7 @@ public class ChatView extends Application {
         buttonBox.getChildren().addAll(connectButton, disconnectButton);
 
         // Status
-        statusLabel = new Label("Chưa kết nối");
+        statusLabel = new Label("Still not connect");
         statusLabel.setStyle("-fx-font-weight: bold;");
 
         connectionBox.getChildren().addAll(hostBox, portBox, usernameBox, buttonBox, statusLabel);
@@ -207,8 +207,8 @@ public class ChatView extends Application {
         // Message input
         HBox messageBox = new HBox(5);
         messageField = new TextField();
-        messageField.setPromptText("Nhập tin nhắn...");
-        sendButton = new Button("Gửi");
+        messageField.setPromptText("Enter a message...");
+        sendButton = new Button("Send");
 
         messageField.setOnAction(e -> sendButton.fire());
         sendButton.setOnAction(e -> {
@@ -239,7 +239,7 @@ public class ChatView extends Application {
 
         HBox userBox = new HBox(10);
         userBox.setAlignment(Pos.CENTER_LEFT);
-        Label userLabel = new Label("Tên người dùng:");
+        Label userLabel = new Label("Username:");
         userLabel.getStyleClass().add("user-label");
 
         // Initialize usernameField if not already done
@@ -260,7 +260,7 @@ public class ChatView extends Application {
         chatContainer.getStyleClass().add("chat-container");
         chatContainer.setPadding(new Insets(10));
 
-        Label chatLabel = new Label("Tin nhắn:");
+        Label chatLabel = new Label("Message:");
         chatLabel.getStyleClass().add("section-label");
 
         messageListView = new ListView<>();
@@ -279,7 +279,7 @@ public class ChatView extends Application {
         inputContainer.setPadding(new Insets(15));
         inputContainer.setSpacing(10);
 
-        Label inputLabel = new Label("Nhập tin nhắn:");
+        Label inputLabel = new Label("Enter a message:");
         inputLabel.getStyleClass().add("section-label");
 
         HBox inputBox = new HBox(10);
@@ -290,17 +290,17 @@ public class ChatView extends Application {
             messageField = new TextField();
         }
         messageField.getStyleClass().add("input-field");
-        messageField.setPromptText("Nhập tin nhắn của bạn...");
+        messageField.setPromptText("Enter your message...");
         HBox.setHgrow(messageField, Priority.ALWAYS);
 
         // Initialize sendButton if not already done
         if (sendButton == null) {
-            sendButton = new Button("Gửi");
+            sendButton = new Button("Send");
         }
         sendButton.getStyleClass().addAll("button", "send-button");
         sendButton.setPrefWidth(80);
 
-        clearButton = new Button("Xóa");
+        clearButton = new Button("Delete");
         clearButton.getStyleClass().addAll("button", "clear-button");
         clearButton.setPrefWidth(80);
 
@@ -317,7 +317,7 @@ public class ChatView extends Application {
 
         // Initialize statusLabel if not already done
         if (statusLabel == null) {
-            statusLabel = new Label("Sẵn sàng");
+            statusLabel = new Label("Ready");
         }
         statusLabel.getStyleClass().add("status-label");
 
@@ -331,7 +331,7 @@ public class ChatView extends Application {
     public void showError(String error) {
         Platform.runLater(() -> {
             Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle("Lỗi");
+            alert.setTitle("Error");
             alert.setHeaderText(null);
             alert.setContentText(error);
             alert.showAndWait();
@@ -409,7 +409,6 @@ public class ChatView extends Application {
 
                 messageBox.getChildren().addAll(headerBox, contentLabel);
 
-                // Style dựa trên loại tin nhắn
                 switch (message.getType()) {
                     case USER:
                         messageBox.getStyleClass().add("user-message");

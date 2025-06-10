@@ -13,6 +13,7 @@ module me.chatapp.stchat {
     requires java.logging;
     requires java.sql;
     requires jakarta.persistence;
+    requires org.postgresql.jdbc;
 
     opens me.chatapp.stchat to javafx.fxml;
     exports me.chatapp.stchat;

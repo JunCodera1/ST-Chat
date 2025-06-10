@@ -141,7 +141,7 @@ public class ChatController implements ChatModel.ChatModelListener {
     public void onMessageAdded() {
         Platform.runLater(() -> {
             scrollToBottom();
-            view.getStatusLabel().setText("Tin nhắn mới");
+            view.getStatusLabel().setText("New message");
         });
     }
 
@@ -155,7 +155,7 @@ public class ChatController implements ChatModel.ChatModelListener {
                     String senderInfo = parts[0].replace("Private from ", "").trim();
                     String content = parts[1].trim();
                     model.addMessage(senderInfo, content, MessageType.BOT); // Có thể tạo MessageType.PRIVATE nếu muốn
-                    view.getStatusLabel().setText("Nhận tin nhắn riêng mới");
+                    view.getStatusLabel().setText("Receive new private message");
                 }
             } else {
                 // Xử lý tin nhắn broadcast hoặc hệ thống

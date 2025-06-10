@@ -23,12 +23,12 @@ public class DatabaseConnection {
             try {
                 Class.forName("org.postgresql.Driver");
                 connection = DriverManager.getConnection(URL, USERNAME, PASSWORD);
-                LOGGER.info("Kết nối database thành công!");
+                LOGGER.info("Connect db success!");
             } catch (ClassNotFoundException e) {
-                LOGGER.severe("Không tìm thấy PostgreSQL driver: " + e.getMessage());
-                throw new SQLException("PostgreSQL driver không được tìm thấy", e);
+                LOGGER.severe("Can't found PostgreSQL driver: " + e.getMessage());
+                throw new SQLException("PostgreSQL driver not found!", e);
             } catch (SQLException e) {
-                LOGGER.severe("Lỗi kết nối database: " + e.getMessage());
+                LOGGER.severe("Error occurred when connect database : " + e.getMessage());
                 throw e;
             }
         }
@@ -36,28 +36,28 @@ public class DatabaseConnection {
     }
 
     /**
-     * Đóng kết nối database
+     * Close the connect
      */
     public static void closeConnection() {
         if (connection != null) {
             try {
                 connection.close();
-                LOGGER.info("Đã đóng kết nối database");
+                LOGGER.info("Closed connection db");
             } catch (SQLException e) {
-                LOGGER.warning("Lỗi khi đóng kết nối database: " + e.getMessage());
+                LOGGER.warning("Error occurred when closing connect db: " + e.getMessage());
             }
         }
     }
 
     /**
-     * Kiểm tra kết nối database
+     * Check connect a db
      */
     public static boolean testConnection() {
         try {
             Connection conn = getConnection();
             return conn != null && !conn.isClosed();
         } catch (SQLException e) {
-            LOGGER.warning("Test kết nối thất bại: " + e.getMessage());
+            LOGGER.warning("Test is failed: " + e.getMessage());
             return false;
         }
     }
