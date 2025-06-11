@@ -1,13 +1,14 @@
 package me.chatapp.stchat.view.components;
 
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.stage.Popup;
 
 public class MessageInputPanel {
     private final VBox inputContainer;
@@ -15,6 +16,8 @@ public class MessageInputPanel {
     private final Button sendButton;
     private final Button clearButton;
     private final Button emojiButton;
+
+    private final Popup emojiPopup = new Popup();
 
     public MessageInputPanel() {
         inputContainer = new VBox();
@@ -38,15 +41,7 @@ public class MessageInputPanel {
 
         // Emoji button (future feature)
         emojiButton = new Button("😊");
-        emojiButton.setStyle("""
-            -fx-background-color: #f8f9fa;
-            -fx-border-color: #dee2e6;
-            -fx-border-radius: 8;
-            -fx-background-radius: 8;
-            -fx-padding: 8 12;
-            -fx-font-size: 16px;
-            -fx-cursor: hand;
-            """);
+        emojiButton.getStylesheets().add("emoji-btn");
         emojiButton.setOnAction(e -> showEmojiPopup());
 
         // Send button
@@ -98,15 +93,41 @@ public class MessageInputPanel {
     }
 
     private void showEmojiPopup() {
-        // TODO: Implement emoji picker popup
-        // For now, just add a simple emoji to the text field
-        String[] emojis = {"😊", "😂", "😍", "🤔", "👍", "❤️", "🎉", "🔥"};
-        String currentText = messageField.getText();
-        String randomEmoji = emojis[(int) (Math.random() * emojis.length)];
-        messageField.setText(currentText + randomEmoji);
-        messageField.requestFocus();
-        messageField.positionCaret(messageField.getText().length());
+        if (emojiPopup.isShowing()) {
+            emojiPopup.hide();
+            return;
+        }
+
+        // Danh sách emoji mẫu
+        String[] emojis = {"😊", "😂", "😍", "🤔", "👍", "❤️", "🎉", "🔥", "😎", "😭", "😡", "😱"};
+
+        FlowPane emojiPane = new FlowPane();
+        emojiPane.setHgap(10);
+        emojiPane.setVgap(10);
+        emojiPane.setPrefWrapLength(200);
+        emojiPane.setPadding(new javafx.geometry.Insets(10));
+        emojiPane.setStyle("-fx-background-color: white; -fx-border-color: gray; -fx-border-radius: 5; -fx-background-radius: 5;");
+
+        for (String emoji : emojis) {
+            Button emojiBtn = new Button(emoji);
+            emojiBtn.setStyle("-fx-font-size: 20px; -fx-background-color: transparent;");
+            emojiBtn.setOnAction(e -> {
+                messageField.appendText(emoji);
+                emojiPopup.hide();
+                messageField.requestFocus();
+            });
+            emojiPane.getChildren().add(emojiBtn);
+        }
+
+        emojiPopup.getContent().clear();
+        emojiPopup.getContent().add(emojiPane);
+        emojiPopup.setAutoHide(true);
+
+        // Hiển thị popup ngay dưới nút emoji
+        javafx.geometry.Bounds bounds = emojiButton.localToScreen(emojiButton.getBoundsInLocal());
+        emojiPopup.show(emojiButton, bounds.getMinX(), bounds.getMaxY());
     }
+
 
     public VBox getComponent() {
         return inputContainer;

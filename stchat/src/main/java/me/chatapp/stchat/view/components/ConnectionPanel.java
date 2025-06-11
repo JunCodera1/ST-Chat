@@ -8,14 +8,16 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import me.chatapp.stchat.service.UserService;
 
 public class ConnectionPanel {
     private final VBox connectionContainer;
     private final TextField hostField;
-    private final TextField portField;
     private final TextField usernameField;
     private final Button connectButton;
     private final Button disconnectButton;
+
+
 
     public ConnectionPanel() {
         connectionContainer = new VBox();
@@ -29,10 +31,6 @@ public class ConnectionPanel {
         // Server input group
         VBox serverGroup = createInputGroup("Server Address", "localhost");
         hostField = (TextField) ((HBox) serverGroup.getChildren().get(1)).getChildren().get(0);
-
-        // Port input group
-        VBox portGroup = createInputGroup("Port", "12345");
-        portField = (TextField) ((HBox) portGroup.getChildren().get(1)).getChildren().get(0);
 
         // Username input group
         VBox usernameGroup = createInputGroup("Username", "Enter your name");
@@ -56,7 +54,6 @@ public class ConnectionPanel {
         connectionContainer.getChildren().addAll(
                 titleLabel,
                 serverGroup,
-                portGroup,
                 usernameGroup,
                 controlsBox
         );
@@ -93,7 +90,6 @@ public class ConnectionPanel {
 
     // Getters
     public TextField getHostField() { return hostField; }
-    public TextField getPortField() { return portField; }
     public TextField getUsernameField() { return usernameField; }
     public Button getConnectButton() { return connectButton; }
     public Button getDisconnectButton() { return disconnectButton; }
@@ -104,29 +100,18 @@ public class ConnectionPanel {
             connectButton.setDisable(true);
             disconnectButton.setDisable(false);
             hostField.setDisable(true);
-            portField.setDisable(true);
             usernameField.setDisable(true);
         } else {
             connectButton.setDisable(false);
             disconnectButton.setDisable(true);
             hostField.setDisable(false);
-            portField.setDisable(false);
             usernameField.setDisable(false);
         }
-    }
-
-    public boolean validateInput() {
-        return !hostField.getText().trim().isEmpty() &&
-                !portField.getText().trim().isEmpty() &&
-                !usernameField.getText().trim().isEmpty();
     }
 
     public void showValidationError() {
         if (hostField.getText().trim().isEmpty()) {
             hostField.setStyle(hostField.getStyle() + "; -fx-border-color: #dc3545;");
-        }
-        if (portField.getText().trim().isEmpty()) {
-            portField.setStyle(portField.getStyle() + "; -fx-border-color: #dc3545;");
         }
         if (usernameField.getText().trim().isEmpty()) {
             usernameField.setStyle(usernameField.getStyle() + "; -fx-border-color: #dc3545;");
@@ -135,7 +120,6 @@ public class ConnectionPanel {
 
     public void clearValidationError() {
         hostField.setStyle(hostField.getStyle().replace("; -fx-border-color: #dc3545;", ""));
-        portField.setStyle(portField.getStyle().replace("; -fx-border-color: #dc3545;", ""));
         usernameField.setStyle(usernameField.getStyle().replace("; -fx-border-color: #dc3545;", ""));
     }
 }

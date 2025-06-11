@@ -20,9 +20,6 @@ import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
-import me.chatapp.stchat.dao.UserDAO;
-import me.chatapp.stchat.database.DatabaseConnection;
-
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
@@ -31,7 +28,6 @@ public class SignUp {
     private static final Logger LOGGER = Logger.getLogger(SignUp.class.getName());
     private final Stage stage;
     private final Runnable onSwitchToLogin;
-    private final UserDAO userDAO;
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
             "^[A-Za-z0-9+_.-]+@([A-Za-z0-9.-]+\\.[A-Za-z]{2,})$"
     );
@@ -39,7 +35,6 @@ public class SignUp {
     public SignUp(Runnable onSwitchToLogin) {
         this.stage = new Stage();
         this.onSwitchToLogin = onSwitchToLogin;
-        this.userDAO = new UserDAO();
         setupUI();
     }
 
@@ -112,11 +107,6 @@ public class SignUp {
         Text passwordStrength = new Text();
         passwordStrength.setFont(Font.font("System", FontWeight.NORMAL, 12));
 
-        // Database connection status
-        Text dbStatus = new Text();
-        dbStatus.setFont(Font.font("System", FontWeight.NORMAL, 12));
-        updateDatabaseStatus(dbStatus);
-
         // Register button
         Button registerButton = new Button("Create Account");
         registerButton.setPrefWidth(320);
@@ -161,7 +151,6 @@ public class SignUp {
                 subtitle,
                 formContainer,
                 passwordStrength,
-                dbStatus,
                 registerButton,
                 signInContainer,
                 statusMessage
@@ -188,23 +177,13 @@ public class SignUp {
         confirmPasswordField.setOnAction(event -> registerButton.fire());
 
         // Create scene
-        Scene scene = new Scene(root, 520, 830);
+        Scene scene = new Scene(root, 520, 800);
         stage.setTitle("ST Chat - Create Account");
         stage.setScene(scene);
         stage.setResizable(false);
 
         // Add entrance animation
         addEntranceAnimation(card);
-    }
-
-    private void updateDatabaseStatus(Text dbStatus) {
-        if (DatabaseConnection.testConnection()) {
-            dbStatus.setText("🟢 Database Connected");
-            dbStatus.setFill(Color.web("#38a169"));
-        } else {
-            dbStatus.setText("🔴 Database Disconnected");
-            dbStatus.setFill(Color.web("#e53e3e"));
-        }
     }
 
     private VBox createFieldContainer(String labelText, String promptText) {
@@ -372,15 +351,6 @@ public class SignUp {
         String password = passField.getText();
         String confirmPassword = confirmField.getText();
 
-        // Reset status message
-        statusMessage.setText("");
-
-        // Kiểm tra kết nối database trước khi xử lý
-        if (!DatabaseConnection.testConnection()) {
-            showMessage(statusMessage, "Database connection failed. Please try again later.", Color.web("#e53e3e"));
-            return;
-        }
-
         // Validation
         if (username.isEmpty() || email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
             showMessage(statusMessage, "Please fill in all fields", Color.web("#e53e3e"));
@@ -392,18 +362,8 @@ public class SignUp {
             return;
         }
 
-        if (username.length() > 50) {
-            showMessage(statusMessage, "Username must be less than 50 characters", Color.web("#e53e3e"));
-            return;
-        }
-
         if (!EMAIL_PATTERN.matcher(email).matches()) {
             showMessage(statusMessage, "Please enter a valid email address", Color.web("#e53e3e"));
-            return;
-        }
-
-        if (email.length() > 100) {
-            showMessage(statusMessage, "Email must be less than 100 characters", Color.web("#e53e3e"));
             return;
         }
 
@@ -412,39 +372,14 @@ public class SignUp {
             return;
         }
 
-        if (password.length() > 50) {
-            showMessage(statusMessage, "Password must be less than 50 characters", Color.web("#e53e3e"));
-            return;
-        }
-
         if (!password.equals(confirmPassword)) {
             showMessage(statusMessage, "Passwords do not match", Color.web("#e53e3e"));
             return;
         }
 
-        // Kiểm tra username đã tồn tại chưa
-        if (userDAO.isUsernameExists(username)) {
-            showMessage(statusMessage, "Username already exists. Please choose another one.", Color.web("#e53e3e"));
-            return;
-        }
-
-        // Kiểm tra email đã tồn tại chưa
-        if (userDAO.isEmailExists(email)) {
-            showMessage(statusMessage, "Email already exists. Please use another email.", Color.web("#e53e3e"));
-            return;
-        }
-
-        // Thực hiện đăng ký
-        boolean registrationSuccess = userDAO.registerUser(username, email, password);
-
-        if (registrationSuccess) {
-            showMessage(statusMessage, "Account created successfully! Redirecting to login...", Color.web("#38a169"));
-
-            // Làm rỗng các trường
-            userField.clear();
-            emailField.clear();
-            passField.clear();
-            confirmField.clear();
+        // Registration logic
+        if (register(username, email, password)) {
+            showMessage(statusMessage, "Account created successfully! Please sign in.", Color.web("#38a169"));
 
             // Success animation
             ScaleTransition successScale = new ScaleTransition(Duration.millis(200), stage.getScene().getRoot());
@@ -461,36 +396,33 @@ public class SignUp {
                         });
                     } catch (InterruptedException ex) {
                         Thread.currentThread().interrupt();
-                        LOGGER.warning("Thread interrupted during redirect delay: " + ex.getMessage());
                     }
                 }).start();
             });
             successScale.play();
         } else {
-            showMessage(statusMessage, "Registration failed. Please try again.", Color.web("#e53e3e"));
+            showMessage(statusMessage, "Registration failed. Username or email may already exist.", Color.web("#e53e3e"));
         }
     }
 
-    private void showMessage(Text messageText, String message, Color color) {
-        messageText.setText(message);
-        messageText.setFill(color);
+    private void showMessage(Text statusMessage, String message, Color color) {
+        statusMessage.setText(message);
+        statusMessage.setFill(color);
 
-        // Fade in animation cho message
-        FadeTransition fade = new FadeTransition(Duration.millis(300), messageText);
-        fade.setFromValue(0);
-        fade.setToValue(1);
-        fade.play();
+        // Message animation
+        ScaleTransition messageScale = new ScaleTransition(Duration.millis(100), statusMessage);
+        messageScale.setToX(1.1);
+        messageScale.setAutoReverse(true);
+        messageScale.setCycleCount(2);
+        messageScale.play();
     }
 
     public void show() {
         stage.show();
     }
 
-    public void close() {
-        stage.close();
-    }
-
-    public Stage getStage() {
-        return stage;
+    private boolean register(String username, String email, String password) {
+        // Placeholder registration logic - replace with actual implementation
+        return !username.isEmpty() && !email.isEmpty() && !password.isEmpty();
     }
 }
