@@ -474,3 +474,36 @@
 .text-field:focused {
     -fx-effect: dropshadow(one-pass-box, rgba(102,126,234,0.6), 8, 0, 0, 0);
 }
+
+.chat-area {
+    -fx-background-color: #fafafa;
+    -fx-border-color: #e0e0e0;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-font-family: 'Segoe UI', 'Arial', sans-serif;
+    -fx-font-size: 13px;
+    -fx-padding: 15;
+}
+
+.message-count{
+    -fx-font-size: 12px;
+    -fx-text-fill: #6c757d;
+}
+
+.message-list-view{
+    -fx-background-color: #fafafa;
+    -fx-border-color: #e0e0e0;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-padding: 10;
+}
+
+.emoji-btn{
+    -fx-background-color: #f8f9fa;
+    -fx-border-color: #dee2e6;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 8 12;
+    -fx-font-size: 16px;
+    -fx-cursor: hand;
+}

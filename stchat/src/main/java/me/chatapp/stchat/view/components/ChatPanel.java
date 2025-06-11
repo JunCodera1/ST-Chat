@@ -11,16 +11,16 @@ import javafx.scene.text.FontWeight;
 import me.chatapp.stchat.model.Message;
 import me.chatapp.stchat.model.MessageType;
 
-import java.time.format.DateTimeFormatter;
+import java.time.LocalDateTime;
 
 public class ChatPanel {
     private final VBox chatContainer;
     private final TextArea chatArea;
     private final ListView<Message> messageListView;
+    private final Label messageCountLabel;
 
     public ChatPanel() {
         chatContainer = new VBox();
-        chatContainer.getStyleClass().add("chat-area");
         chatContainer.setSpacing(10);
 
         // Chat header
@@ -34,40 +34,29 @@ public class ChatPanel {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Label messageCount = new Label("0 messages");
-        messageCount.setStyle("-fx-font-size: 12px; -fx-text-fill: #6c757d;");
+        messageCountLabel = new Label("0 messages");
+        messageCountLabel.getStylesheets().add("message-count");
 
-        headerBox.getChildren().addAll(chatTitle, spacer, messageCount);
+        headerBox.getChildren().addAll(chatTitle, spacer, messageCountLabel);
 
         // Chat area (using TextArea for compatibility)
         chatArea = new TextArea();
         chatArea.setEditable(false);
         chatArea.setWrapText(true);
-        chatArea.setStyle("""
-            -fx-background-color: #fafafa;
-            -fx-border-color: #e0e0e0;
-            -fx-border-radius: 10;
-            -fx-background-radius: 10;
-            -fx-font-family: 'Segoe UI', 'Arial', sans-serif;
-            -fx-font-size: 13px;
-            -fx-padding: 15;
-            """);
+        chatArea.getStyleClass().add("chat-area");
 
         // Message ListView (for advanced message display)
         messageListView = new ListView<>();
         messageListView.setCellFactory(listView -> new EnhancedMessageCell());
-        messageListView.setStyle("""
-            -fx-background-color: #fafafa;
-            -fx-border-color: #e0e0e0;
-            -fx-border-radius: 10;
-            -fx-background-radius: 10;
-            -fx-padding: 10;
-            """);
+        messageListView.getStylesheets().add("message-list-view");
 
-        // Use TextArea by default, can switch to ListView when needed
+        // Use TextArea by default
         VBox.setVgrow(chatArea, Priority.ALWAYS);
-
         chatContainer.getChildren().addAll(headerBox, chatArea);
+
+        // Ensure the chat area takes up available space
+        chatArea.setMaxHeight(Double.MAX_VALUE);
+        chatArea.setPrefHeight(Region.USE_COMPUTED_SIZE);
     }
 
     public VBox getComponent() {
@@ -76,34 +65,34 @@ public class ChatPanel {
 
     public void addMessage(String message) {
         Platform.runLater(() -> {
-            chatArea.appendText(message + "\n");
-            chatArea.setScrollTop(Double.MAX_VALUE);
+            // Chuyển String thành Message object
+            Message msgObj = new Message("System", message, MessageType.SYSTEM, LocalDateTime.now());
+            messageListView.getItems().add(msgObj);
+            scrollToBottom();
             updateMessageCount();
         });
     }
 
     public void addMessage(Message message) {
         Platform.runLater(() -> {
-            if (messageListView.getParent() == null) {
-                // Switch to ListView mode
-                switchToListView();
-            }
+            // Append to TextArea
+            chatArea.appendText("[" + message.getFormattedTime() + "] "
+                    + message.getSender() + ": "
+                    + message.getContent() + "\n");
+
+            // Optional: Nếu bạn vẫn muốn dùng ListView
             messageListView.getItems().add(message);
             scrollToBottom();
             updateMessageCount();
         });
     }
 
-    private void switchToListView() {
-        chatContainer.getChildren().remove(chatArea);
-        chatContainer.getChildren().add(messageListView);
-        VBox.setVgrow(messageListView, Priority.ALWAYS);
-    }
 
     private void scrollToBottom() {
         Platform.runLater(() -> {
-            if (messageListView.getItems().size() > 0) {
+            if (!messageListView.getItems().isEmpty()) {
                 messageListView.scrollTo(messageListView.getItems().size() - 1);
+                messageListView.getSelectionModel().clearSelection();
             }
         });
     }
@@ -117,20 +106,11 @@ public class ChatPanel {
     }
 
     private void updateMessageCount() {
-        HBox headerBox = (HBox) chatContainer.getChildren().get(0);
-        Label countLabel = (Label) headerBox.getChildren().get(2);
-
         int count = messageListView.getItems().size();
-        if (count == 0 && !chatArea.getText().trim().isEmpty()) {
-            // Count lines in text area
-            count = chatArea.getText().split("\n").length;
-        }
-
-        countLabel.setText(count + " message" + (count != 1 ? "s" : ""));
+        messageCountLabel.setText(count + " message" + (count != 1 ? "s" : ""));
     }
 
-    // Getters
-    public TextArea getChatArea() { return chatArea; }
+
     public ListView<Message> getMessageListView() { return messageListView; }
 
     // Enhanced message cell for ListView
@@ -148,14 +128,15 @@ public class ChatPanel {
                 setGraphic(messageBox);
                 setText(null);
 
-                // Remove default cell background
-                setStyle("-fx-background-color: transparent; -fx-padding: 5 10;");
+                // Remove default cell background and padding
+                setStyle("-fx-background-color: transparent; -fx-padding: 5 10; -fx-border-color: transparent;");
             }
         }
 
         private VBox createMessageBox(Message message) {
             VBox messageBox = new VBox(8);
             messageBox.setPadding(new Insets(12, 15, 12, 15));
+            messageBox.setMaxWidth(600); // Limit message width
 
             // Header with sender and time
             HBox headerBox = new HBox(10);
@@ -174,11 +155,10 @@ public class ChatPanel {
             Label contentLabel = new Label(processMessageContent(message));
             contentLabel.setWrapText(true);
             contentLabel.setFont(Font.font("System", 13));
-            contentLabel.setMaxWidth(400);
+            contentLabel.setMaxWidth(550);
 
             messageBox.getChildren().addAll(headerBox, contentLabel);
 
-            // Style based on message type
             switch (message.getType()) {
                 case USER:
                     messageBox.getStyleClass().add("user-message");

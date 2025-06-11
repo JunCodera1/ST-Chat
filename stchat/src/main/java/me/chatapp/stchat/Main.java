@@ -23,15 +23,14 @@ public class Main extends Application {
 
     private void showLoginStage(Stage primaryStage) {
         Login login = new Login(() -> showSignUpStage(primaryStage), () -> {
-            // On successful login, show chat application
             ChatModel model = new ChatModel();
             ChatView view = new ChatView();
             ChatController controller = new ChatController(model, view);
 
             primaryStage.setTitle("ST Chat - Modern Chat Application");
             primaryStage.setScene(view.getScene());
-            primaryStage.setMinWidth(600);
-            primaryStage.setMinHeight(500);
+            primaryStage.setMinWidth(1600);
+            primaryStage.setMinHeight(1000);
             primaryStage.show();
 
             controller.initialize();

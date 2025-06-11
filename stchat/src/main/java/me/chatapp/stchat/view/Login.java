@@ -20,9 +20,6 @@ import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
-import me.chatapp.stchat.dao.UserDAO;
-import me.chatapp.stchat.database.DatabaseConnection;
-
 import java.util.logging.Logger;
 
 public class Login {
@@ -31,13 +28,11 @@ public class Login {
     private final Stage stage;
     private final Runnable onSwitchToSignUp;
     private final Runnable onLoginSuccess;
-    private final UserDAO userDAO;
 
     public Login(Runnable onSwitchToSignUp, Runnable onLoginSuccess) {
         this.stage = new Stage();
         this.onSwitchToSignUp = onSwitchToSignUp;
         this.onLoginSuccess = onLoginSuccess;
-        this.userDAO = new UserDAO();
         setupUI();
     }
 
@@ -92,15 +87,7 @@ public class Login {
         TextField userTextField = new TextField();
         userTextField.setPromptText("Enter your username");
         userTextField.setPrefHeight(45);
-        userTextField.setStyle(
-                "-fx-background-color: #f7fafc;" +
-                        "-fx-border-color: #e2e8f0;" +
-                        "-fx-border-width: 2;" +
-                        "-fx-border-radius: 12;" +
-                        "-fx-background-radius: 12;" +
-                        "-fx-padding: 0 15;" +
-                        "-fx-font-size: 14;"
-        );
+        userTextField.getStyleClass().add("user-text-field");
 
         usernameContainer.getChildren().addAll(usernameLabel, userTextField);
 
@@ -113,37 +100,17 @@ public class Login {
         PasswordField passwordField = new PasswordField();
         passwordField.setPromptText("Enter your password");
         passwordField.setPrefHeight(45);
-        passwordField.setStyle(
-                "-fx-background-color: #f7fafc;" +
-                        "-fx-border-color: #e2e8f0;" +
-                        "-fx-border-width: 2;" +
-                        "-fx-border-radius: 12;" +
-                        "-fx-background-radius: 12;" +
-                        "-fx-padding: 0 15;" +
-                        "-fx-font-size: 14;"
-        );
+        passwordField.getStyleClass().add("password-field");
 
         passwordContainer.getChildren().addAll(passwordLabel, passwordField);
 
         formContainer.getChildren().addAll(usernameContainer, passwordContainer);
-
-        // Database connection status
-        Text dbStatus = new Text();
-        dbStatus.setFont(Font.font("System", FontWeight.NORMAL, 12));
-        updateDatabaseStatus(dbStatus);
 
         // Login button
         Button loginButton = new Button("Sign In");
         loginButton.setPrefWidth(300);
         loginButton.setPrefHeight(50);
         loginButton.setFont(Font.font("System", FontWeight.BOLD, 16));
-        loginButton.setStyle(
-                "-fx-background-color: linear-gradient(135deg, #667eea 0%, #764ba2 100%);" +
-                        "-fx-text-fill: white;" +
-                        "-fx-background-radius: 25;" +
-                        "-fx-cursor: hand;" +
-                        "-fx-effect: dropshadow(gaussian, rgba(102,126,234,0.4), 15, 0, 0, 5);"
-        );
 
         // Forgot password link
         Button forgotPasswordButton = new Button("Forgot Password?");
@@ -185,7 +152,6 @@ public class Login {
                 title,
                 subtitle,
                 formContainer,
-                dbStatus,
                 loginButton,
                 forgotPasswordButton,
                 signUpContainer,
@@ -204,7 +170,7 @@ public class Login {
             stage.close();
             onSwitchToSignUp.run();
         });
-        forgotPasswordButton.setOnAction(event -> {
+        forgotPasswordButton. setOnAction(event -> {
             statusMessage.setText("Forgot Password feature coming soon!");
             statusMessage.setFill(Color.web("#3182ce"));
         });
@@ -214,23 +180,13 @@ public class Login {
         passwordField.setOnAction(event -> loginButton.fire());
 
         // Create scene
-        Scene scene = new Scene(root, 500, 750);
+        Scene scene = new Scene(root, 500, 700);
         stage.setTitle("ST Chat - Sign In");
         stage.setScene(scene);
         stage.setResizable(false);
 
         // Add entrance animation
         addEntranceAnimation(card);
-    }
-
-    private void updateDatabaseStatus(Text dbStatus) {
-        if (DatabaseConnection.testConnection()) {
-            dbStatus.setText("🟢 Database Connected");
-            dbStatus.setFill(Color.web("#38a169"));
-        } else {
-            dbStatus.setText("🔴 Database Disconnected");
-            dbStatus.setFill(Color.web("#e53e3e"));
-        }
     }
 
     private void createBackgroundCircles(StackPane root) {
@@ -320,7 +276,7 @@ public class Login {
     }
 
     private void handleLogin(TextField userField, PasswordField passField, Text statusMessage) {
-        String username = userField.getText().trim();
+        String username = userField.getText();
         String password = passField.getText();
 
         if (username.isEmpty() || password.isEmpty()) {
@@ -329,15 +285,7 @@ public class Login {
             return;
         }
 
-        // Kiểm tra kết nối database
-        if (!DatabaseConnection.testConnection()) {
-            statusMessage.setText("Database connection failed. Please try again later.");
-            statusMessage.setFill(Color.web("#e53e3e"));
-            return;
-        }
-
-        // Xác thực với database
-        if (userDAO.authenticateUser(username, password)) {
+        if (authenticate(username, password)) {
             statusMessage.setText("Login successful!");
             statusMessage.setFill(Color.web("#38a169"));
 
@@ -365,5 +313,9 @@ public class Login {
 
     public void show() {
         stage.show();
+    }
+
+    private boolean authenticate(String username, String password) {
+        return !username.isEmpty() && !password.isEmpty();
     }
 }
