@@ -1,7 +1,8 @@
-package me.chatapp.stchat.view;
+package me.chatapp.stchat.view.pages;
 
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -59,9 +60,6 @@ public class ChatView extends Application {
         initializeUI();
     }
 
-    /**
-     * Khởi tạo toàn bộ UI
-     */
     private void initializeUI() {
         loadStylesheets();
         initializeComponents();
@@ -70,9 +68,6 @@ public class ChatView extends Application {
         setupTestData();
     }
 
-    /**
-     * Load CSS stylesheets
-     */
     private void loadStylesheets() {
         for (String cssFile : ChatViewConfig.CSS_FILES) {
             try {
@@ -84,9 +79,6 @@ public class ChatView extends Application {
         }
     }
 
-    /**
-     * Khởi tạo các UI components
-     */
     private void initializeComponents() {
         headerComponent = new HeaderComponent();
         connectionPanel = new ConnectionPanel();
@@ -95,9 +87,6 @@ public class ChatView extends Application {
         statusBar = new StatusBar();
     }
 
-    /**
-     * Khởi tạo các manager
-     */
     private void initializeManagers() {
         // Layout manager
         layoutManager = new ChatViewLayoutManager(
@@ -117,18 +106,12 @@ public class ChatView extends Application {
         );
     }
 
-    /**
-     * Khởi tạo legacy handlers để backward compatibility
-     */
     private void initializeLegacyHandlers() {
         connectionHandler = new ConnectionHandler(this);
         messageHandler = new MessageHandler(this);
         uiStateHandler = new UIStateHandler(this);
     }
 
-    /**
-     * Thêm test data để demo
-     */
     private void setupTestData() {
         // Test với chuỗi thông thường (TextArea)
         stateManager.addMessage("This is a plain message using TextArea.");
@@ -147,9 +130,6 @@ public class ChatView extends Application {
         stateManager.updateConnectionStatus(false);
     }
 
-    /**
-     * Thiết lập Stage properties
-     */
     private void setupStage(Stage primaryStage) {
         primaryStage.setTitle(config.getTitle());
         primaryStage.setScene(scene);
@@ -172,37 +152,22 @@ public class ChatView extends Application {
 
     // ========== PUBLIC API ==========
 
-    /**
-     * Cập nhật trạng thái kết nối
-     */
     public void updateConnectionStatus(boolean connected) {
         stateManager.updateConnectionStatus(connected);
     }
 
-    /**
-     * Thêm tin nhắn dạng String
-     */
     public void addMessage(String message) {
         stateManager.addMessage(message);
     }
 
-    /**
-     * Thêm tin nhắn dạng Message object
-     */
     public void addMessage(Message message) {
         stateManager.addMessage(message);
     }
 
-    /**
-     * Hiển thị lỗi
-     */
     public void showError(String error) {
         stateManager.showError(error);
     }
 
-    /**
-     * Hiển thị thông tin
-     */
     public void showInfo(String title, String message) {
         stateManager.showInfo(title, message);
     }
@@ -252,4 +217,7 @@ public class ChatView extends Application {
     public Button getClearButton() { return messageInputPanel.getClearButton(); }
     public Label getStatusLabel() { return statusBar.getStatusLabel(); }
     public TextField getUserNameField() { return connectionPanel.getUsernameField(); }
+    public Parent getPage() {
+        return root;
+    }
 }
