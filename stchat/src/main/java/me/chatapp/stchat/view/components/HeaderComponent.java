@@ -3,6 +3,7 @@ package me.chatapp.stchat.view.components;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import me.chatapp.stchat.view.core.SceneManager;
@@ -42,7 +43,7 @@ public class HeaderComponent {
         profileButton = new Button("Profile");
         profileButton.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-size: 12px;");
         profileButton.setOnAction(event -> {
-            VBox profilePage = new ProfilePage().getPage(); // Tạo layout trang Profile
+            BorderPane profilePage = new ProfilePage().getPage(); // Tạo layout trang Profile
             SceneManager.switchScene(profilePage);
             System.out.println("Navigating to Profile Page...");
         });
