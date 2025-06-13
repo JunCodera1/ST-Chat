@@ -4,15 +4,16 @@ import javafx.application.Application;
 import javafx.stage.Stage;
 import me.chatapp.stchat.controller.ChatController;
 import me.chatapp.stchat.model.ChatModel;
-import me.chatapp.stchat.view.ChatView;
-import me.chatapp.stchat.view.Login;
-import me.chatapp.stchat.view.SignUp;
+import me.chatapp.stchat.view.core.SceneManager;
+import me.chatapp.stchat.view.pages.ChatView;
+import me.chatapp.stchat.view.pages.Login;
+import me.chatapp.stchat.view.pages.SignUp;
 
 public class Main extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        // Start with SignUp stage
+        SceneManager.setStage(primaryStage);
         showSignUpStage(primaryStage);
     }
 

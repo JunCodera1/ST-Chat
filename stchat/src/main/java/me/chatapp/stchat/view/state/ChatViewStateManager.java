@@ -31,13 +31,11 @@ public class ChatViewStateManager {
 
     public void updateConnectionStatus(boolean connected) {
         Platform.runLater(() -> {
-            // Cập nhật trạng thái các button
             connectionPanel.getConnectButton().setDisable(connected);
             connectionPanel.getDisconnectButton().setDisable(!connected);
             connectionPanel.getHostField().setDisable(connected);
             connectionPanel.getUsernameField().setDisable(connected);
 
-            // Cập nhật trạng thái message input
             messageInputPanel.getMessageField().setDisable(!connected);
             messageInputPanel.getSendButton().setDisable(!connected);
 
@@ -63,23 +61,14 @@ public class ChatViewStateManager {
         });
     }
 
-    /**
-     * Hiển thị dialog lỗi
-     */
     public void showError(String error) {
         showAlert(Alert.AlertType.ERROR, "Connection Error", "Unable to connect", error);
     }
 
-    /**
-     * Hiển thị dialog thông tin
-     */
     public void showInfo(String title, String message) {
         showAlert(Alert.AlertType.INFORMATION, title, null, message);
     }
 
-    /**
-     * Hiển thị alert dialog
-     */
     private void showAlert(Alert.AlertType type, String title, String header, String content) {
         Platform.runLater(() -> {
             Alert alert = new Alert(type);
@@ -91,23 +80,14 @@ public class ChatViewStateManager {
         });
     }
 
-    /**
-     * Xóa nội dung tin nhắn đang soạn
-     */
     public void clearMessageInput() {
         messageInputPanel.getMessageField().clear();
     }
 
-    /**
-     * Lấy nội dung tin nhắn hiện tại
-     */
     public String getCurrentMessage() {
         return messageInputPanel.getMessageField().getText().trim();
     }
 
-    /**
-     * Focus vào ô nhập tin nhắn
-     */
     public void focusMessageInput() {
         messageInputPanel.getMessageField().requestFocus();
     }

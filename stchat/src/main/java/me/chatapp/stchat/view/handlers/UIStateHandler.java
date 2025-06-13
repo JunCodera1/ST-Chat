@@ -1,6 +1,6 @@
 package me.chatapp.stchat.view.handlers;
 
-import me.chatapp.stchat.view.ChatView;
+import me.chatapp.stchat.view.pages.ChatView;
 
 public class UIStateHandler {
     private final ChatView chatView;
