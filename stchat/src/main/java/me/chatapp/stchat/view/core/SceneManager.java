@@ -2,12 +2,14 @@ package me.chatapp.stchat.view.core;
 
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
 
 public class SceneManager {
     private static Stage primaryStage;
 
+    public static Stage getStage(){
+        return primaryStage;
+    }
     public static void setStage(Stage stage) {
         primaryStage = stage;
     }

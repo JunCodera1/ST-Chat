@@ -11,7 +11,7 @@ import java.util.List;
 public class UserService {
     public static List<String> fetchAllUsernames() {
         List<String> usernames = new ArrayList<>();
-        String query = "SELECT username FROM users"; // bảng 'users'
+        String query = "SELECT username FROM users";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query);

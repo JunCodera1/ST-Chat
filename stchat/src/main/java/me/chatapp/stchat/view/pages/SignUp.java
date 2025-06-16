@@ -19,6 +19,8 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import me.chatapp.stchat.dao.UserDAO;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -31,10 +33,12 @@ public class SignUp {
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
             "^[A-Za-z0-9+_.-]+@([A-Za-z0-9.-]+\\.[A-Za-z]{2,})$"
     );
+    private final UserDAO userDAO; // Thêm UserDAO
 
     public SignUp(Runnable onSwitchToLogin) {
         this.stage = new Stage();
         this.onSwitchToLogin = onSwitchToLogin;
+        this.userDAO = new UserDAO(); // Khởi tạo UserDAO
         setupUI();
     }
 
@@ -264,13 +268,11 @@ public class SignUp {
                         "-fx-effect: dropshadow(gaussian, rgba(102,126,234,0.3), 10, 0, 0, 2);";
 
         for (TextField field : fields) {
-            field.focusedProperty().addListener((obs, oldVal, newVal) -> {
-                field.setStyle(newVal ? focusStyle : getFieldStyle());
-            });
+            field.focusedProperty().addListener((obs, oldVal, newVal) -> field.setStyle(newVal ? focusStyle : getFieldStyle()));
         }
     }
 
-    private void addButtonHoverEffects(Button... buttons) {
+    private void addButtonHoverEffects(@NotNull Button... buttons) {
         for (Button button : buttons) {
             button.setOnMouseEntered(e -> {
                 ScaleTransition scale = new ScaleTransition(Duration.millis(100), button);
@@ -288,7 +290,7 @@ public class SignUp {
         }
     }
 
-    private void addPasswordStrengthIndicator(PasswordField passwordField, Text strengthText) {
+    private void addPasswordStrengthIndicator(@NotNull PasswordField passwordField, Text strengthText) {
         passwordField.textProperty().addListener((obs, oldVal, newVal) -> {
             int strength = calculatePasswordStrength(newVal);
 
@@ -316,7 +318,7 @@ public class SignUp {
         });
     }
 
-    private int calculatePasswordStrength(String password) {
+    private int calculatePasswordStrength(@NotNull String password) {
         if (password.isEmpty()) return 0;
 
         int score = 0;
@@ -324,12 +326,12 @@ public class SignUp {
         if (password.matches(".*[a-z].*")) score++;
         if (password.matches(".*[A-Z].*")) score++;
         if (password.matches(".*[0-9].*")) score++;
-        if (password.matches(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?].*")) score++;
+        if (password.matches(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?].*")) score++;
 
         return Math.min(score, 4);
     }
 
-    private void addEntranceAnimation(VBox card) {
+    private void addEntranceAnimation(@NotNull VBox card) {
         card.setOpacity(0);
         card.setScaleY(0.8);
 
@@ -377,32 +379,49 @@ public class SignUp {
             return;
         }
 
-        // Registration logic
-        if (register(username, email, password)) {
-            showMessage(statusMessage, "Account created successfully! Please sign in.", Color.web("#38a169"));
-
-            // Success animation
-            ScaleTransition successScale = new ScaleTransition(Duration.millis(200), stage.getScene().getRoot());
-            successScale.setToX(0.95);
-            successScale.setToY(0.95);
-            successScale.setOnFinished(e -> {
-                // Auto-switch to login after 2 seconds
-                new Thread(() -> {
-                    try {
-                        Thread.sleep(2000);
-                        javafx.application.Platform.runLater(() -> {
-                            stage.close();
-                            onSwitchToLogin.run();
-                        });
-                    } catch (InterruptedException ex) {
-                        Thread.currentThread().interrupt();
-                    }
-                }).start();
-            });
-            successScale.play();
-        } else {
-            showMessage(statusMessage, "Registration failed. Username or email may already exist.", Color.web("#e53e3e"));
+        // Registration logic using UserDAO
+        try {
+            if (userDAO.registerUser(username, email, password)) {
+                showMessage(statusMessage, "Account created successfully! Please sign in.", Color.web("#38a169"));
+                // Success animation
+                ScaleTransition successScale = getScaleTransition();
+                successScale.play();
+            } else {
+                // Kiểm tra lý do thất bại
+                if (userDAO.isUsernameExists(username)) {
+                    showMessage(statusMessage, "Username already exists.", Color.web("#e53e3e"));
+                } else if (userDAO.isEmailExists(email)) {
+                    showMessage(statusMessage, "Email already exists.", Color.web("#e53e3e"));
+                } else {
+                    showMessage(statusMessage, "Registration failed. Please try again.", Color.web("#e53e3e"));
+                }
+            }
+        } catch (Exception e) {
+            showMessage(statusMessage, "An error occurred during registration.", Color.web("#e53e3e"));
+            LOGGER.severe("Registration error: " + e.getMessage());
         }
+    }
+
+    @NotNull
+    private ScaleTransition getScaleTransition() {
+        ScaleTransition successScale = new ScaleTransition(Duration.millis(200), stage.getScene().getRoot());
+        successScale.setToX(0.95);
+        successScale.setToY(0.95);
+        successScale.setOnFinished(e -> {
+            // Auto-switch to login after 2 seconds
+            new Thread(() -> {
+                try {
+                    Thread.sleep(2000);
+                    javafx.application.Platform.runLater(() -> {
+                        stage.close();
+                        onSwitchToLogin.run();
+                    });
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                }
+            }).start();
+        });
+        return successScale;
     }
 
     private void showMessage(Text statusMessage, String message, Color color) {
@@ -419,10 +438,5 @@ public class SignUp {
 
     public void show() {
         stage.show();
-    }
-
-    private boolean register(String username, String email, String password) {
-        // Placeholder registration logic - replace with actual implementation
-        return !username.isEmpty() && !email.isEmpty() && !password.isEmpty();
     }
 }
