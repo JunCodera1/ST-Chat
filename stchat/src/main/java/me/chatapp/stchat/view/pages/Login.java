@@ -19,18 +19,26 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import me.chatapp.stchat.dao.UserDAO;
+import me.chatapp.stchat.model.User;
 
+import java.util.function.Consumer;
 import java.util.logging.Logger;
 
 public class Login {
 
     private static final Logger LOGGER = Logger.getLogger(Login.class.getName());
     private final Stage stage;
+    private final UserDAO userDAO;
     private final Runnable onSwitchToSignUp;
-    private final Runnable onLoginSuccess;
+    private final Consumer<User> onLoginSuccess; // Changed to pass User object
 
-    public Login(Runnable onSwitchToSignUp, Runnable onLoginSuccess) {
+    // Current logged in user
+    private User currentUser;
+
+    public Login(Runnable onSwitchToSignUp, Consumer<User> onLoginSuccess) {
         this.stage = new Stage();
+        this.userDAO = new UserDAO();
         this.onSwitchToSignUp = onSwitchToSignUp;
         this.onLoginSuccess = onLoginSuccess;
         setupUI();
@@ -165,12 +173,12 @@ public class Login {
         addButtonHoverEffects(loginButton, signUpButton, forgotPasswordButton);
 
         // Event handlers
-        loginButton.setOnAction(event -> handleLogin(userTextField, passwordField, statusMessage));
+        loginButton.setOnAction(event -> handleLogin(userTextField, passwordField, statusMessage, loginButton));
         signUpButton.setOnAction(event -> {
             stage.close();
             onSwitchToSignUp.run();
         });
-        forgotPasswordButton. setOnAction(event -> {
+        forgotPasswordButton.setOnAction(event -> {
             statusMessage.setText("Forgot Password feature coming soon!");
             statusMessage.setFill(Color.web("#3182ce"));
         });
@@ -275,47 +283,104 @@ public class Login {
         scaleIn.play();
     }
 
-    private void handleLogin(TextField userField, PasswordField passField, Text statusMessage) {
-        String username = userField.getText();
+    private void handleLogin(TextField userField, PasswordField passField, Text statusMessage, Button loginButton) {
+        String username = userField.getText().trim();
         String password = passField.getText();
 
+        // Validation
         if (username.isEmpty() || password.isEmpty()) {
             statusMessage.setText("Please enter both username and password");
             statusMessage.setFill(Color.web("#e53e3e"));
             return;
         }
 
-        if (authenticate(username, password)) {
-            statusMessage.setText("Login successful!");
-            statusMessage.setFill(Color.web("#38a169"));
+        // Disable button during authentication
+        loginButton.setDisable(true);
+        loginButton.setText("Signing in...");
+        statusMessage.setText("Authenticating...");
+        statusMessage.setFill(Color.web("#3182ce"));
 
-            // Add success animation before closing
-            ScaleTransition successScale = new ScaleTransition(Duration.millis(200), stage.getScene().getRoot());
-            successScale.setToX(0.95);
-            successScale.setToY(0.95);
-            successScale.setOnFinished(e -> {
-                stage.close();
-                onLoginSuccess.run();
-            });
-            successScale.play();
-        } else {
-            statusMessage.setText("Invalid username or password");
-            statusMessage.setFill(Color.web("#e53e3e"));
+        // Perform authentication in background thread to avoid UI blocking
+        new Thread(() -> {
+            try {
+                boolean isAuthenticated = userDAO.authenticateUser(username, password);
 
-            // Shake animation for error
-            ScaleTransition shakeScale = new ScaleTransition(Duration.millis(100), statusMessage);
-            shakeScale.setToX(1.1);
-            shakeScale.setAutoReverse(true);
-            shakeScale.setCycleCount(4);
-            shakeScale.play();
-        }
+                // Update UI on JavaFX thread
+                javafx.application.Platform.runLater(() -> {
+                    loginButton.setDisable(false);
+                    loginButton.setText("Sign In");
+
+                    if (isAuthenticated) {
+                        // Get user information
+                        User user = userDAO.getUserByUsername(username);
+
+                        if (user != null) {
+                            this.currentUser = user;
+                            statusMessage.setText("Login successful! Welcome " + user.getUsername());
+                            statusMessage.setFill(Color.web("#38a169"));
+
+                            LOGGER.info("User logged in successfully: " + user.getUsername() +
+                                    " (ID: " + user.getId() + ", Email: " + user.getEmail() + ")");
+
+                            // Add success animation before closing
+                            ScaleTransition successScale = new ScaleTransition(Duration.millis(200), stage.getScene().getRoot());
+                            successScale.setToX(0.95);
+                            successScale.setToY(0.95);
+                            successScale.setOnFinished(e -> {
+                                stage.close();
+                                // Pass user object to callback
+                                onLoginSuccess.accept(user);
+                            });
+                            successScale.play();
+                        } else {
+                            statusMessage.setText("Error retrieving user information");
+                            statusMessage.setFill(Color.web("#e53e3e"));
+                            LOGGER.warning("Authentication succeeded but failed to retrieve user: " + username);
+                        }
+                    } else {
+                        statusMessage.setText("Invalid username or password");
+                        statusMessage.setFill(Color.web("#e53e3e"));
+
+                        // Shake animation for error
+                        ScaleTransition shakeScale = new ScaleTransition(Duration.millis(100), statusMessage);
+                        shakeScale.setToX(1.1);
+                        shakeScale.setAutoReverse(true);
+                        shakeScale.setCycleCount(4);
+                        shakeScale.play();
+
+                        LOGGER.warning("Failed login attempt for username: " + username);
+                    }
+                });
+
+            } catch (Exception e) {
+                javafx.application.Platform.runLater(() -> {
+                    loginButton.setDisable(false);
+                    loginButton.setText("Sign In");
+                    statusMessage.setText("Database connection error. Please try again.");
+                    statusMessage.setFill(Color.web("#e53e3e"));
+                });
+
+                LOGGER.severe("Database error during login: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }).start();
     }
 
     public void show() {
         stage.show();
     }
 
-    private boolean authenticate(String username, String password) {
-        return !username.isEmpty() && !password.isEmpty();
+    public void close() {
+        stage.close();
+    }
+
+    // Getter for current logged in user
+    public User getCurrentUser() {
+        return currentUser;
+    }
+
+    // Method to check if user is logged in
+    public boolean isUserLoggedIn() {
+        return currentUser != null;
     }
 }

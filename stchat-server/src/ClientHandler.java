@@ -123,6 +123,7 @@ class ClientHandler implements Runnable {
                     sendMessage("System: Người dùng '" + targetUsername + "' không tồn tại hoặc không online!");
                     break;
                 }
+
                 // Gửi tin nhắn riêng
                 ClientHandler targetClient = server.getClientHandler(targetUsername);
                 if (targetClient != null && targetClient.isConnected()) {

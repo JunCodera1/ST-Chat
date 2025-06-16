@@ -14,9 +14,6 @@ import java.util.logging.Logger;
 public class UserDAO {
     private static final Logger LOGGER = Logger.getLogger(UserDAO.class.getName());
 
-    /**
-     * Đăng ký người dùng mới
-     */
     public boolean registerUser(String username, String email, String password) {
         String sql = "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)";
 
@@ -53,9 +50,6 @@ public class UserDAO {
         return false;
     }
 
-    /**
-     * Xác thực người dùng đăng nhập
-     */
     public boolean authenticateUser(String username, String password) {
         String sql = "SELECT password_hash FROM users WHERE username = ?";
 
@@ -86,9 +80,6 @@ public class UserDAO {
         return false;
     }
 
-    /**
-     * Get info by username
-     */
     public User getUserByUsername(String username) {
         String sql = "SELECT id, username, email, created_at FROM users WHERE username = ?";
 
@@ -114,9 +105,7 @@ public class UserDAO {
         return null;
     }
 
-    /**
-     * get info by email
-     */
+
     public User getUserByEmail(String email) {
         String sql = "SELECT id, username, email, created_at FROM users WHERE email = ?";
 
@@ -142,9 +131,6 @@ public class UserDAO {
         return null;
     }
 
-    /**
-     * Username it exists ?
-     */
     public boolean isUsernameExists(String username) {
         String sql = "SELECT COUNT(*) FROM users WHERE username = ?";
 
@@ -165,9 +151,6 @@ public class UserDAO {
         return false;
     }
 
-    /**
-     * Email is already exist ?
-     */
     public boolean isEmailExists(String email) {
         String sql = "SELECT COUNT(*) FROM users WHERE email = ?";
 
@@ -188,9 +171,6 @@ public class UserDAO {
         return false;
     }
 
-    /**
-     * Get all users
-     */
     public List<User> getAllUsers() {
         List<User> users = new ArrayList<>();
         String sql = "SELECT id, username, email, created_at FROM users ORDER BY created_at DESC";
@@ -216,9 +196,6 @@ public class UserDAO {
         return users;
     }
 
-    /**
-     * Update info user
-     */
     public boolean updateUser(int userId, String username, String email) {
         String sql = "UPDATE users SET username = ?, email = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
 
@@ -243,9 +220,6 @@ public class UserDAO {
         return false;
     }
 
-    /**
-     * Change pass
-     */
     public boolean changePassword(String username, String oldPassword, String newPassword) {
         if (!authenticateUser(username, oldPassword)) {
             LOGGER.warning("Old password is not corrected: " + username);
@@ -276,9 +250,6 @@ public class UserDAO {
         return false;
     }
 
-    /**
-     * Delete user
-     */
     public boolean deleteUser(int userId) {
         String sql = "DELETE FROM users WHERE id = ?";
 
@@ -301,9 +272,6 @@ public class UserDAO {
         return false;
     }
 
-    /**
-     * Hash mật khẩu bằng SHA-256
-     */
     private String hashPassword(String password) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -327,9 +295,6 @@ public class UserDAO {
         }
     }
 
-    /**
-     * Count user
-     */
     public int getUserCount() {
         String sql = "SELECT COUNT(*) FROM users";
 

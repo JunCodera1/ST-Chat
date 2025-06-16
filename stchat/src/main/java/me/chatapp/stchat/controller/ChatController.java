@@ -23,7 +23,6 @@ public class ChatController implements ChatModel.ChatModelListener {
         view.setOnSendMessageAction(this::handleSendMessage);
 
         setupEventHandlers();
-        bindProperties();
     }
 
     private void handleConnect(String host, String port, String username) {
@@ -94,12 +93,6 @@ public class ChatController implements ChatModel.ChatModelListener {
         }
     }
 
-    private void bindProperties() {
-        // Bind message list
-        if (view.getMessageListView() != null) {
-            view.getMessageListView().setItems(model.getMessages());
-        }
-    }
 
     private void sendMessage() {
         if (view.getMessageField() != null && view.getSendButton() != null) {
@@ -114,7 +107,6 @@ public class ChatController implements ChatModel.ChatModelListener {
                 handleSendMessage(message);
 
                 // Scroll to bottom
-                scrollToBottom();
             }
         }
     }
@@ -125,22 +117,12 @@ public class ChatController implements ChatModel.ChatModelListener {
         view.getStatusLabel().setText("Đã xóa chat");
     }
 
-    private void scrollToBottom() {
-        Platform.runLater(() -> {
-            if (view.getMessageListView() != null) {
-                int lastIndex = model.getMessages().size() - 1;
-                if (lastIndex >= 0) {
-                    view.getMessageListView().scrollTo(lastIndex);
-                }
-            }
-        });
-    }
+
 
     // ChatModelListener implementation
     @Override
     public void onMessageAdded() {
         Platform.runLater(() -> {
-            scrollToBottom();
             view.getStatusLabel().setText("New message");
         });
     }

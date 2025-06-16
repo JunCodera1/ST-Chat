@@ -4,10 +4,14 @@ import javafx.application.Application;
 import javafx.stage.Stage;
 import me.chatapp.stchat.controller.ChatController;
 import me.chatapp.stchat.model.ChatModel;
+import me.chatapp.stchat.model.User;
 import me.chatapp.stchat.view.core.SceneManager;
+import me.chatapp.stchat.view.config.ChatViewConfig;
 import me.chatapp.stchat.view.pages.ChatView;
 import me.chatapp.stchat.view.pages.Login;
 import me.chatapp.stchat.view.pages.SignUp;
+
+import java.util.function.Consumer;
 
 public class Main extends Application {
 
@@ -18,22 +22,34 @@ public class Main extends Application {
     }
 
     private void showSignUpStage(Stage primaryStage) {
-        SignUp signUp = new SignUp(() -> showLoginStage(primaryStage));
+        SignUp signUp = new SignUp(() -> showLoginStage(new Stage()));
         signUp.show();
     }
 
-    private void showLoginStage(Stage primaryStage) {
-        Login login = new Login(() -> showSignUpStage(primaryStage), () -> {
+    private void showLoginStage(Stage loginStage) {
+        Login login = new Login(() -> {
+            loginStage.close();
+            showSignUpStage(new Stage());
+        }, user -> {
+            // Khởi tạo ChatModel
             ChatModel model = new ChatModel();
-            ChatView view = new ChatView();
+
+            // Khởi tạo ChatView với user
+            ChatViewConfig config = new ChatViewConfig();
+            ChatView view = new ChatView(config, user);
+
+            // Khởi tạo ChatController
             ChatController controller = new ChatController(model, view);
 
-            primaryStage.setTitle("ST Chat - Modern Chat Application");
+            // Thiết lập stage chính
+            Stage primaryStage = SceneManager.getStage();
+            primaryStage.setTitle("ST Chat - " + user.getUsername());
             primaryStage.setScene(view.getScene());
-            primaryStage.setMinWidth(1600);
-            primaryStage.setMinHeight(1000);
+            primaryStage.setMinWidth(900);
+            primaryStage.setMinHeight(650);
             primaryStage.show();
 
+            // Khởi tạo controller
             controller.initialize();
         });
         login.show();
