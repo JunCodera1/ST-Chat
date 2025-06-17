@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="stchat-1.0-SNAPSHOT">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/stchat-server/target/stchat-1.0-SNAPSHOT.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
