@@ -179,8 +179,12 @@ public class Login {
             onSwitchToSignUp.run();
         });
         forgotPasswordButton.setOnAction(event -> {
-            statusMessage.setText("Forgot Password feature coming soon!");
-            statusMessage.setFill(Color.web("#3182ce"));
+            stage.close(); // Close the login stage
+            ForgotPassword forgotPassword = new ForgotPassword(() -> {
+                // Callback to switch back to login
+                new Login(onSwitchToSignUp, onLoginSuccess).show();
+            });
+            forgotPassword.show();
         });
 
         // Enter key support

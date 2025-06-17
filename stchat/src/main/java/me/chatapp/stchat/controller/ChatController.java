@@ -45,7 +45,6 @@ public class ChatController implements ChatModel.ChatModelListener {
     private void handleSendMessage(String message) {
         if (!message.trim().isEmpty()) {
             if (message.startsWith("/msg")) {
-                // Đánh dấu tin nhắn riêng trên giao diện
                 model.addMessage(model.getUserName(), "(Private) " + message, MessageType.USER);
             } else {
                 model.addMessage(model.getUserName(), message, MessageType.USER);
