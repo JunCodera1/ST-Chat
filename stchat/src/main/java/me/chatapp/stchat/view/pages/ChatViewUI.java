@@ -5,7 +5,6 @@ import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
 import me.chatapp.stchat.view.components.*;
 import me.chatapp.stchat.view.config.ChatViewConfig;
-import me.chatapp.stchat.view.handlers.*;
 import me.chatapp.stchat.view.layout.ChatViewLayoutManager;
 import me.chatapp.stchat.view.state.ChatViewStateManager;
 

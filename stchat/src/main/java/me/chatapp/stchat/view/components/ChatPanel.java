@@ -6,22 +6,18 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
 import javafx.scene.shape.Circle;
 import javafx.scene.effect.DropShadow;
 import me.chatapp.stchat.model.Message;
 import me.chatapp.stchat.model.MessageType;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
 public class ChatPanel {
     private final VBox chatContainer;
     private final ScrollPane scrollPane;
     private final VBox messageContainer;
     private Label messageCountLabel;
-    private final Label emptyStateLabel;
 
     public ChatPanel() {
         chatContainer = new VBox();
@@ -38,7 +34,7 @@ public class ChatPanel {
         messageContainer.setStyle("-fx-background-color: #ffffff;");
 
         // Empty state
-        emptyStateLabel = new Label("No messages yet");
+        Label emptyStateLabel = new Label("No messages yet");
         emptyStateLabel.setStyle("-fx-text-fill: #9e9e9e; -fx-font-size: 14px;");
         emptyStateLabel.setAlignment(Pos.CENTER);
         VBox emptyStateContainer = new VBox(emptyStateLabel);
@@ -336,7 +332,7 @@ public class ChatPanel {
                 int lastIndex = messageContainer.getChildren().size() - 1;
                 if (messageContainer.getChildren().get(lastIndex) instanceof HBox) {
                     HBox lastItem = (HBox) messageContainer.getChildren().get(lastIndex);
-                    if (lastItem.getChildren().size() > 0 && lastItem.getChildren().get(0) instanceof HBox) {
+                    if (!lastItem.getChildren().isEmpty() && lastItem.getChildren().get(0) instanceof HBox) {
                         HBox typingBox = (HBox) lastItem.getChildren().get(0);
                         if (typingBox.getChildren().size() > 1 && typingBox.getChildren().get(1) instanceof Label) {
                             Label label = (Label) typingBox.getChildren().get(1);

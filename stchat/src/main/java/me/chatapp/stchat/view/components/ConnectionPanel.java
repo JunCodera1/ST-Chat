@@ -1,6 +1,5 @@
 package me.chatapp.stchat.view.components;
 
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -8,7 +7,6 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
-import me.chatapp.stchat.service.UserService;
 
 public class ConnectionPanel {
     private final VBox connectionContainer;

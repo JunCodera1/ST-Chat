@@ -15,6 +15,7 @@ import me.chatapp.stchat.model.MessageType;
 import me.chatapp.stchat.model.User;
 import me.chatapp.stchat.view.components.*;
 import me.chatapp.stchat.view.config.ChatViewConfig;
+import me.chatapp.stchat.view.core.SceneManager;
 import me.chatapp.stchat.view.handlers.*;
 import me.chatapp.stchat.view.layout.ChatViewLayoutManager;
 import me.chatapp.stchat.view.state.ChatViewStateManager;
@@ -128,6 +129,11 @@ public class ChatView extends Application {
 
         // Set logout action
         userInfoPanel.setOnLogoutAction(this::logout);
+        userInfoPanel.setOnProfileAction(() -> {
+            ProfilePage profilePage = new ProfilePage();
+            Scene profileScene = new Scene(profilePage.getPage(), 1000, 700);
+            SceneManager.switchScene(profileScene);
+        });
     }
 
     private void initializeLayout() {

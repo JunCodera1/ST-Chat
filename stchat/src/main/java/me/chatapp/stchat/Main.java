@@ -4,14 +4,11 @@ import javafx.application.Application;
 import javafx.stage.Stage;
 import me.chatapp.stchat.controller.ChatController;
 import me.chatapp.stchat.model.ChatModel;
-import me.chatapp.stchat.model.User;
 import me.chatapp.stchat.view.core.SceneManager;
 import me.chatapp.stchat.view.config.ChatViewConfig;
 import me.chatapp.stchat.view.pages.ChatView;
 import me.chatapp.stchat.view.pages.Login;
 import me.chatapp.stchat.view.pages.SignUp;
-
-import java.util.function.Consumer;
 
 public class Main extends Application {
 
@@ -38,7 +35,7 @@ public class Main extends Application {
             ChatViewConfig config = new ChatViewConfig();
             ChatView view = new ChatView(config, user);
 
-            // Khởi tạo ChatController
+            // Khởi tạo ChatControllerc
             ChatController controller = new ChatController(model, view);
 
             // Thiết lập stage chính
