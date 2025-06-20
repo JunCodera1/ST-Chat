@@ -1,4 +1,4 @@
-package me.chatapp.stchat.view.components.atom;
+package me.chatapp.stchat.view.components.atoms;
 
 import javafx.scene.control.Label;
 import javafx.scene.layout.StackPane;

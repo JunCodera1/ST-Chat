@@ -1,6 +1,6 @@
 package me.chatapp.stchat.view.handlers;
 
-import me.chatapp.stchat.view.pages.ChatView;
+import me.chatapp.stchat.view.components.pages.ChatView;
 
 public class MessageHandler {
     public final ChatView chatView;

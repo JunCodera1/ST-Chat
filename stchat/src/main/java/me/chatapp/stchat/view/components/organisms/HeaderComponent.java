@@ -7,7 +7,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import me.chatapp.stchat.view.core.SceneManager;
-import me.chatapp.stchat.view.components.templates.ProfilePage;
+import me.chatapp.stchat.view.components.pages.ProfilePage;
 
 public class HeaderComponent {
     private final VBox headerContainer;

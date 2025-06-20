@@ -3,7 +3,7 @@ package me.chatapp.stchat.view.components.organisms;
 import javafx.scene.layout.*;
 import javafx.scene.control.*;
 import javafx.geometry.Insets;
-import me.chatapp.stchat.view.components.atom.PrimarySearchField;
+import me.chatapp.stchat.view.components.atoms.PrimarySearchField;
 import me.chatapp.stchat.view.components.molecules.ConversationCell;
 
 import java.util.function.Consumer;

@@ -1,4 +1,4 @@
-package me.chatapp.stchat.view.pages;
+package me.chatapp.stchat.view.components.pages;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -14,9 +14,6 @@ import me.chatapp.stchat.model.Message;
 import me.chatapp.stchat.model.MessageType;
 import me.chatapp.stchat.model.User;
 import me.chatapp.stchat.view.components.organisms.*;
-import me.chatapp.stchat.view.components.templates.Login;
-import me.chatapp.stchat.view.components.templates.ProfilePage;
-import me.chatapp.stchat.view.components.templates.SignUp;
 import me.chatapp.stchat.view.config.ChatViewConfig;
 import me.chatapp.stchat.view.core.SceneManager;
 import me.chatapp.stchat.view.handlers.*;
