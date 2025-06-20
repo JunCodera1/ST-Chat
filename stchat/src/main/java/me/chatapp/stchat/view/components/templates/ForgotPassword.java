@@ -1,4 +1,4 @@
-package me.chatapp.stchat.view.pages;
+package me.chatapp.stchat.view.components.templates;
 
 import javafx.animation.FadeTransition;
 import javafx.animation.ScaleTransition;

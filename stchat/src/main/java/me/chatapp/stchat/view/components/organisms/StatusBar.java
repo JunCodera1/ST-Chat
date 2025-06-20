@@ -1,4 +1,4 @@
-package me.chatapp.stchat.view.components;
+package me.chatapp.stchat.view.components.organisms;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;

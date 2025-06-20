@@ -1,4 +1,4 @@
-package me.chatapp.stchat.view.components;
+package me.chatapp.stchat.view.components.organisms;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -10,7 +10,7 @@ import javafx.scene.shape.Circle;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import me.chatapp.stchat.view.core.SceneManager;
-import me.chatapp.stchat.view.pages.ProfilePage;
+import me.chatapp.stchat.view.components.templates.ProfilePage;
 
 public class ChatHeader {
     private final HBox headerContainer;

@@ -1,4 +1,4 @@
-package me.chatapp.stchat.view.components;
+package me.chatapp.stchat.view.components.organisms;
 
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -7,7 +7,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import me.chatapp.stchat.view.core.SceneManager;
-import me.chatapp.stchat.view.pages.ProfilePage;
+import me.chatapp.stchat.view.components.templates.ProfilePage;
 
 public class HeaderComponent {
     private final VBox headerContainer;
