@@ -1,4 +1,4 @@
-package me.chatapp.stchat.view.components;
+package me.chatapp.stchat.view.components.organisms;
 
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;

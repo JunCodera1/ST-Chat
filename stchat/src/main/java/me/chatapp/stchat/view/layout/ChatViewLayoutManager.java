@@ -1,7 +1,7 @@
 package me.chatapp.stchat.view.layout;
 
 import javafx.scene.layout.*;
-import me.chatapp.stchat.view.components.*;
+import me.chatapp.stchat.view.components.organisms.*;
 
 
 public class ChatViewLayoutManager {

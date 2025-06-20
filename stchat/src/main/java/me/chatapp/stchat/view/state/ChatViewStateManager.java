@@ -4,7 +4,10 @@ import javafx.application.Platform;
 import javafx.scene.control.Alert;
 import javafx.scene.Scene;
 import me.chatapp.stchat.model.Message;
-import me.chatapp.stchat.view.components.*;
+import me.chatapp.stchat.view.components.organisms.ChatPanel;
+import me.chatapp.stchat.view.components.organisms.ConnectionPanel;
+import me.chatapp.stchat.view.components.organisms.MessageInputPanel;
+import me.chatapp.stchat.view.components.organisms.StatusBar;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;

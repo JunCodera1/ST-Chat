@@ -7,8 +7,8 @@ import me.chatapp.stchat.model.ChatModel;
 import me.chatapp.stchat.view.core.SceneManager;
 import me.chatapp.stchat.view.config.ChatViewConfig;
 import me.chatapp.stchat.view.pages.ChatView;
-import me.chatapp.stchat.view.pages.Login;
-import me.chatapp.stchat.view.pages.SignUp;
+import me.chatapp.stchat.view.components.templates.Login;
+import me.chatapp.stchat.view.components.templates.SignUp;
 
 public class Main extends Application {
 

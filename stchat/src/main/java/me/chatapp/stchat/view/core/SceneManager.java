@@ -20,6 +20,6 @@ public class SceneManager {
     }
 
     public static void switchScene(Scene newScene) {
-        primaryStage.setScene(newScene); // ✅ không tạo lại scene
+        primaryStage.setScene(newScene);
     }
 }

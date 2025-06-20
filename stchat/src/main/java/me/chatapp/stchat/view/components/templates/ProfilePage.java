@@ -1,4 +1,4 @@
-package me.chatapp.stchat.view.pages;
+package me.chatapp.stchat.view.components.templates;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -11,6 +11,7 @@ import javafx.scene.shape.Circle;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import me.chatapp.stchat.view.core.SceneManager;
+import me.chatapp.stchat.view.pages.ChatView;
 
 public class ProfilePage {
 
