@@ -6,7 +6,7 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 import me.chatapp.stchat.dao.UserDAO;
 import me.chatapp.stchat.model.User;
-import me.chatapp.stchat.view.components.atoms.StatusText;
+import me.chatapp.stchat.view.components.atoms.Text.StatusText;
 import me.chatapp.stchat.view.components.templates.LoginTemplate;
 
 import java.util.function.Consumer;

@@ -7,10 +7,10 @@ import javafx.geometry.Pos;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
-import me.chatapp.stchat.view.components.molecules.HeaderSection;
-import me.chatapp.stchat.view.components.molecules.SignUpPrompt;
-import me.chatapp.stchat.view.components.organisms.BackgroundDecorator;
-import me.chatapp.stchat.view.components.organisms.LoginForm;
+import me.chatapp.stchat.view.components.molecules.Section.HeaderSection;
+import me.chatapp.stchat.view.components.molecules.Prompt.SignUpPrompt;
+import me.chatapp.stchat.view.components.organisms.Background.BackgroundDecorator;
+import me.chatapp.stchat.view.components.organisms.Form.LoginForm;
 
 public class LoginTemplate extends StackPane {
     private HeaderSection headerSection;

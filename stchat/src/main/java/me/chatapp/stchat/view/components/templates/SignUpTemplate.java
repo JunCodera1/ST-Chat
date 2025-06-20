@@ -8,7 +8,7 @@ import javafx.scene.Node;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
-import me.chatapp.stchat.view.components.organisms.BackgroundDecoration;
+import me.chatapp.stchat.view.components.organisms.Background.BackgroundDecoration;
 
 public class SignUpTemplate extends StackPane {
     private VBox mainCard;
