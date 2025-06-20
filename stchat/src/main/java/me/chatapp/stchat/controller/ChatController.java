@@ -4,7 +4,7 @@ import javafx.application.Platform;
 import javafx.scene.input.KeyCode;
 import me.chatapp.stchat.model.ChatModel;
 import me.chatapp.stchat.model.MessageType;
-import me.chatapp.stchat.view.pages.ChatView;
+import me.chatapp.stchat.view.components.pages.ChatView;
 
 public class ChatController implements ChatModel.ChatModelListener {
     private final ChatModel model;

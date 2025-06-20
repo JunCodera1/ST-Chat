@@ -1,8 +1,8 @@
 package me.chatapp.stchat.view.handlers;
 
-import me.chatapp.stchat.view.components.organisms.ChatPanel;
-import me.chatapp.stchat.view.components.organisms.ConnectionPanel;
-import me.chatapp.stchat.view.components.organisms.MessageInputPanel;
+import me.chatapp.stchat.view.components.organisms.Panel.ChatPanel;
+import me.chatapp.stchat.view.components.organisms.Panel.ConnectionPanel;
+import me.chatapp.stchat.view.components.organisms.Panel.MessageInputPanel;
 import me.chatapp.stchat.view.state.ChatViewStateManager;
 
 /**
