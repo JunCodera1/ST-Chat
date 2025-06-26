@@ -4,16 +4,28 @@ import javafx.application.Application;
 import javafx.stage.Stage;
 import me.chatapp.stchat.controller.ChatController;
 import me.chatapp.stchat.model.ChatModel;
+import me.chatapp.stchat.network.SocketClient;
 import me.chatapp.stchat.view.core.SceneManager;
 import me.chatapp.stchat.view.config.ChatViewConfig;
 import me.chatapp.stchat.view.components.pages.ChatView;
 import me.chatapp.stchat.view.components.pages.Login;
 import me.chatapp.stchat.view.components.pages.SignUp;
 
+import java.io.IOException;
+
 public class Main extends Application {
+
+    private SocketClient socketClient;
 
     @Override
     public void start(Stage primaryStage) {
+        try {
+            socketClient = new SocketClient("localhost", 12345);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return;
+        }
+
         SceneManager.setStage(primaryStage);
         showSignUpStage(primaryStage);
     }
@@ -28,26 +40,25 @@ public class Main extends Application {
             loginStage.close();
             showSignUpStage(new Stage());
         }, user -> {
-            // Khởi tạo ChatModel
-            ChatModel model = new ChatModel();
+            try {
+                ChatModel model = new ChatModel();
+                ChatViewConfig config = new ChatViewConfig();
+                ChatView view = new ChatView(config, user);
 
-            // Khởi tạo ChatView với user
-            ChatViewConfig config = new ChatViewConfig();
-            ChatView view = new ChatView(config, user);
+                // Controller gắn client đã tạo
+                ChatController controller = new ChatController(model, view, socketClient);
 
-            // Khởi tạo ChatController
-            ChatController controller = new ChatController(model, view);
+                Stage primaryStage = SceneManager.getStage();
+                primaryStage.setTitle("ST Chat - " + user.getUsername());
+                primaryStage.setScene(view.getScene());
+                primaryStage.setMinWidth(900);
+                primaryStage.setMinHeight(650);
+                primaryStage.show();
 
-            // Thiết lập stage chính
-            Stage primaryStage = SceneManager.getStage();
-            primaryStage.setTitle("ST Chat - " + user.getUsername());
-            primaryStage.setScene(view.getScene());
-            primaryStage.setMinWidth(900);
-            primaryStage.setMinHeight(650);
-            primaryStage.show();
-
-            // Khởi tạo controller
-            controller.initialize();
+                controller.initialize();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         });
         login.show();
     }

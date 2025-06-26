@@ -12,6 +12,7 @@ import me.chatapp.stchat.model.ChatModel;
 import me.chatapp.stchat.model.Message;
 import me.chatapp.stchat.model.MessageType;
 import me.chatapp.stchat.model.User;
+import me.chatapp.stchat.network.SocketClient;
 import me.chatapp.stchat.view.components.organisms.Bar.NavigationSidebar;
 import me.chatapp.stchat.view.components.organisms.Bar.StatusBar;
 import me.chatapp.stchat.view.components.organisms.Header.ChatHeader;
@@ -24,6 +25,7 @@ import me.chatapp.stchat.view.handlers.*;
 import me.chatapp.stchat.view.layout.ChatViewLayoutManager;
 import me.chatapp.stchat.view.state.ChatViewStateManager;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.logging.Logger;
@@ -76,8 +78,13 @@ public class ChatView extends Application {
     }
 
     public ChatView(ChatViewConfig config, User user) {
-        this(config);
+        this.config = config;
+        this.root = new BorderPane();
+        this.scene = new Scene(root, config.getWidth(), config.getHeight());
         this.currentUser = user;
+
+        initializeUI();
+
         if (user != null) {
             Platform.runLater(() -> {
                 navigationSidebar.setUser(user);
@@ -89,14 +96,16 @@ public class ChatView extends Application {
         }
     }
 
+
     private void initializeUI() {
         loadStylesheets();
         initializeComponents();
-        initializeLayout();
         initializeManagers();
+        initializeLayout();
         initializeLegacyHandlers();
         setupTestData();
     }
+
 
     private void loadStylesheets() {
         for (String cssFile : ChatViewConfig.CSS_FILES) {
@@ -116,7 +125,6 @@ public class ChatView extends Application {
         messageInputPanel = new MessageInputPanel();
         statusBar = new StatusBar();
         chatHeader = new ChatHeader();
-        navigationSidebar = new NavigationSidebar();
     }
 
     private void initializeLayout() {
@@ -183,30 +191,47 @@ public class ChatView extends Application {
     }
 
     private void initializeManagers() {
-        stateManager = new ChatViewStateManager(
-                connectionPanel, chatPanel, messageInputPanel, statusBar, scene
-        );
-        eventHandler = new ChatViewEventHandler(
-                config.getPort(), connectionPanel, chatPanel,
-                messageInputPanel, stateManager
-        );
+        try{
+            SocketClient socketClient = new SocketClient("localhost", config.getPort());
 
-        // Setup navigation sidebar handlers
-        setupNavigationSidebarHandlers();
+            stateManager = new ChatViewStateManager(
+                    connectionPanel, chatPanel, messageInputPanel, statusBar, scene
+            );
+            eventHandler = new ChatViewEventHandler(
+                    config.getPort(), connectionPanel, chatPanel,
+                    messageInputPanel, stateManager
+            );
 
+            // 👉 3. Gán vào eventHandler trước khi dùng
+            eventHandler.setSocketClient(socketClient);
 
-        chatHeader.setOnCallAction(() -> showInfo("Voice Call", "Voice call feature coming soon!"));
-        chatHeader.setOnVideoCallAction(() -> showInfo("Video Call", "Video call feature coming soon!"));
-        chatHeader.setOnInfoAction(() -> showInfo("Conversation Info", "Conversation details coming soon!"));
+            // 👉 4. Tạo navigationSidebar sau khi socketClient đã có
+            navigationSidebar = new NavigationSidebar(
+                    currentUser,
+                    socketClient,              // Không bị lỗi IllegalStateException nữa
+                    currentStage,
+                    this::logout
+            );
 
-        messageInputPanel.getMessageField().textProperty().addListener((obs, oldText, newText) -> {
-            if (!newText.isEmpty() && (oldText == null || oldText.isEmpty())) {
-                chatPanel.showTypingIndicator("You");
-            } else if (newText.isEmpty() && oldText != null && !oldText.isEmpty()) {
-                chatPanel.hideTypingIndicator();
-            }
-        });
+            setupNavigationSidebarHandlers();
+
+            // Tiếp tục set các sự kiện
+            chatHeader.setOnCallAction(() -> showInfo("Voice Call", "Voice call feature coming soon!"));
+            chatHeader.setOnVideoCallAction(() -> showInfo("Video Call", "Video call feature coming soon!"));
+            chatHeader.setOnInfoAction(() -> showInfo("Conversation Info", "Conversation details coming soon!"));
+
+            messageInputPanel.getMessageField().textProperty().addListener((obs, oldText, newText) -> {
+                if (!newText.isEmpty() && (oldText == null || oldText.isEmpty())) {
+                    chatPanel.showTypingIndicator("You");
+                } else if (newText.isEmpty() && oldText != null && !oldText.isEmpty()) {
+                    chatPanel.hideTypingIndicator();
+                }
+            });
+        }catch (IOException e){
+            e.printStackTrace();
+        }
     }
+
 
     private void initializeLegacyHandlers() {
         connectionHandler = new ConnectionHandler(this);
@@ -362,17 +387,29 @@ public class ChatView extends Application {
                 });
                 signUp.show();
             }, user -> {
-                loginStage.close();
-                ChatModel model = new ChatModel();
-                ChatViewConfig config = new ChatViewConfig();
-                ChatView view = new ChatView(config, user);
-                ChatController controller = new ChatController(model, view);
-                Stage newStage = new Stage();
-                view.start(newStage);
-                controller.initialize();
+                try {
+                    loginStage.close();
+                    ChatModel model = new ChatModel();
+                    ChatViewConfig config = new ChatViewConfig();
+                    ChatView view = new ChatView(config, user);
+                    String host = "localhost";
+                    int portAsInt = 12345;
+                    SocketClient client = new SocketClient(host, portAsInt);
+                    ChatController controller = new ChatController(model, view, client);
+                    Stage newStage = new Stage();
+                    view.start(newStage);
+                    controller.initialize();
+                }catch (IOException e){
+                    e.printStackTrace();
+                }
+
             });
             login.show();
         });
+    }
+
+    public ChatViewEventHandler getEventHandler(){
+        return eventHandler;
     }
 
     public void setOnConnectAction(ChatEventActions.ConnectAction action) {

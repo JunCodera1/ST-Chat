@@ -2,6 +2,8 @@ package dao;
 
 import database.DatabaseConnection;
 import model.User;
+import util.EmailSender;
+import util.PasswordGenerator;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -270,6 +272,41 @@ public class UserDAO {
         }
 
         return false;
+    }
+
+    public String resetPassword(String email) {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            String query = "SELECT username FROM users WHERE email = ?";
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setString(1, email);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                String username = rs.getString("username");
+
+                String newPassword = PasswordGenerator.generate(10);
+                String hashedPassword = hashPassword(newPassword);
+
+                String update = "UPDATE users SET password_hash = ? WHERE email = ?";
+                PreparedStatement updateStmt = conn.prepareStatement(update);
+                updateStmt.setString(1, hashedPassword);
+                updateStmt.setString(2, email);
+                updateStmt.executeUpdate();
+
+                String subject = "ST Chat - Mật khẩu mới";
+                String content = "Xin chào " + username + ",\n\nMật khẩu mới của bạn là: " + newPassword + "\nHãy đăng nhập và thay đổi mật khẩu ngay.";
+
+                boolean emailSent = EmailSender.send(email, subject, content);
+                if (emailSent) {
+                    return "Mật khẩu mới đã được gửi tới email: " + email;
+                } else {
+                    return "Đặt lại mật khẩu thành công, nhưng không gửi được email.";
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     private String hashPassword(String password) {

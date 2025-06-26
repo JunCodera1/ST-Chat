@@ -280,26 +280,31 @@ public class ForgotPassword {
                     resetButton.setDisable(false);
                     resetButton.setText("Reset Password");
 
-                    if ("success".equalsIgnoreCase(json.optString("status"))) {
-                        statusMessage.setText("Password reset link sent to your email!");
-                        statusMessage.setFill(Color.web("#38a169"));
-                        LOGGER.info("Password reset requested for email: " + email);
+                    String status = json.optString("status", "error");
+                    String message = json.optString("message", "Unknown error");
 
+                    if ("success".equalsIgnoreCase(status)) {
+                        statusMessage.setText(message);
+                        statusMessage.setFill(Color.web("#38a169"));
+                        LOGGER.info("Password reset success: " + message);
+
+                        // Optional: animation
                         ScaleTransition successScale = new ScaleTransition(Duration.millis(200), stage.getScene().getRoot());
                         successScale.setToX(0.95);
                         successScale.setToY(0.95);
                         successScale.play();
                     } else {
-                        statusMessage.setText(json.optString("message", "Email not found in our system"));
-                        statusMessage.setFill(Color.web("#e53e3e"));
+                        statusMessage.setText(message);
+                        statusMessage.setFill(Color.web("#e53e3e")); // đỏ
 
+                        // shake effect
                         ScaleTransition shakeScale = new ScaleTransition(Duration.millis(100), statusMessage);
                         shakeScale.setToX(1.1);
                         shakeScale.setAutoReverse(true);
                         shakeScale.setCycleCount(4);
                         shakeScale.play();
 
-                        LOGGER.warning("Password reset failed - email not found: " + email);
+                        LOGGER.warning("Password reset failed: " + message);
                     }
                 });
 

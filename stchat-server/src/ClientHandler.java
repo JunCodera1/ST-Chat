@@ -67,15 +67,7 @@ class ClientHandler implements Runnable {
                         writer.println(response.toString());
                         disconnect();
                     }
-                } else {
-                    JSONObject response = new JSONObject()
-                            .put("status", "error")
-                            .put("message", "Unknown request type.");
-                    writer.println(response.toString());
-                    disconnect();
-                }
-
-                if ("REGISTER".equalsIgnoreCase(type)) {
+                }else if ("REGISTER".equalsIgnoreCase(type)) {
                     String usernameInput = json.optString("username");
                     String emailInput = json.optString("email");
                     String passwordInput = json.optString("password");
@@ -94,8 +86,48 @@ class ClientHandler implements Runnable {
                     disconnect();
                     return;
                 }
+                else if ("FORGOT_PASSWORD".equalsIgnoreCase(type)) {
+                    String emailInput = json.optString("email");
 
+                    UserDAO userDAO = new UserDAO();
+                    String resetResult = userDAO.resetPassword(emailInput); // ví dụ hàm này trả về thông báo
 
+                    JSONObject response = new JSONObject();
+                    if (resetResult != null) {
+                        response.put("status", "success")
+                                .put("message", resetResult); // Ví dụ: "Mật khẩu đã được gửi đến email của bạn"
+                    } else {
+                        response.put("status", "error")
+                                .put("message", "Email không tồn tại trong hệ thống.");
+                    }
+
+                    writer.println(response.toString());
+                    disconnect();  // có thể cho thoát sau khi xử lý
+                    return;
+                }
+                else if ("RESET_PASSWORD".equalsIgnoreCase(type)) {
+                    String email = json.optString("email");
+
+                    UserDAO userDAO = new UserDAO();
+                    String message = userDAO.resetPassword(email);
+
+                    JSONObject response = new JSONObject();
+                    if (message != null) {
+                        response.put("status", "success").put("message", message);
+                    } else {
+                        response.put("status", "error").put("message", "Email not found.");
+                    }
+
+                    writer.println(response.toString());
+                    disconnect();  // Tùy bạn muốn giữ kết nối hay không
+                }
+                else {
+                    JSONObject response = new JSONObject()
+                            .put("status", "error")
+                            .put("message", "Unknown request type.");
+                    writer.println(response.toString());
+                    disconnect();
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 JSONObject response = new JSONObject()
@@ -190,7 +222,7 @@ class ClientHandler implements Runnable {
                 sendMessage("System: Thời gian hiện tại: " +
                         LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss dd/MM/yyyy")));
                 break;
-
+            case "/logout":
             case "/quit":
                 sendMessage("System: Tạm biệt " + username + "!");
                 disconnect();

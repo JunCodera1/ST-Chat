@@ -6,20 +6,34 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
+import javafx.stage.Stage;
+import me.chatapp.stchat.controller.ChatController;
+import me.chatapp.stchat.model.ChatModel;
 import me.chatapp.stchat.model.User;
+import me.chatapp.stchat.network.SocketClient;
 import me.chatapp.stchat.view.components.atoms.Button.SidebarIconButton;
 import me.chatapp.stchat.view.components.atoms.Label.StatusLabel;
 import javafx.scene.control.Button;
 import javafx.stage.Popup;
 import javafx.stage.Window;
+import me.chatapp.stchat.view.components.pages.ChatView;
+import me.chatapp.stchat.view.components.pages.Login;
+import me.chatapp.stchat.view.config.ChatViewConfig;
 import org.jetbrains.annotations.NotNull;
 
 public class SidebarFooter extends VBox {
 
     private Label userNameLabel;
     private StatusLabel statusLabel;
+    private final SocketClient client;
+    private final Stage stage;
+    private final Runnable onSettingsClicked;
 
-    public SidebarFooter(User user, Runnable onSettingsClicked) {
+
+    public SidebarFooter(User user, SocketClient client, Stage stage, Runnable onSettingsClicked) {
+        this.client = client;
+        this.stage = stage;
+        this.onSettingsClicked = onSettingsClicked;
         setSpacing(5);
         setPadding(new Insets(10, 15, 15, 15));
         setStyle("-fx-background-color: #1a1d21;");
@@ -67,9 +81,42 @@ public class SidebarFooter extends VBox {
             content.setPadding(new Insets(8));
             content.setStyle("-fx-background-color: #2c2f33; -fx-background-radius: 6; -fx-border-radius: 6;");
 
-            Button profileSettings = createHoverButton("👤 Profile Settings");
-            Button changeStatus = createHoverButton("🔁 Change Status");
-            Button logout = createHoverButton("🚪 Logout");
+            Button profileSettings = createHoverButton("Profile Settings");
+            Button changeStatus = createHoverButton("Change Status");
+            Button logout = createHoverButton("Logout");
+
+            logout.setOnAction(event -> {
+                client.logoutAndClose();
+                if (stage != null) {
+                    stage.close();
+                }
+
+                new Login(
+                        onSettingsClicked,
+                        user -> {
+                            try {
+                                ChatModel model = new ChatModel();
+                                ChatViewConfig config = new ChatViewConfig();
+                                ChatView view = new ChatView(config, user);
+                                ChatController controller = new ChatController(model, view, client);
+
+                                Stage mainStage = new Stage();
+                                mainStage.setTitle("ST Chat - " + user.getUsername());
+                                mainStage.setScene(view.getScene());
+                                mainStage.setMinWidth(900);
+                                mainStage.setMinHeight(650);
+                                mainStage.show();
+
+                                controller.initialize();
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                ).show();
+            });
+
+
+
 
             content.getChildren().addAll(profileSettings, changeStatus, logout);
             popup.getContent().add(content);

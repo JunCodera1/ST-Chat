@@ -4,11 +4,14 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import javafx.stage.Stage;
 import me.chatapp.stchat.model.User;
+import me.chatapp.stchat.network.SocketClient;
 import me.chatapp.stchat.view.components.molecules.Item.NavigationItem;
 import me.chatapp.stchat.view.components.molecules.Item.ChannelItem;
 import me.chatapp.stchat.view.components.molecules.Item.DirectMessageItem;
 import me.chatapp.stchat.view.components.organisms.Footer.SidebarFooter;
+import me.chatapp.stchat.view.core.SceneManager;
 
 import java.util.function.Consumer;
 
@@ -27,19 +30,27 @@ public class NavigationSidebar {
     private Consumer<String> onChannelSelected;
     private Consumer<String> onDirectMessageSelected;
     private Runnable onSettingsClicked;
+    private final SocketClient socketClient;
+    private final Stage stage;
+    Stage currentStage = SceneManager.getStage();
 
-    public NavigationSidebar() {
+    public NavigationSidebar(User currentUser, SocketClient socketClient, Stage stage, Runnable onSettingsClicked) {
+        this.currentUser = currentUser;
+        this.socketClient = socketClient;
+        this.stage = stage;
+        this.onSettingsClicked = onSettingsClicked;
         this.root = new VBox();
         this.favoritesContainer = new VBox();
         this.directMessagesContainer = new VBox();
-        this.currentUser = new User();
         this.channelsContainer = new VBox();
         this.scrollPane = new ScrollPane();
-        this.footer = new SidebarFooter(currentUser, onSettingsClicked);
+
+        this.footer = new SidebarFooter(currentUser, socketClient, currentStage, onSettingsClicked);
 
         initializeComponent();
         setupDefaultItems();
     }
+
 
     private void initializeComponent() {
         root.setPrefWidth(280);
@@ -58,6 +69,7 @@ public class NavigationSidebar {
         scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         scrollPane.setStyle("-fx-background: #1a1d21; -fx-background-color: #1a1d21;");
 
+
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
 
         root.getChildren().addAll(header, scrollPane, footer);
@@ -67,7 +79,7 @@ public class NavigationSidebar {
         this.currentUser = user;
 
         if (footer == null) {
-            footer = new SidebarFooter(currentUser, onSettingsClicked);
+            this.footer = new SidebarFooter(currentUser, socketClient, stage, onSettingsClicked);
             root.getChildren().removeIf(n -> n instanceof SidebarFooter);
             root.getChildren().add(footer);
         } else {
