@@ -267,7 +267,7 @@ public class ForgotPassword {
 
                 // Gửi JSON yêu cầu reset password
                 String request = new JSONObject()
-                        .put("type", "RESET_PASSWORD")
+                        .put("type", "FORGOT_PASSWORD")
                         .put("email", email)
                         .toString();
 

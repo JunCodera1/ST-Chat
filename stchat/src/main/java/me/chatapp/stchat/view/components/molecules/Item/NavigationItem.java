@@ -44,7 +44,7 @@ public class NavigationItem {
 
         root.getChildren().addAll(iconLabel, textLabel, spacer);
 
-        // Add click handler
+        // Add click com.stchat.server.handler
         root.setOnMouseClicked(e -> {
             if (onAction != null) {
                 onAction.run();

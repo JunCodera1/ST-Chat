@@ -81,7 +81,7 @@ public class DirectMessageItem {
             root.getChildren().addAll(avatarContainer, nameLabel, spacer);
         }
 
-        // Click handler
+        // Click com.stchat.server.handler
         root.setOnMouseClicked(e -> {
             if (onAction != null) {
                 onAction.run();

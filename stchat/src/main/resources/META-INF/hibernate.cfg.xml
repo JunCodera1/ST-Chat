@@ -16,6 +16,6 @@
         <property name="hibernate.show_sql">true</property>
 
         <!-- Entity classes -->
-        <mapping class="me.chatapp.stchat.model.Message"/>
+        <mapping class="me.chatapp.stchat.com.stchat.server.model.Message"/>
     </session-factory>
 </hibernate-configuration>

@@ -5,7 +5,7 @@
              version="3.0">
 
     <persistence-unit name="stchatPU" transaction-type="RESOURCE_LOCAL">
-        <class>me.chatapp.stchat.model.Message</class>
+        <class>me.chatapp.stchat.com.stchat.server.model.Message</class>
 
         <properties>
             <property name="jakarta.persistence.jdbc.driver" value="org.postgresql.Driver"/>
