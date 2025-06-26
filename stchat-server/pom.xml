@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>me.chatapp</groupId>
-    <artifactId>stchat</artifactId>
+    <artifactId>stchat-server</artifactId>
     <version>1.0-SNAPSHOT</version>
     <name>stchat</name>
 
@@ -24,6 +24,11 @@
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-fxml</artifactId>
             <version>17.0.6</version>
+        </dependency>
+        <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>20240303</version> <!-- bản mới nhất tại thời điểm hiện tại -->
         </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>

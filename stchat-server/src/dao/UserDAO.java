@@ -1,7 +1,7 @@
-package me.chatapp.stchat.dao;
+package dao;
 
-import me.chatapp.stchat.database.DatabaseConnection;
-import me.chatapp.stchat.model.User;
+import database.DatabaseConnection;
+import model.User;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;

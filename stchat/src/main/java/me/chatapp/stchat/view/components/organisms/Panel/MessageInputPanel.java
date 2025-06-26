@@ -1,149 +1,143 @@
 package me.chatapp.stchat.view.components.organisms.Panel;
 
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
-import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
-import javafx.stage.Popup;
+import me.chatapp.stchat.view.components.atoms.Button.AttachmentButton;
+import me.chatapp.stchat.view.components.atoms.Button.MicrophoneButton;
+import me.chatapp.stchat.view.components.atoms.Button.SendButton;
+import me.chatapp.stchat.view.components.atoms.TextField.MessageTextField;
+import me.chatapp.stchat.view.components.molecules.Picker.EmojiPicker;
 
 public class MessageInputPanel {
-    private final VBox inputContainer;
-    private final TextField messageField;
-    private final Button sendButton;
-    private final Button clearButton;
-    private final Button emojiButton;
-
-    private final Popup emojiPopup = new Popup();
+    private final VBox container;
+    private final HBox inputRow;
+    private final MessageTextField messageField;
+    private final EmojiPicker emojiPicker;
+    private final AttachmentButton attachmentButton;
+    private final SendButton sendButton;
+    private final MicrophoneButton microphoneButton;
 
     public MessageInputPanel() {
-        inputContainer = new VBox();
-        inputContainer.getStyleClass().add("message-input-area");
-        inputContainer.setSpacing(10);
+        container = new VBox();
+        setupContainer();
 
-        // Input header
-        Label inputLabel = new Label("Type your message");
-        inputLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #495057; -fx-font-size: 14px;");
+        inputRow = new HBox();
+        messageField = new MessageTextField();
+        emojiPicker = new EmojiPicker(this::onEmojiSelected);
+        attachmentButton = new AttachmentButton();
+        sendButton = new SendButton();
+        microphoneButton = new MicrophoneButton();
 
-        // Message input row
-        HBox inputRow = new HBox(10);
+        setupInputRow();
+        setupEventHandlers();
+
+        container.getChildren().add(inputRow);
+    }
+
+    private void setupContainer() {
+        container.setPadding(new Insets(15, 20, 15, 20));
+        container.setStyle("-fx-background-color: white; " +
+                "-fx-border-color: #e9ecef; " +
+                "-fx-border-width: 1px 0 0 0;");
+    }
+
+    private void setupInputRow() {
         inputRow.setAlignment(Pos.CENTER);
 
-        // Message field
-        messageField = new TextField();
-        messageField.getStyleClass().add("modern-text-field");
-        messageField.setPromptText("Enter your message...");
-        messageField.setStyle(messageField.getStyle() + "; -fx-pref-height: 40px;");
+        // Left side buttons
+        HBox leftButtons = new HBox(5);
+        leftButtons.setAlignment(Pos.CENTER);
+        leftButtons.getChildren().addAll(attachmentButton, emojiPicker.getEmojiButton());
+
+        // Right side buttons
+        HBox rightButtons = new HBox(5);
+        rightButtons.setAlignment(Pos.CENTER);
+        rightButtons.getChildren().addAll(microphoneButton, sendButton);
+
+        // Set message field to grow
         HBox.setHgrow(messageField, Priority.ALWAYS);
 
-        // Emoji button (future feature)
-        emojiButton = new Button("😊");
-        emojiButton.getStylesheets().add("emoji-btn");
-        emojiButton.setOnAction(e -> showEmojiPopup());
+        inputRow.getChildren().addAll(leftButtons, messageField, rightButtons);
+    }
 
-        // Send button
-        sendButton = new Button("Send");
-        sendButton.getStyleClass().add("primary-button");
-        sendButton.setPrefWidth(80);
-        sendButton.setDisable(true);
-
-        // Clear button
-        clearButton = new Button("Clear");
-        clearButton.getStyleClass().add("danger-button");
-        clearButton.setPrefWidth(80);
-
-        inputRow.getChildren().addAll(messageField, emojiButton, sendButton, clearButton);
-
-        // Additional controls row
-        HBox controlsRow = new HBox(15);
-        controlsRow.setAlignment(Pos.CENTER_LEFT);
-
-        // Character counter
-        Label charCounter = new Label("0/500");
-        charCounter.setStyle("-fx-font-size: 12px; -fx-text-fill: #6c757d;");
-
-        // Message field listener for character count
+    private void setupEventHandlers() {
+        // Enable/disable send button based on text input
         messageField.textProperty().addListener((obs, oldText, newText) -> {
-            int length = newText.length();
-            charCounter.setText(length + "/500");
+            boolean hasText = !newText.trim().isEmpty();
+            sendButton.setDisable(!hasText);
 
-            if (length > 500) {
-                charCounter.setStyle("-fx-font-size: 12px; -fx-text-fill: #dc3545;");
-                messageField.setText(oldText); // Prevent exceeding limit
-            } else if (length > 400) {
-                charCounter.setStyle("-fx-font-size: 12px; -fx-text-fill: #ffc107;");
+            // Show/hide microphone button based on text
+            if (hasText) {
+                if (inputRow.getChildren().contains(microphoneButton)) {
+                    HBox rightButtons = (HBox) inputRow.getChildren().get(2);
+                    rightButtons.getChildren().remove(microphoneButton);
+                }
             } else {
-                charCounter.setStyle("-fx-font-size: 12px; -fx-text-fill: #6c757d;");
+                HBox rightButtons = (HBox) inputRow.getChildren().get(2);
+                if (!rightButtons.getChildren().contains(microphoneButton)) {
+                    rightButtons.getChildren().add(0, microphoneButton);
+                }
             }
-
-            // Enable/disable send button based on content
-            sendButton.setDisable(newText.trim().isEmpty());
         });
 
-        // Typing indicator placeholder
-        Label typingIndicator = new Label();
-        typingIndicator.setStyle("-fx-font-size: 12px; -fx-text-fill: #28a745; -fx-font-style: italic;");
+        // Send on Enter key
+        messageField.setOnAction(e -> sendMessage());
+        sendButton.setOnAction(e -> sendMessage());
 
-        controlsRow.getChildren().addAll(charCounter, typingIndicator);
+        // Attachment button action
+        attachmentButton.setOnAction(e -> handleAttachment());
 
-        inputContainer.getChildren().addAll(inputLabel, inputRow, controlsRow);
+        // Microphone button action
+        microphoneButton.setOnAction(e -> handleVoiceInput());
+
+        // Initial state
+        sendButton.setDisable(true);
     }
 
-    private void showEmojiPopup() {
-        if (emojiPopup.isShowing()) {
-            emojiPopup.hide();
-            return;
-        }
-
-        // Danh sách emoji mẫu
-        String[] emojis = {"😊", "😂", "😍", "🤔", "👍", "❤️", "🎉", "🔥", "😎", "😭", "😡", "😱"};
-
-        FlowPane emojiPane = new FlowPane();
-        emojiPane.setHgap(10);
-        emojiPane.setVgap(10);
-        emojiPane.setPrefWrapLength(200);
-        emojiPane.setPadding(new javafx.geometry.Insets(10));
-        emojiPane.setStyle("-fx-background-color: white; -fx-border-color: gray; -fx-border-radius: 5; -fx-background-radius: 5;");
-
-        for (String emoji : emojis) {
-            Button emojiBtn = new Button(emoji);
-            emojiBtn.setStyle("-fx-font-size: 20px; -fx-background-color: transparent;");
-            emojiBtn.setOnAction(e -> {
-                messageField.appendText(emoji);
-                emojiPopup.hide();
-                messageField.requestFocus();
-            });
-            emojiPane.getChildren().add(emojiBtn);
-        }
-
-        emojiPopup.getContent().clear();
-        emojiPopup.getContent().add(emojiPane);
-        emojiPopup.setAutoHide(true);
-
-        // Hiển thị popup ngay dưới nút emoji
-        javafx.geometry.Bounds bounds = emojiButton.localToScreen(emojiButton.getBoundsInLocal());
-        emojiPopup.show(emojiButton, bounds.getMinX(), bounds.getMaxY());
+    private void onEmojiSelected() {
+        // This would be implemented to add emoji to text field
+        // For now, just focus back to text field
+        messageField.requestFocus();
     }
 
+    private void sendMessage() {
+        String message = messageField.getText().trim();
+        if (!message.isEmpty()) {
+            // Handle sending message
+            System.out.println("Sending message: " + message);
+            messageField.clear();
+            messageField.requestFocus();
+        }
+    }
 
+    private void handleAttachment() {
+        // Handle file attachment
+        System.out.println("Opening file picker...");
+    }
+
+    private void handleVoiceInput() {
+        // Handle voice input
+        System.out.println("Starting voice input...");
+    }
+
+    // Public API
     public VBox getComponent() {
-        return inputContainer;
+        return container;
     }
 
-    // Getters
-    public TextField getMessageField() { return messageField; }
-    public Button getSendButton() { return sendButton; }
-    public Button getClearButton() { return clearButton; }
-    public Button getEmojiButton() { return emojiButton; }
+    public MessageTextField getMessageField() {
+        return messageField;
+    }
 
-    // State management
-    public void setInputEnabled(boolean enabled) {
-        messageField.setDisable(!enabled);
-        sendButton.setDisable(!enabled || messageField.getText().trim().isEmpty());
-        emojiButton.setDisable(!enabled);
+    public SendButton getSendButton() {
+        return sendButton;
+    }
+
+    public void focusInput() {
+        messageField.requestFocus();
     }
 
     public void clearInput() {
@@ -151,19 +145,11 @@ public class MessageInputPanel {
         messageField.requestFocus();
     }
 
-    public void showTypingIndicator(String username) {
-        HBox controlsRow = (HBox) inputContainer.getChildren().get(2);
-        Label typingIndicator = (Label) controlsRow.getChildren().get(1);
-        typingIndicator.setText(username + " is typing...");
-    }
-
-    public void hideTypingIndicator() {
-        HBox controlsRow = (HBox) inputContainer.getChildren().get(2);
-        Label typingIndicator = (Label) controlsRow.getChildren().get(1);
-        typingIndicator.setText("");
-    }
-
-    public void focusInput() {
-        messageField.requestFocus();
+    public void setInputEnabled(boolean enabled) {
+        messageField.setDisable(!enabled);
+        sendButton.setDisable(!enabled);
+        attachmentButton.setDisable(!enabled);
+        emojiPicker.getEmojiButton().setDisable(!enabled);
+        microphoneButton.setDisable(!enabled);
     }
 }

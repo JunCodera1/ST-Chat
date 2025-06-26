@@ -8,21 +8,18 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import me.chatapp.stchat.controller.ChatController;
-import me.chatapp.stchat.dao.UserDAO;
 import me.chatapp.stchat.model.ChatModel;
 import me.chatapp.stchat.model.Message;
 import me.chatapp.stchat.model.MessageType;
 import me.chatapp.stchat.model.User;
-import me.chatapp.stchat.view.components.organisms.Bar.ConversationSidebar;
+import me.chatapp.stchat.view.components.organisms.Bar.NavigationSidebar;
 import me.chatapp.stchat.view.components.organisms.Bar.StatusBar;
 import me.chatapp.stchat.view.components.organisms.Header.ChatHeader;
 import me.chatapp.stchat.view.components.organisms.Header.HeaderComponent;
 import me.chatapp.stchat.view.components.organisms.Panel.ChatPanel;
 import me.chatapp.stchat.view.components.organisms.Panel.ConnectionPanel;
 import me.chatapp.stchat.view.components.organisms.Panel.MessageInputPanel;
-import me.chatapp.stchat.view.components.organisms.Panel.UserInfoPanel;
 import me.chatapp.stchat.view.config.ChatViewConfig;
-import me.chatapp.stchat.view.core.SceneManager;
 import me.chatapp.stchat.view.handlers.*;
 import me.chatapp.stchat.view.layout.ChatViewLayoutManager;
 import me.chatapp.stchat.view.state.ChatViewStateManager;
@@ -35,8 +32,6 @@ public class ChatView extends Application {
 
     private static final Logger LOGGER = Logger.getLogger(ChatView.class.getName());
 
-    // User
-    private UserDAO userDAO;
     private User currentUser;
 
     // Configuration
@@ -46,22 +41,15 @@ public class ChatView extends Application {
     private final BorderPane root;
     private final Scene scene;
 
-    // UI Components
+    private NavigationSidebar navigationSidebar;
     private HeaderComponent headerComponent;
     private ConnectionPanel connectionPanel;
     private ChatPanel chatPanel;
     private MessageInputPanel messageInputPanel;
     private StatusBar statusBar;
 
-    // New Messenger-style components
-    private ConversationSidebar conversationSidebar;
     private ChatHeader chatHeader;
-    private UserInfoPanel userInfoPanel;
-
-    // Layout containers
-    private HBox mainContainer;
     private VBox chatAreaContainer;
-    private VBox sidebarContainer;
 
     // Managers
     private ChatViewLayoutManager layoutManager;
@@ -71,7 +59,6 @@ public class ChatView extends Application {
     // Legacy handlers
     private ConnectionHandler connectionHandler;
     private MessageHandler messageHandler;
-    private UIStateHandler uiStateHandler;
 
     // Stage reference
     private Stage currentStage;
@@ -84,7 +71,7 @@ public class ChatView extends Application {
         this.config = config;
         this.root = new BorderPane();
         this.scene = new Scene(root, config.getWidth(), config.getHeight());
-        this.userDAO = new UserDAO();
+        // User
         initializeUI();
     }
 
@@ -93,10 +80,8 @@ public class ChatView extends Application {
         this.currentUser = user;
         if (user != null) {
             Platform.runLater(() -> {
-                if (userInfoPanel != null) {
-                    userInfoPanel.setUser(user);
-                }
-                if (config != null && currentStage != null) {
+                navigationSidebar.setUser(user);
+                if (currentStage != null) {
                     currentStage.setTitle(config.getTitle() + " - " + user.getUsername());
                 }
                 autoConnectToChat();
@@ -130,49 +115,64 @@ public class ChatView extends Application {
         chatPanel = new ChatPanel();
         messageInputPanel = new MessageInputPanel();
         statusBar = new StatusBar();
-        conversationSidebar = new ConversationSidebar();
         chatHeader = new ChatHeader();
-        userInfoPanel = new UserInfoPanel();
-
-        // Set logout action
-        userInfoPanel.setOnLogoutAction(this::logout);
-        userInfoPanel.setOnProfileAction(() -> {
-            ProfilePage profilePage = new ProfilePage();
-            Scene profileScene = new Scene(profilePage.getPage(), 1000, 700);
-            SceneManager.switchScene(profileScene);
-        });
+        navigationSidebar = new NavigationSidebar();
     }
 
     private void initializeLayout() {
-        mainContainer = new HBox();
+        // Layout containers
+        HBox mainContainer = new HBox();
         mainContainer.setSpacing(0);
 
-        sidebarContainer = new VBox();
-        sidebarContainer.setPrefWidth(320);
-        sidebarContainer.setMinWidth(280);
-        sidebarContainer.setMaxWidth(400);
-        sidebarContainer.setStyle("-fx-background-color: #f8f9fa; -fx-border-color: #e9ecef; -fx-border-width: 0 1 0 0;");
+        VBox navSidebarContainer = navigationSidebar.getComponent();
+
 
         chatAreaContainer = new VBox();
         chatAreaContainer.setStyle("-fx-background-color: white;");
         HBox.setHgrow(chatAreaContainer, Priority.ALWAYS);
 
-        setupSidebarLayout();
         setupChatAreaLayout();
 
-        mainContainer.getChildren().addAll(sidebarContainer, chatAreaContainer);
+        mainContainer.getChildren().addAll(navSidebarContainer, chatAreaContainer);
         root.setCenter(mainContainer);
         root.setBottom(statusBar.getComponent());
     }
 
-    private void setupSidebarLayout() {
-        sidebarContainer.getChildren().add(userInfoPanel.getComponent());
-        VBox.setVgrow(conversationSidebar.getComponent(), Priority.ALWAYS);
-        sidebarContainer.getChildren().add(conversationSidebar.getComponent());
-        TitledPane connectionAccordion = new TitledPane("Connection Settings", connectionPanel.getComponent());
-        connectionAccordion.setExpanded(false);
-        connectionAccordion.setStyle("-fx-background-color: transparent;");
-        sidebarContainer.getChildren().add(connectionAccordion);
+    private void setupNavigationSidebarHandlers() {
+        navigationSidebar.setOnNavigationItemSelected(item -> {
+            switch (item) {
+                case "chats":
+                    // Handle chats navigation
+                    showInfo("Navigation", "Switched to Chats view");
+                    break;
+                case "threads":
+                    // Handle threads navigation
+                    showInfo("Navigation", "Switched to Threads view");
+                    break;
+                case "calls":
+                    // Handle calls navigation
+                    showInfo("Navigation", "Switched to Calls view");
+                    break;
+                case "bookmarks":
+                    // Handle bookmarks navigation
+                    showInfo("Navigation", "Switched to Bookmarks view");
+                    break;
+            }
+        });
+
+        navigationSidebar.setOnChannelSelected(channelName -> {
+            chatHeader.setActiveConversation(channelName);
+            loadConversationMessages(channelName);
+        });
+
+        navigationSidebar.setOnDirectMessageSelected(userName -> {
+            chatHeader.setActiveConversation(userName);
+            loadConversationMessages(userName);
+        });
+
+        navigationSidebar.setOnSettingsClicked(() -> {
+            showInfo("Settings", "Settings panel will be implemented soon!");
+        });
     }
 
     private void setupChatAreaLayout() {
@@ -190,13 +190,15 @@ public class ChatView extends Application {
                 config.getPort(), connectionPanel, chatPanel,
                 messageInputPanel, stateManager
         );
-        conversationSidebar.setOnConversationSelected(conversation -> {
-            chatHeader.setActiveConversation(conversation);
-            loadConversationMessages(conversation);
-        });
+
+        // Setup navigation sidebar handlers
+        setupNavigationSidebarHandlers();
+
+
         chatHeader.setOnCallAction(() -> showInfo("Voice Call", "Voice call feature coming soon!"));
         chatHeader.setOnVideoCallAction(() -> showInfo("Video Call", "Video call feature coming soon!"));
         chatHeader.setOnInfoAction(() -> showInfo("Conversation Info", "Conversation details coming soon!"));
+
         messageInputPanel.getMessageField().textProperty().addListener((obs, oldText, newText) -> {
             if (!newText.isEmpty() && (oldText == null || oldText.isEmpty())) {
                 chatPanel.showTypingIndicator("You");
@@ -209,14 +211,10 @@ public class ChatView extends Application {
     private void initializeLegacyHandlers() {
         connectionHandler = new ConnectionHandler(this);
         messageHandler = new MessageHandler(this);
-        uiStateHandler = new UIStateHandler(this);
+        UIStateHandler uiStateHandler = new UIStateHandler(this);
     }
 
     private void setupTestData() {
-        conversationSidebar.addConversation("Alice Johnson", "Hey! How are you doing?", "2 min ago", true);
-        conversationSidebar.addConversation("Bob Smith", "Thanks for the help earlier", "1 hour ago", false);
-        conversationSidebar.addConversation("Team Chat", "John: Meeting at 3 PM", "3 hours ago", false);
-        conversationSidebar.addConversation("Mom", "Don't forget to call!", "1 day ago", false);
         if (currentUser == null) {
             stateManager.addMessage("Welcome to ST Chat! Select a conversation to start chatting.");
             stateManager.addMessage(new Message("System", "Please connect to start chatting", MessageType.SYSTEM, LocalDateTime.now()));
@@ -324,58 +322,12 @@ public class ChatView extends Application {
         statusBar.setStatus(connected ? "🟢 Connected" : "🔴 Disconnected", connected);
     }
 
-    public void addMessage(String message) {
-        stateManager.addMessage(message);
-    }
-
-    public void addMessage(Message message) {
-        stateManager.addMessage(message);
-    }
-
     public void showError(String error) {
         stateManager.showError(error);
     }
 
     public void showInfo(String title, String message) {
         stateManager.showInfo(title, message);
-    }
-
-    public void showTypingIndicator(String sender) {
-        chatPanel.showTypingIndicator(sender);
-    }
-
-    public void hideTypingIndicator() {
-        chatPanel.hideTypingIndicator();
-    }
-
-    public void addPrivateMessage(String sender, String content) {
-        Message privateMsg = new Message(sender, "(Private) " + content, MessageType.BOT, LocalDateTime.now());
-        stateManager.addMessage(privateMsg);
-    }
-
-    public void setCurrentUser(User user) {
-        this.currentUser = user;
-        if (user != null) {
-            if (userInfoPanel != null) {
-                userInfoPanel.setUser(user);
-            }
-            if (connectionPanel != null) {
-                connectionPanel.getUsernameField().setText(user.getUsername());
-                connectionPanel.getUsernameField().setEditable(false);
-            }
-            stateManager.addMessage(new Message("System",
-                    "👋 Logged in as: " + user.getUsername(),
-                    MessageType.SYSTEM, LocalDateTime.now()));
-            autoConnectToChat();
-        }
-    }
-
-    public User getCurrentUser() {
-        return currentUser;
-    }
-
-    public boolean isUserLoggedIn() {
-        return currentUser != null;
     }
 
     public void logout() {
@@ -385,9 +337,6 @@ public class ChatView extends Application {
                     "👋 Logged out successfully",
                     MessageType.SYSTEM, LocalDateTime.now()));
             currentUser = null;
-            if (userInfoPanel != null) {
-                userInfoPanel.clearUser();
-            }
             if (connectionPanel != null) {
                 connectionPanel.getUsernameField().setText("");
                 connectionPanel.getUsernameField().setEditable(true);
@@ -443,9 +392,7 @@ public class ChatView extends Application {
     public ChatPanel getChatPanel() { return chatPanel; }
     public MessageInputPanel getMessageInputPanel() { return messageInputPanel; }
     public StatusBar getStatusBar() { return statusBar; }
-    public ConversationSidebar getConversationSidebar() { return conversationSidebar; }
     public ChatHeader getChatHeader() { return chatHeader; }
-    public UserInfoPanel getUserInfoPanel() { return userInfoPanel; }
     public Scene getScene() { return scene; }
 
     public void setMessageHandler(MessageHandler messageHandler) {
@@ -462,10 +409,11 @@ public class ChatView extends Application {
 
     public TextField getMessageField() { return messageInputPanel.getMessageField(); }
     public Button getSendButton() { return messageInputPanel.getSendButton(); }
-    public Button getClearButton() { return messageInputPanel.getClearButton(); }
     public Label getStatusLabel() { return statusBar.getStatusLabel(); }
     public TextField getUserNameField() { return connectionPanel.getUsernameField(); }
-
+    public NavigationSidebar getNavigationSidebar() {
+        return navigationSidebar;
+    }
     public Parent getPage() {
         return root;
     }

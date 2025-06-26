@@ -19,7 +19,7 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-import me.chatapp.stchat.dao.UserDAO;
+import me.chatapp.stchat.network.SocketClient;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.logging.Logger;
@@ -33,12 +33,10 @@ public class SignUp {
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
             "^[A-Za-z0-9+_.-]+@([A-Za-z0-9.-]+\\.[A-Za-z]{2,})$"
     );
-    private final UserDAO userDAO; // Thêm UserDAO
 
     public SignUp(Runnable onSwitchToLogin) {
         this.stage = new Stage();
         this.onSwitchToLogin = onSwitchToLogin;
-        this.userDAO = new UserDAO(); // Khởi tạo UserDAO
         setupUI();
     }
 
@@ -353,7 +351,7 @@ public class SignUp {
         String password = passField.getText();
         String confirmPassword = confirmField.getText();
 
-        // Validation
+        // Validation phía client
         if (username.isEmpty() || email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
             showMessage(statusMessage, "Please fill in all fields", Color.web("#e53e3e"));
             return;
@@ -379,28 +377,43 @@ public class SignUp {
             return;
         }
 
-        // Registration logic using UserDAO
-        try {
-            if (userDAO.registerUser(username, email, password)) {
-                showMessage(statusMessage, "Account created successfully! Please sign in.", Color.web("#38a169"));
-                // Success animation
-                ScaleTransition successScale = getScaleTransition();
-                successScale.play();
-            } else {
-                // Kiểm tra lý do thất bại
-                if (userDAO.isUsernameExists(username)) {
-                    showMessage(statusMessage, "Username already exists.", Color.web("#e53e3e"));
-                } else if (userDAO.isEmailExists(email)) {
-                    showMessage(statusMessage, "Email already exists.", Color.web("#e53e3e"));
-                } else {
-                    showMessage(statusMessage, "Registration failed. Please try again.", Color.web("#e53e3e"));
-                }
+        // Đăng ký bằng socket client
+        new Thread(() -> {
+            try {
+                SocketClient client = new SocketClient("localhost", 12345);
+                String request = new org.json.JSONObject()
+                        .put("type", "REGISTER")
+                        .put("username", username)
+                        .put("email", email)
+                        .put("password", password)
+                        .toString();
+
+                client.send(request);
+                String response = client.receive();
+
+                org.json.JSONObject resJson = new org.json.JSONObject(response);
+
+                javafx.application.Platform.runLater(() -> {
+                    if ("success".equalsIgnoreCase(resJson.optString("status"))) {
+                        showMessage(statusMessage, "Account created successfully! Please sign in.", Color.web("#38a169"));
+                        getScaleTransition().play();
+                    } else {
+                        String message = resJson.optString("message", "Registration failed.");
+                        showMessage(statusMessage, message, Color.web("#e53e3e"));
+                    }
+                });
+
+                client.close();
+
+            } catch (Exception e) {
+                javafx.application.Platform.runLater(() ->
+                        showMessage(statusMessage, "Unable to connect to server.", Color.web("#e53e3e"))
+                );
+                LOGGER.severe("Registration socket error: " + e.getMessage());
             }
-        } catch (Exception e) {
-            showMessage(statusMessage, "An error occurred during registration.", Color.web("#e53e3e"));
-            LOGGER.severe("Registration error: " + e.getMessage());
-        }
+        }).start();
     }
+
 
     @NotNull
     private ScaleTransition getScaleTransition() {

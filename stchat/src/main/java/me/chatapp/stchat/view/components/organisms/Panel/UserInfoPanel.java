@@ -25,7 +25,6 @@ public class UserInfoPanel {
 
     private User currentUser;
     private Runnable onLogoutAction;
-    private Runnable onSettingsAction;
     private Runnable onProfileAction;
 
     public UserInfoPanel() {
@@ -86,9 +85,6 @@ public class UserInfoPanel {
         });
 
         MenuItem settingsItem = new MenuItem("⚙️ Settings");
-        settingsItem.setOnAction(e -> {
-            if (onSettingsAction != null) onSettingsAction.run();
-        });
 
         MenuItem logoutItem = new MenuItem("🚪 Logout");
         logoutItem.setOnAction(e -> {
@@ -166,13 +162,6 @@ public class UserInfoPanel {
         statusLabel.setText(status);
     }
 
-    public void setOnlineStatus(boolean online) {
-        if (currentUser != null) {
-            statusLabel.setText(online ? "Online" : "Offline");
-            statusLabel.setTextFill(Color.web(online ? "#42b883" : "#65676b"));
-        }
-    }
-
     private String getInitials(String username) {
         if (username == null || username.trim().isEmpty()) {
             return "?";
@@ -182,7 +171,7 @@ public class UserInfoPanel {
         if (parts.length == 1) {
             return parts[0].substring(0, Math.min(2, parts[0].length())).toUpperCase();
         } else {
-            return (parts[0].substring(0, 1) + parts[parts.length - 1].substring(0, 1)).toUpperCase();
+            return (parts[0].substring(0, 1) + parts[parts.length - 1].charAt(0)).toUpperCase();
         }
     }
 
@@ -203,10 +192,6 @@ public class UserInfoPanel {
         this.onLogoutAction = action;
     }
 
-    public void setOnSettingsAction(Runnable action) {
-        this.onSettingsAction = action;
-    }
-
     public void setOnProfileAction(Runnable action) {
         this.onProfileAction = action;
     }
@@ -216,67 +201,7 @@ public class UserInfoPanel {
         return container;
     }
 
-    public User getCurrentUser() {
-        return currentUser;
-    }
-
     public String getUsername() {
         return currentUser != null ? currentUser.getUsername() : null;
-    }
-
-    public boolean isUserLoggedIn() {
-        return currentUser != null;
-    }
-
-    // Additional utility methods
-    public void showConnectionStatus(boolean connected) {
-        if (currentUser != null) {
-            setStatus(connected ? "Online" : "Connecting...");
-            setOnlineStatus(connected);
-        }
-    }
-
-    public void addQuickAction(String text, Runnable action) {
-        Button quickButton = new Button(text);
-        quickButton.setStyle("""
-            -fx-background-color: #1877f2;
-            -fx-text-fill: white;
-            -fx-background-radius: 6;
-            -fx-border-radius: 6;
-            -fx-font-size: 12;
-            -fx-padding: 4 8 4 8;
-            -fx-cursor: hand;
-            """);
-
-        quickButton.setOnAction(e -> {
-            if (action != null) action.run();
-        });
-
-        // Hover effect
-        quickButton.setOnMouseEntered(e -> {
-            quickButton.setStyle("""
-                -fx-background-color: #166fe5;
-                -fx-text-fill: white;
-                -fx-background-radius: 6;
-                -fx-border-radius: 6;
-                -fx-font-size: 12;
-                -fx-padding: 4 8 4 8;
-                -fx-cursor: hand;
-                """);
-        });
-
-        quickButton.setOnMouseExited(e -> {
-            quickButton.setStyle("""
-                -fx-background-color: #1877f2;
-                -fx-text-fill: white;
-                -fx-background-radius: 6;
-                -fx-border-radius: 6;
-                -fx-font-size: 12;
-                -fx-padding: 4 8 4 8;
-                -fx-cursor: hand;
-                """);
-        });
-
-        container.getChildren().add(quickButton);
     }
 }
