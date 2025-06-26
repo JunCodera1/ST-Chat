@@ -26,12 +26,4 @@ public class MessageHandler {
         // Could add sound effects
         // Could add message filtering
     }
-
-    public void handleTypingIndicator(String username, boolean isTyping) {
-        if (isTyping) {
-            chatView.getMessageInputPanel().showTypingIndicator(username);
-        } else {
-            chatView.getMessageInputPanel().hideTypingIndicator();
-        }
-    }
 }

@@ -18,19 +18,19 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-import me.chatapp.stchat.dao.UserDAO;
+import me.chatapp.stchat.network.SocketClient;
+import org.json.JSONObject;
+
 import java.util.logging.Logger;
 
 public class ForgotPassword {
 
     private static final Logger LOGGER = Logger.getLogger(ForgotPassword.class.getName());
     private final Stage stage;
-    private final UserDAO userDAO;
     private final Runnable onSwitchToLogin;
 
     public ForgotPassword(Runnable onSwitchToLogin) {
         this.stage = new Stage();
-        this.userDAO = new UserDAO();
         this.onSwitchToLogin = onSwitchToLogin;
         setupUI();
     }
@@ -250,44 +250,49 @@ public class ForgotPassword {
             return;
         }
 
-        // Basic email format validation
         if (!email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
             statusMessage.setText("Please enter a valid email address");
             statusMessage.setFill(Color.web("#e53e3e"));
             return;
         }
 
-        // Disable button during processing
         resetButton.setDisable(true);
         resetButton.setText("Processing...");
         statusMessage.setText("Checking email...");
         statusMessage.setFill(Color.web("#3182ce"));
 
-        // Perform email check in background thread
         new Thread(() -> {
             try {
-                boolean emailExists = userDAO.isEmailExists(email);
+                SocketClient socketClient = new SocketClient("localhost", 12345);
 
-                // Update UI on JavaFX thread
+                // Gửi JSON yêu cầu reset password
+                String request = new JSONObject()
+                        .put("type", "RESET_PASSWORD")
+                        .put("email", email)
+                        .toString();
+
+                socketClient.send(request);
+
+                String response = socketClient.receive();
+                JSONObject json = new JSONObject(response);
+
                 javafx.application.Platform.runLater(() -> {
                     resetButton.setDisable(false);
                     resetButton.setText("Reset Password");
 
-                    if (emailExists) {
+                    if ("success".equalsIgnoreCase(json.optString("status"))) {
                         statusMessage.setText("Password reset link sent to your email!");
                         statusMessage.setFill(Color.web("#38a169"));
                         LOGGER.info("Password reset requested for email: " + email);
 
-                        // Success animation
                         ScaleTransition successScale = new ScaleTransition(Duration.millis(200), stage.getScene().getRoot());
                         successScale.setToX(0.95);
                         successScale.setToY(0.95);
                         successScale.play();
                     } else {
-                        statusMessage.setText("Email not found in our system");
+                        statusMessage.setText(json.optString("message", "Email not found in our system"));
                         statusMessage.setFill(Color.web("#e53e3e"));
 
-                        // Shake animation for error
                         ScaleTransition shakeScale = new ScaleTransition(Duration.millis(100), statusMessage);
                         shakeScale.setToX(1.1);
                         shakeScale.setAutoReverse(true);
@@ -298,19 +303,22 @@ public class ForgotPassword {
                     }
                 });
 
+                socketClient.close();
+
             } catch (Exception e) {
                 javafx.application.Platform.runLater(() -> {
                     resetButton.setDisable(false);
                     resetButton.setText("Reset Password");
-                    statusMessage.setText("Database connection error. Please try again.");
+                    statusMessage.setText("Could not connect to server.");
                     statusMessage.setFill(Color.web("#e53e3e"));
                 });
 
-                LOGGER.severe("Database error during password reset: " + e.getMessage());
+                LOGGER.severe("Connection error during password reset: " + e.getMessage());
                 e.printStackTrace();
             }
         }).start();
     }
+
 
     public void show() {
         stage.show();

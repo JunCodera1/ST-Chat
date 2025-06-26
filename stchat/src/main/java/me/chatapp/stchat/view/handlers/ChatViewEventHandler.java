@@ -1,13 +1,13 @@
 package me.chatapp.stchat.view.handlers;
 
+import me.chatapp.stchat.model.Message;
+import me.chatapp.stchat.model.MessageType;
 import me.chatapp.stchat.view.components.organisms.Panel.ChatPanel;
 import me.chatapp.stchat.view.components.organisms.Panel.ConnectionPanel;
 import me.chatapp.stchat.view.components.organisms.Panel.MessageInputPanel;
 import me.chatapp.stchat.view.state.ChatViewStateManager;
+import java.time.LocalDateTime;
 
-/**
- * Xử lý các sự kiện UI của ChatView
- */
 public class ChatViewEventHandler {
 
     private final String port;
@@ -35,9 +35,6 @@ public class ChatViewEventHandler {
         setupEventHandlers();
     }
 
-    /**
-     * Thiết lập các event handler cho UI components
-     */
     private void setupEventHandlers() {
         // Connection events
         connectionPanel.getConnectButton().setOnAction(e -> handleConnect());
@@ -46,16 +43,12 @@ public class ChatViewEventHandler {
         // Message events
         messageInputPanel.getSendButton().setOnAction(e -> handleSendMessage());
         messageInputPanel.getMessageField().setOnAction(e -> handleSendMessage());
-        messageInputPanel.getClearButton().setOnAction(e -> handleClearMessages());
 
         // Enter key support cho username field
         connectionPanel.getUsernameField().setOnAction(e ->
                 connectionPanel.getConnectButton().fire());
     }
 
-    /**
-     * Xử lý sự kiện kết nối
-     */
     private void handleConnect() {
         if (onConnectAction != null) {
             String host = connectionPanel.getHostField().getText().trim();
@@ -76,29 +69,45 @@ public class ChatViewEventHandler {
         }
     }
 
-    /**
-     * Xử lý sự kiện ngắt kết nối
-     */
     private void handleDisconnect() {
         if (onDisconnectAction != null) {
             onDisconnectAction.execute();
         }
     }
 
-    /**
-     * Xử lý sự kiện gửi tin nhắn
-     */
     private void handleSendMessage() {
-        String message = stateManager.getCurrentMessage();
-        if (!message.isEmpty() && onSendMessageAction != null) {
-            onSendMessageAction.execute(message);
+        String messageText = stateManager.getCurrentMessage();
+        if (!messageText.isEmpty()) {
+            // Tạo message object với thông tin người gửi
+            String senderName = getSenderName();
+            Message message = new Message(
+                    senderName,
+                    messageText,
+                    MessageType.USER, // Hoặc MessageType.BOT tùy vào logic của bạn
+                    LocalDateTime.now()
+            );
+
+            // Thêm message vào chat panel
+            stateManager.addMessage(message);
+
+            // Gọi action nếu có (để gửi message đến server)
+            if (onSendMessageAction != null) {
+                onSendMessageAction.execute(messageText);
+            }
+
+            // Clear input field
             stateManager.clearMessageInput();
         }
     }
 
     /**
-     * Xử lý sự kiện xóa tin nhắn
+     * Lấy tên người gửi từ username field hoặc từ current user
      */
+    private String getSenderName() {
+        String username = connectionPanel.getUsernameField().getText().trim();
+        return username.isEmpty() ? "You" : username;
+    }
+
     private void handleClearMessages() {
         chatPanel.clearMessages();
     }
@@ -115,6 +124,7 @@ public class ChatViewEventHandler {
     public void setOnSendMessageAction(ChatEventActions.SendMessageAction action) {
         this.onSendMessageAction = action;
     }
+
     public ChatEventActions.DisconnectAction getDisconnectAction() {
         return this.onDisconnectAction;
     }

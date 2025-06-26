@@ -1,10 +1,16 @@
 package me.chatapp.stchat.view.components.atoms.Button;
 
 import javafx.scene.control.Button;
+import org.kordamp.ikonli.javafx.FontIcon;
 
 public class IconButton extends Button {
-    public IconButton(String emoji) {
-        super(emoji);
+
+    private final FontIcon icon;
+
+    public IconButton(String iconCode) {
+        this.icon = new FontIcon(iconCode); // Ví dụ: "fas-cog" cho FontAwesome cog icon
+
+        setGraphic(icon);
         setPrefSize(40, 40);
         setStyle(defaultStyle());
 
@@ -15,14 +21,14 @@ public class IconButton extends Button {
     public void setEnabled(boolean enabled) {
         setDisable(!enabled);
         setStyle(enabled ? defaultStyle() : disabledStyle());
+        icon.setOpacity(enabled ? 1.0 : 0.5);
     }
 
     private String defaultStyle() {
-        return """c
+        return """
             -fx-background-color: transparent;
             -fx-background-radius: 20;
             -fx-border-radius: 20;
-            -fx-font-size: 16;
             -fx-cursor: hand;
             """;
     }
@@ -32,7 +38,6 @@ public class IconButton extends Button {
             -fx-background-color: #f0f2f5;
             -fx-background-radius: 20;
             -fx-border-radius: 20;
-            -fx-font-size: 16;
             -fx-cursor: hand;
             """;
     }
@@ -42,7 +47,6 @@ public class IconButton extends Button {
             -fx-background-color: transparent;
             -fx-background-radius: 20;
             -fx-border-radius: 20;
-            -fx-font-size: 16;
             -fx-opacity: 0.5;
             """;
     }

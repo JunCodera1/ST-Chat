@@ -32,9 +32,10 @@ public class ChatHeader {
         infoBlock = new ConversationInfoBlock();
         HBox.setHgrow(infoBlock, Priority.ALWAYS);
 
-        callBtn = new IconButton("📞");
-        videoBtn = new IconButton("📹");
-        infoBtn = new IconButton("ℹ️");
+        callBtn = new IconButton("fas-phone");
+        videoBtn = new IconButton("fas-video");
+        infoBtn = new IconButton("fas-info-circle");
+
 
         callBtn.setOnAction(e -> { if (onCallAction != null) onCallAction.run(); });
         videoBtn.setOnAction(e -> { if (onVideoCallAction != null) onVideoCallAction.run(); });

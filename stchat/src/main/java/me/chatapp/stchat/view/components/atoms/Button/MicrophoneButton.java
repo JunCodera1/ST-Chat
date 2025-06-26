@@ -1,0 +1,26 @@
+package me.chatapp.stchat.view.components.atoms.Button;
+
+import javafx.scene.control.Button;
+import org.kordamp.ikonli.javafx.FontIcon;
+
+public class MicrophoneButton extends Button {
+    public MicrophoneButton() {
+        FontIcon icon = new FontIcon("fas-microphone"); // FontAwesome solid icon
+        icon.setIconSize(16); // kích thước icon
+        setGraphic(icon);
+        setText(""); // Không có chữ
+
+        initializeStyle();
+    }
+
+    private void initializeStyle() {
+        getStyleClass().add("microphone-button");
+        setStyle("-fx-font-size: 16px; -fx-background-color: transparent; " +
+                "-fx-border-radius: 50%; -fx-background-radius: 50%; " +
+                "-fx-min-width: 32px; -fx-min-height: 32px; " +
+                "-fx-max-width: 32px; -fx-max-height: 32px;");
+
+        setOnMouseEntered(e -> setStyle(getStyle() + "-fx-background-color: #f0f0f0;"));
+        setOnMouseExited(e -> setStyle(getStyle().replace("-fx-background-color: #f0f0f0;", "")));
+    }
+}

@@ -35,7 +35,7 @@ public class Main extends Application {
             ChatViewConfig config = new ChatViewConfig();
             ChatView view = new ChatView(config, user);
 
-            // Khởi tạo ChatControllerc
+            // Khởi tạo ChatController
             ChatController controller = new ChatController(model, view);
 
             // Thiết lập stage chính

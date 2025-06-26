@@ -79,10 +79,6 @@ public class ChatController implements ChatModel.ChatModelListener {
             });
         }
 
-        // Clear button click
-        if (view.getClearButton() != null) {
-            view.getClearButton().setOnAction(e -> clearChat());
-        }
 
         // Username field change listener
         if (view.getUserNameField() != null) {

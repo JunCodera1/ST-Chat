@@ -6,6 +6,9 @@ import java.net.Socket;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+import dao.UserDAO;
+import org.json.JSONObject;
+
 class ClientHandler implements Runnable {
     private final Socket clientSocket;
     private final Main server;
@@ -27,7 +30,81 @@ class ClientHandler implements Runnable {
             writer = new PrintWriter(clientSocket.getOutputStream(), true);
 
             // Đọc username từ client
-            username = reader.readLine();
+            String request = reader.readLine();
+            System.out.println("Received from client: " + request);
+            if (request == null || request.trim().isEmpty()) {
+                disconnect();
+                return;
+            }
+
+            try {
+                JSONObject json = new JSONObject(request);
+                String type = json.optString("type");
+                if ("LOGIN".equalsIgnoreCase(type)) {
+                    String usernameInput = json.optString("username");
+                    String passwordInput = json.optString("password");
+
+                    UserDAO userDAO = new UserDAO();
+                    boolean authenticated = userDAO.authenticateUser(usernameInput, passwordInput);
+
+                    if (authenticated) {
+                        this.username = usernameInput;
+                        JSONObject response = new JSONObject()
+                                .put("status", "success")
+                                .put("username", usernameInput);
+                        writer.println(response.toString());
+
+                        // Thêm client vào danh sách chat
+                        server.addClient(username, this);
+                        sendMessage("System: Welcome " + username + " to ST Chat!");
+
+                        // Bắt đầu đọc tin nhắn chat
+                        listenForMessages();
+                    } else {
+                        JSONObject response = new JSONObject()
+                                .put("status", "error")
+                                .put("message", "Invalid username or password.");
+                        writer.println(response.toString());
+                        disconnect();
+                    }
+                } else {
+                    JSONObject response = new JSONObject()
+                            .put("status", "error")
+                            .put("message", "Unknown request type.");
+                    writer.println(response.toString());
+                    disconnect();
+                }
+
+                if ("REGISTER".equalsIgnoreCase(type)) {
+                    String usernameInput = json.optString("username");
+                    String emailInput = json.optString("email");
+                    String passwordInput = json.optString("password");
+
+                    UserDAO userDAO = new UserDAO();
+                    boolean registered = userDAO.registerUser(usernameInput, emailInput, passwordInput);
+
+                    JSONObject response = new JSONObject();
+                    if (registered) {
+                        response.put("status", "success").put("message", "Account created successfully");
+                    } else {
+                        response.put("status", "error").put("message", "Username or email already exists");
+                    }
+
+                    writer.println(response.toString());
+                    disconnect();
+                    return;
+                }
+
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                JSONObject response = new JSONObject()
+                        .put("status", "error")
+                        .put("message", "Invalid request format.");
+                writer.println(response.toString());
+                disconnect();
+            }
+
             if (username == null || username.trim().isEmpty()) {
                 username = "Anonymous_" + System.currentTimeMillis();
             }
@@ -66,6 +143,21 @@ class ClientHandler implements Runnable {
             }
         } finally {
             disconnect();
+        }
+    }
+
+    private void listenForMessages() throws IOException {
+        String message;
+        while (connected && (message = reader.readLine()) != null) {
+            if (message.trim().isEmpty()) {
+                continue;
+            }
+
+            if (message.startsWith("/")) {
+                handleCommand(message);
+            } else {
+                server.broadcastMessage(username, message, this);
+            }
         }
     }
 
