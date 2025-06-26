@@ -3,7 +3,7 @@ package me.chatapp.stchat.view.config;
 
 public class ChatViewConfig {
 
-    public static final String DEFAULT_PORT = "12345";
+    public static final int DEFAULT_PORT = 12345;
     public static final String DEFAULT_TITLE = "ST Chat - Modern Interface";
     public static final double DEFAULT_WIDTH = 1000;
     public static final double DEFAULT_HEIGHT = 700;
@@ -26,7 +26,7 @@ public class ChatViewConfig {
     public static final int MAX_USERNAME_LENGTH = 20;
     public static final int MAX_MESSAGE_LENGTH = 500;
 
-    private String port;
+    private int port;
     private String title;
     private double width;
     private double height;
@@ -43,8 +43,8 @@ public class ChatViewConfig {
     }
 
     // Getters and Setters
-    public String getPort() { return port; }
-    public void setPort(String port) { this.port = port; }
+    public int getPort() { return port; }
+    public void setPort(int port) { this.port = port; }
 
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }

@@ -4,7 +4,7 @@ public class ChatEventActions {
 
     @FunctionalInterface
     public interface ConnectAction {
-        void execute(String host, String port, String username);
+        void execute(String host, int port, String username);
     }
 
     @FunctionalInterface

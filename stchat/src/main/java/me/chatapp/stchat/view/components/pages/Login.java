@@ -45,16 +45,24 @@ public class Login {
     private void setupEventHandlers() {
         var loginForm = loginTemplate.getLoginForm();
 
-        // Login button handler
+        // Login button com.stchat.server.handler
         loginForm.getLoginButton().setOnAction(event -> handleLogin());
 
-        // Forgot password button handler
+        // Forgot password button com.stchat.server.handler
         loginForm.getForgotPasswordButton().setOnAction(event -> {
             stage.close();
             ForgotPassword forgotPassword = new ForgotPassword(() -> {
                 new Login(onSwitchToSignUp, onLoginSuccess).show();
             });
             forgotPassword.show();
+        });
+
+        loginForm.getChangePasswordButton().setOnAction(event -> {
+            stage.close();;
+            ChangePassword changePassword = new ChangePassword(() ->{
+                new Login(onSwitchToSignUp, onLoginSuccess).show();
+            });
+            changePassword.show();
         });
     }
 

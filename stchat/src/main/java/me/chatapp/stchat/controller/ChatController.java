@@ -4,16 +4,20 @@ import javafx.application.Platform;
 import javafx.scene.input.KeyCode;
 import me.chatapp.stchat.model.ChatModel;
 import me.chatapp.stchat.model.MessageType;
+import me.chatapp.stchat.network.SocketClient;
 import me.chatapp.stchat.view.components.pages.ChatView;
 
 public class ChatController implements ChatModel.ChatModelListener {
     private final ChatModel model;
     private final ChatView view;
+    private final SocketClient socketClient;
 
-    public ChatController(ChatModel model, ChatView view) {
+    public ChatController(ChatModel model, ChatView view, SocketClient socketClient) {
         this.model = model;
         this.view = view;
+        this.socketClient = socketClient;
 
+        view.getEventHandler().setSocketClient(socketClient);
         // Register this controller as listener
         model.addListener(this);
 
@@ -25,14 +29,13 @@ public class ChatController implements ChatModel.ChatModelListener {
         setupEventHandlers();
     }
 
-    private void handleConnect(String host, String port, String username) {
+    private void handleConnect(String host, int port, String username) {
         try {
-            int portNum = Integer.parseInt(port);
             if (username.trim().isEmpty()) {
                 view.showError("Vui lòng nhập tên người dùng");
                 return;
             }
-            model.connect(host, portNum, username);
+            model.connect(host, port, username);
         } catch (NumberFormatException e) {
             view.showError("Port phải là số");
         }

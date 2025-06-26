@@ -25,8 +25,28 @@ public class SocketClient {
         return reader.readLine();
     }
 
-    public void close() throws IOException {
-        socket.close();
+    public boolean isConnected() {
+        return socket != null && !socket.isClosed() && socket.isConnected();
+    }
+    public void logoutAndClose() {
+        try {
+            send("{\"type\":\"LOGOUT\"}");
+            close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void close() {
+        try {
+            if (isConnected()) {
+                writer.println("/logout"); // gửi lệnh logout đến server
+                writer.flush();
+                socket.close();
+            }
+        } catch (IOException e) {
+            System.err.println("Lỗi khi đóng kết nối Socket: " + e.getMessage());
+        }
     }
 }
 

@@ -7,13 +7,15 @@ import me.chatapp.stchat.view.components.atoms.Button.PrimaryButton;
 import me.chatapp.stchat.view.components.atoms.Field.StyledPasswordField;
 import me.chatapp.stchat.view.components.atoms.Field.StyledTextField;
 import me.chatapp.stchat.view.components.atoms.Text.StatusText;
-import me.chatapp.stchat.view.components.molecules.Form.FormField;
+import me.chatapp.stchat.view.components.molecules.Form.PasswordField;
+import me.chatapp.stchat.view.components.molecules.Form.UsernameField;
 
 public class LoginForm extends VBox {
-    private FormField usernameField;
-    private FormField passwordField;
+    private UsernameField usernameField;
+    private PasswordField passwordField;
     private PrimaryButton loginButton;
     private LinkButton forgotPasswordButton;
+    private LinkButton changePasswordButton;
     private StatusText statusMessage;
 
     public LoginForm() {
@@ -26,11 +28,11 @@ public class LoginForm extends VBox {
     private void createFormComponents() {
         // Username field
         StyledTextField usernameTextField = new StyledTextField("Enter your username");
-        usernameField = new FormField("Username", usernameTextField);
+        usernameField = new UsernameField("Username", usernameTextField);
 
         // Password field
         StyledPasswordField passwordField = new StyledPasswordField("Enter your password");
-        this.passwordField = new FormField("Password", passwordField);
+        this.passwordField = new PasswordField("Password", passwordField);
 
         // Login button
         loginButton = new PrimaryButton("Sign In");
@@ -39,6 +41,10 @@ public class LoginForm extends VBox {
         forgotPasswordButton = new LinkButton("Forgot Password?");
         forgotPasswordButton.setUnderline(true);
         forgotPasswordButton.setStyle(forgotPasswordButton.getStyle() + "-fx-font-size: 13;");
+
+        changePasswordButton = new LinkButton("Change Password");
+        changePasswordButton.setUnderline(true);
+        changePasswordButton.setStyle(changePasswordButton.getStyle() + "-fx-font-size: 13;");
 
         // Status message
         statusMessage = new StatusText();
@@ -53,6 +59,7 @@ public class LoginForm extends VBox {
                 formContainer,
                 loginButton,
                 forgotPasswordButton,
+                changePasswordButton,
                 statusMessage
         );
     }
@@ -72,6 +79,10 @@ public class LoginForm extends VBox {
 
     public LinkButton getForgotPasswordButton() {
         return forgotPasswordButton;
+    }
+
+    public LinkButton getChangePasswordButton(){
+        return changePasswordButton;
     }
 
     public StatusText getStatusMessage() {

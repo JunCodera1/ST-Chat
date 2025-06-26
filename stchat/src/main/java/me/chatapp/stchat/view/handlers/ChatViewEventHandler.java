@@ -2,6 +2,7 @@ package me.chatapp.stchat.view.handlers;
 
 import me.chatapp.stchat.model.Message;
 import me.chatapp.stchat.model.MessageType;
+import me.chatapp.stchat.network.SocketClient;
 import me.chatapp.stchat.view.components.organisms.Panel.ChatPanel;
 import me.chatapp.stchat.view.components.organisms.Panel.ConnectionPanel;
 import me.chatapp.stchat.view.components.organisms.Panel.MessageInputPanel;
@@ -10,18 +11,20 @@ import java.time.LocalDateTime;
 
 public class ChatViewEventHandler {
 
-    private final String port;
+    private final int port;
     private final ConnectionPanel connectionPanel;
     private final ChatPanel chatPanel;
     private final MessageInputPanel messageInputPanel;
     private final ChatViewStateManager stateManager;
+    private SocketClient socketClient;
+
 
     // Actions
     private ChatEventActions.ConnectAction onConnectAction;
     private ChatEventActions.DisconnectAction onDisconnectAction;
     private ChatEventActions.SendMessageAction onSendMessageAction;
 
-    public ChatViewEventHandler(String port,
+    public ChatViewEventHandler(int port,
                                 ConnectionPanel connectionPanel,
                                 ChatPanel chatPanel,
                                 MessageInputPanel messageInputPanel,
@@ -110,6 +113,17 @@ public class ChatViewEventHandler {
 
     private void handleClearMessages() {
         chatPanel.clearMessages();
+    }
+
+    public void setSocketClient(SocketClient socketClient) {
+        this.socketClient = socketClient;
+    }
+
+    public SocketClient getSocketClient() {
+        if (this.socketClient == null) {
+            throw new IllegalStateException("SocketClient has not been set in ChatViewEventHandler.");
+        }
+        return this.socketClient;
     }
 
     // Setters cho actions
