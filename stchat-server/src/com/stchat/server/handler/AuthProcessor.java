@@ -1,7 +1,9 @@
 package com.stchat.server.handler;
 
+import com.stchat.server.dao.PendingPasswordChangeDAO;
 import com.stchat.server.dao.UserDAO;
 import com.stchat.server.service.AuthService;
+import com.stchat.server.service.PasswordService;
 import org.json.JSONObject;
 import com.stchat.server.util.JsonResponseUtil;
 
@@ -13,7 +15,6 @@ public class AuthProcessor {
             case "LOGIN": return handleLogin(request);
             case "REGISTER": return handleRegister(request);
             case "FORGOT_PASSWORD": return handleForgotPassword(request);
-
             case "CHANGE_PASSWORD": return handleChangePassword(request);
             default: return JsonResponseUtil.error("Unknown auth type.");
         }
@@ -85,13 +86,17 @@ public class AuthProcessor {
         }
 
         UserDAO userDAO = new UserDAO();
-        boolean success = userDAO.changePassword(email, currentPassword, newPassword);
+        PendingPasswordChangeDAO pendingDAO = new PendingPasswordChangeDAO();
+        PasswordService passwordService = new PasswordService(userDAO, pendingDAO);
 
-        if (success) {
-            return JsonResponseUtil.success("Password changed successfully.");
+        boolean requestSent = passwordService.requestPasswordChange(email, currentPassword, newPassword);
+
+        if (requestSent) {
+            return JsonResponseUtil.success("Please check your email to confirm the password change.");
         } else {
             return JsonResponseUtil.error("Invalid current password or user not found.");
         }
     }
+
 }
 

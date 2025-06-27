@@ -35,7 +35,9 @@ public class ClientHandler implements Runnable {
             // Đọc username từ client
             String request = reader.readLine();
             System.out.println("Received from client: " + request);
-            if (request == null || request.trim().isEmpty()) {
+
+            if (request == null || !request.trim().startsWith("{")) {
+                writer.println("{\"status\":\"error\",\"message\":\"Invalid or non-JSON request.\"}");
                 disconnect();
                 return;
             }

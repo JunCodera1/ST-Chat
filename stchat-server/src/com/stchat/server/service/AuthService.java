@@ -10,27 +10,28 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 public class AuthService {
-    public static boolean authenticateUser(String username, String password) {
-        String sql = "SELECT password_hash FROM users WHERE username = ?";
+    public static boolean authenticateUser(String identifier, String password) {
+        String sql = "SELECT password_hash FROM users WHERE username = ? OR email = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, username);
+            pstmt.setString(1, identifier);
+            pstmt.setString(2, identifier);  // Cho phép username hoặc email
+
             ResultSet rs = pstmt.executeQuery();
 
             if (rs.next()) {
                 String storedHash = rs.getString("password_hash");
-                String inputHash = PasswordUtil.hashPassword(password);
 
-                if (storedHash.equals(inputHash)) {
-                    UserDAO.LOGGER.info("Login success: " + username);
+                if (PasswordUtil.matchPassword(password, storedHash)) {
+                    UserDAO.LOGGER.info("Login success: " + identifier);
                     return true;
                 } else {
-                    UserDAO.LOGGER.warning("Password is not correct: " + username);
+                    UserDAO.LOGGER.warning("Password is not correct: " + identifier);
                 }
             } else {
-                UserDAO.LOGGER.warning("Not found a user: " + username);
+                UserDAO.LOGGER.warning("Not found user: " + identifier);
             }
 
         } catch (SQLException e) {

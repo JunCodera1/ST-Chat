@@ -71,7 +71,7 @@ public class PasswordService {
             insertStmt.executeUpdate();
 
             // Gửi email xác nhận
-            String confirmLink = "http://localhost:8080/api/confirm-password-change?token=" + token;
+            String confirmLink = "http://localhost:9090/api/confirm-password-change?token=" + token;
             String subject = "ST Chat - Xác nhận thay đổi mật khẩu";
             String content = "Xin chào " + username + ",\n\n"
                     + "Bạn đã yêu cầu đổi mật khẩu. Nhấn vào nút dưới đây để xác nhận:\n\n"
@@ -85,7 +85,7 @@ public class PasswordService {
         }
     }
 
-    public boolean confirmPasswordChange(String token) {
+    public static boolean confirmPasswordChange(String token) {
         try (Connection conn = DatabaseConnection.getConnection()) {
             PreparedStatement selectStmt = conn.prepareStatement("SELECT email, new_password_hash FROM pending_password_changes WHERE token = ?");
             selectStmt.setString(1, token);
