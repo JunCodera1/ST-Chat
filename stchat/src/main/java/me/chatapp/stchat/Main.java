@@ -20,7 +20,7 @@ public class Main extends Application {
     @Override
     public void start(Stage primaryStage) {
         try {
-            socketClient = new SocketClient("localhost", 12345);
+            socketClient = new SocketClient("localhost", 8080);
         } catch (IOException e) {
             e.printStackTrace();
             return;
@@ -41,12 +41,13 @@ public class Main extends Application {
             showSignUpStage(new Stage());
         }, user -> {
             try {
+                SocketClient client = this.socketClient;
+
                 ChatModel model = new ChatModel();
                 ChatViewConfig config = new ChatViewConfig();
-                ChatView view = new ChatView(config, user);
+                ChatView view = new ChatView(config, user, loginStage);
 
-                // Controller gắn client đã tạo
-                ChatController controller = new ChatController(model, view, socketClient);
+                ChatController controller = new ChatController(model, view, client);
 
                 Stage primaryStage = SceneManager.getStage();
                 primaryStage.setTitle("ST Chat - " + user.getUsername());
@@ -62,6 +63,7 @@ public class Main extends Application {
         });
         login.show();
     }
+
 
     public static void main(String[] args) {
         launch();

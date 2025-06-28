@@ -263,7 +263,7 @@ public class ForgotPassword {
 
         new Thread(() -> {
             try {
-                SocketClient socketClient = new SocketClient("localhost", 12345);
+                SocketClient socketClient = new SocketClient("localhost", 8080);
 
                 // Gửi JSON yêu cầu reset password
                 String request = new JSONObject()

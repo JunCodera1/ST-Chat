@@ -1,6 +1,7 @@
 package com.stchat.server;
 
 import com.stchat.server.handler.ClientHandler;
+import com.stchat.server.web.MessageServer;
 import com.stchat.server.web.PasswordChangeServer;
 
 import java.io.*;
@@ -162,9 +163,11 @@ public class Main {
         Main server = new Main();
 
         PasswordChangeServer.start();
+        MessageServer.start();
+
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            System.out.println("\nĐang dừng server...");
+            System.out.println("\nStopping...");
             server.stop();
         }));
 
@@ -174,7 +177,7 @@ public class Main {
             try {
                 port = Integer.parseInt(args[0]);
             } catch (NumberFormatException e) {
-                System.err.println("Port không hợp lệ, sử dụng port mặc định: " + DEFAULT_PORT);
+                System.err.println("Port not validate, please use default port: " + DEFAULT_PORT);
             }
         }
 

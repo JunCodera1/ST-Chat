@@ -1,12 +1,10 @@
 package me.chatapp.stchat.view.components.pages;
 
-import javafx.animation.FadeTransition;
 import javafx.animation.ScaleTransition;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.effect.DropShadow;
@@ -20,19 +18,21 @@ import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import me.chatapp.stchat.network.SocketClient;
+import me.chatapp.stchat.util.ValidateUtil;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
+
+import static me.chatapp.stchat.util.AnimationUtil.*;
+import static me.chatapp.stchat.util.CSSUtil.REGISTER_BACKGROUND;
+import static me.chatapp.stchat.util.DisplayUtil.*;
+
 
 public class SignUp {
 
     private static final Logger LOGGER = Logger.getLogger(SignUp.class.getName());
     private final Stage stage;
     private final Runnable onSwitchToLogin;
-    private static final Pattern EMAIL_PATTERN = Pattern.compile(
-            "^[A-Za-z0-9+_.-]+@([A-Za-z0-9.-]+\\.[A-Za-z]{2,})$"
-    );
 
     public SignUp(Runnable onSwitchToLogin) {
         this.stage = new Stage();
@@ -43,10 +43,10 @@ public class SignUp {
     private void setupUI() {
         // Main container
         StackPane root = new StackPane();
-        root.setStyle("-fx-background-color: linear-gradient(135deg, #667eea 0%, #764ba2 100%);");
+        root.setStyle(REGISTER_BACKGROUND);
 
         // Background decoration
-        createBackgroundCircles(root);
+        createBackgroundCirclesRegister(root);
 
         // Main content card
         VBox card = new VBox(20);
@@ -162,7 +162,7 @@ public class SignUp {
 
         // Add interactive effects
         addFieldFocusEffects(userTextField, emailTextField, passwordField, confirmPasswordField);
-        addButtonHoverEffects(registerButton, signInButton);
+        addButtonSignUpHoverEffects(registerButton, signInButton);
         addPasswordStrengthIndicator(passwordField, passwordStrength);
 
         // Event handlers
@@ -188,161 +188,6 @@ public class SignUp {
         addEntranceAnimation(card);
     }
 
-    private VBox createFieldContainer(String labelText, String promptText) {
-        VBox container = new VBox(8);
-
-        Label label = new Label(labelText);
-        label.setFont(Font.font("System", FontWeight.MEDIUM, 14));
-        label.setTextFill(Color.web("#4a5568"));
-
-        TextField textField = new TextField();
-        textField.setPromptText(promptText);
-        textField.setPrefHeight(45);
-        textField.setStyle(getFieldStyle());
-
-        container.getChildren().addAll(label, textField);
-        return container;
-    }
-
-    private VBox createPasswordContainer(String labelText, String promptText) {
-        VBox container = new VBox(8);
-
-        Label label = new Label(labelText);
-        label.setFont(Font.font("System", FontWeight.MEDIUM, 14));
-        label.setTextFill(Color.web("#4a5568"));
-
-        PasswordField passwordField = new PasswordField();
-        passwordField.setPromptText(promptText);
-        passwordField.setPrefHeight(45);
-        passwordField.setStyle(getFieldStyle());
-
-        container.getChildren().addAll(label, passwordField);
-        return container;
-    }
-
-    private String getFieldStyle() {
-        return "-fx-background-color: #f7fafc;" +
-                "-fx-border-color: #e2e8f0;" +
-                "-fx-border-width: 2;" +
-                "-fx-border-radius: 12;" +
-                "-fx-background-radius: 12;" +
-                "-fx-padding: 0 15;" +
-                "-fx-font-size: 14;";
-    }
-
-    private void createBackgroundCircles(StackPane root) {
-        Circle circle1 = new Circle(90);
-        circle1.setFill(Color.web("#ffffff", 0.1));
-        circle1.setTranslateX(-160);
-        circle1.setTranslateY(-250);
-
-        Circle circle2 = new Circle(70);
-        circle2.setFill(Color.web("#ffffff", 0.1));
-        circle2.setTranslateX(190);
-        circle2.setTranslateY(-180);
-
-        Circle circle3 = new Circle(50);
-        circle3.setFill(Color.web("#ffffff", 0.1));
-        circle3.setTranslateX(-190);
-        circle3.setTranslateY(300);
-
-        Circle circle4 = new Circle(110);
-        circle4.setFill(Color.web("#ffffff", 0.05));
-        circle4.setTranslateX(160);
-        circle4.setTranslateY(280);
-
-        root.getChildren().addAll(circle1, circle2, circle3, circle4);
-    }
-
-    private void addFieldFocusEffects(TextField... fields) {
-        String focusStyle =
-                "-fx-background-color: #ffffff;" +
-                        "-fx-border-color: #667eea;" +
-                        "-fx-border-width: 2;" +
-                        "-fx-border-radius: 12;" +
-                        "-fx-background-radius: 12;" +
-                        "-fx-padding: 0 15;" +
-                        "-fx-font-size: 14;" +
-                        "-fx-effect: dropshadow(gaussian, rgba(102,126,234,0.3), 10, 0, 0, 2);";
-
-        for (TextField field : fields) {
-            field.focusedProperty().addListener((obs, oldVal, newVal) -> field.setStyle(newVal ? focusStyle : getFieldStyle()));
-        }
-    }
-
-    private void addButtonHoverEffects(@NotNull Button... buttons) {
-        for (Button button : buttons) {
-            button.setOnMouseEntered(e -> {
-                ScaleTransition scale = new ScaleTransition(Duration.millis(100), button);
-                scale.setToX(1.05);
-                scale.setToY(1.05);
-                scale.play();
-            });
-
-            button.setOnMouseExited(e -> {
-                ScaleTransition scale = new ScaleTransition(Duration.millis(100), button);
-                scale.setToX(1.0);
-                scale.setToY(1.0);
-                scale.play();
-            });
-        }
-    }
-
-    private void addPasswordStrengthIndicator(@NotNull PasswordField passwordField, Text strengthText) {
-        passwordField.textProperty().addListener((obs, oldVal, newVal) -> {
-            int strength = calculatePasswordStrength(newVal);
-
-            switch (strength) {
-                case 0:
-                    strengthText.setText("");
-                    break;
-                case 1:
-                    strengthText.setText("Password strength: Weak");
-                    strengthText.setFill(Color.web("#e53e3e"));
-                    break;
-                case 2:
-                    strengthText.setText("Password strength: Fair");
-                    strengthText.setFill(Color.web("#dd6b20"));
-                    break;
-                case 3:
-                    strengthText.setText("Password strength: Good");
-                    strengthText.setFill(Color.web("#3182ce"));
-                    break;
-                case 4:
-                    strengthText.setText("Password strength: Strong");
-                    strengthText.setFill(Color.web("#38a169"));
-                    break;
-            }
-        });
-    }
-
-    private int calculatePasswordStrength(@NotNull String password) {
-        if (password.isEmpty()) return 0;
-
-        int score = 0;
-        if (password.length() >= 8) score++;
-        if (password.matches(".*[a-z].*")) score++;
-        if (password.matches(".*[A-Z].*")) score++;
-        if (password.matches(".*[0-9].*")) score++;
-        if (password.matches(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?].*")) score++;
-
-        return Math.min(score, 4);
-    }
-
-    private void addEntranceAnimation(@NotNull VBox card) {
-        card.setOpacity(0);
-        card.setScaleY(0.8);
-
-        FadeTransition fadeIn = new FadeTransition(Duration.millis(600), card);
-        fadeIn.setToValue(1.0);
-
-        ScaleTransition scaleIn = new ScaleTransition(Duration.millis(600), card);
-        scaleIn.setToY(1.0);
-
-        fadeIn.play();
-        scaleIn.play();
-    }
-
     private void handleRegistration(TextField userField, TextField emailField,
                                     PasswordField passField, PasswordField confirmField,
                                     Text statusMessage) {
@@ -351,36 +196,15 @@ public class SignUp {
         String password = passField.getText();
         String confirmPassword = confirmField.getText();
 
-        // Validation phía client
-        if (username.isEmpty() || email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
-            showMessage(statusMessage, "Please fill in all fields", Color.web("#e53e3e"));
+        String error = ValidateUtil.validateRegister(username, email, password, confirmPassword);
+        if (error != null) {
+            showRegisterMessage(statusMessage, error, Color.web("#e53e3e"));
             return;
         }
 
-        if (username.length() < 3) {
-            showMessage(statusMessage, "Username must be at least 3 characters", Color.web("#e53e3e"));
-            return;
-        }
-
-        if (!EMAIL_PATTERN.matcher(email).matches()) {
-            showMessage(statusMessage, "Please enter a valid email address", Color.web("#e53e3e"));
-            return;
-        }
-
-        if (password.length() < 6) {
-            showMessage(statusMessage, "Password must be at least 6 characters", Color.web("#e53e3e"));
-            return;
-        }
-
-        if (!password.equals(confirmPassword)) {
-            showMessage(statusMessage, "Passwords do not match", Color.web("#e53e3e"));
-            return;
-        }
-
-        // Đăng ký bằng socket client
         new Thread(() -> {
             try {
-                SocketClient client = new SocketClient("localhost", 12345);
+                SocketClient client = new SocketClient("localhost", 8080);
                 String request = new org.json.JSONObject()
                         .put("type", "REGISTER")
                         .put("username", username)
@@ -395,11 +219,11 @@ public class SignUp {
 
                 javafx.application.Platform.runLater(() -> {
                     if ("success".equalsIgnoreCase(resJson.optString("status"))) {
-                        showMessage(statusMessage, "Account created successfully! Please sign in.", Color.web("#38a169"));
+                        showRegisterMessage(statusMessage, "Account created successfully! Please sign in.", Color.web("#38a169"));
                         getScaleTransition().play();
                     } else {
                         String message = resJson.optString("message", "Registration failed.");
-                        showMessage(statusMessage, message, Color.web("#e53e3e"));
+                        showRegisterMessage(statusMessage, message, Color.web("#e53e3e"));
                     }
                 });
 
@@ -407,7 +231,7 @@ public class SignUp {
 
             } catch (Exception e) {
                 javafx.application.Platform.runLater(() ->
-                        showMessage(statusMessage, "Unable to connect to server.", Color.web("#e53e3e"))
+                        showRegisterMessage(statusMessage, "Unable to connect to server.", Color.web("#e53e3e"))
                 );
                 LOGGER.severe("Registration socket error: " + e.getMessage());
             }
@@ -435,18 +259,6 @@ public class SignUp {
             }).start();
         });
         return successScale;
-    }
-
-    private void showMessage(Text statusMessage, String message, Color color) {
-        statusMessage.setText(message);
-        statusMessage.setFill(color);
-
-        // Message animation
-        ScaleTransition messageScale = new ScaleTransition(Duration.millis(100), statusMessage);
-        messageScale.setToX(1.1);
-        messageScale.setAutoReverse(true);
-        messageScale.setCycleCount(2);
-        messageScale.play();
     }
 
     public void show() {

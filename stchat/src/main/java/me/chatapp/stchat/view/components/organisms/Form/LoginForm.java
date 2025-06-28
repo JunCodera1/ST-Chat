@@ -27,8 +27,8 @@ public class LoginForm extends VBox {
 
     private void createFormComponents() {
         // Username field
-        StyledTextField usernameTextField = new StyledTextField("Enter your username");
-        usernameField = new UsernameField("Username", usernameTextField);
+        StyledTextField usernameTextField = new StyledTextField("Enter your username or email");
+        usernameField = new UsernameField("Username or email", usernameTextField);
 
         // Password field
         StyledPasswordField passwordField = new StyledPasswordField("Enter your password");
