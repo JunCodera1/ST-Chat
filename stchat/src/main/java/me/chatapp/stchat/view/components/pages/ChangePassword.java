@@ -1,6 +1,5 @@
 package me.chatapp.stchat.view.components.pages;
 
-import javafx.animation.FadeTransition;
 import javafx.animation.ScaleTransition;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -20,29 +19,19 @@ import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import me.chatapp.stchat.network.SocketClient;
-import org.jetbrains.annotations.NotNull;
+import me.chatapp.stchat.util.AnimationUtil;
+import me.chatapp.stchat.util.DisplayUtil;
+import me.chatapp.stchat.util.ValidateUtil;
 
 import java.util.logging.Logger;
 
-public class ChangePassword {
+import static me.chatapp.stchat.util.CSSUtil.*;
+import static me.chatapp.stchat.util.DisplayUtil.createBackButton;
+import static me.chatapp.stchat.util.DisplayUtil.createChangePasswordButton;
 
+public class ChangePassword {
     private static final Logger LOGGER = Logger.getLogger(ChangePassword.class.getName());
-    private static final String GRADIENT_BACKGROUND = "-fx-background-color: linear-gradient(135deg, #667eea 0%, #764ba2 100%);";
-    private static final String FIELD_STYLE = "-fx-background-color: #f7fafc;" +
-            "-fx-border-color: #e2e8f0;" +
-            "-fx-border-width: 2;" +
-            "-fx-border-radius: 12;" +
-            "-fx-background-radius: 12;" +
-            "-fx-padding: 0 15;" +
-            "-fx-font-size: 14;";
-    private static final String FOCUS_STYLE = "-fx-background-color: #ffffff;" +
-            "-fx-border-color: #667eea;" +
-            "-fx-border-width: 2;" +
-            "-fx-border-radius: 12;" +
-            "-fx-background-radius: 12;" +
-            "-fx-padding: 0 15;" +
-            "-fx-font-size: 14;" +
-            "-fx-effect: dropshadow(gaussian, rgba(102,126,234,0.3), 10, 0, 0, 2);";
+
 
     private final Stage stage;
     private final Runnable onGoBack;
@@ -70,13 +59,13 @@ public class ChangePassword {
         Scene scene = new Scene(root, 520, 750);
         configureStage(scene);
 
-        addEntranceAnimation(card);
+        AnimationUtil.addEntranceAnimation(card);
     }
 
     private StackPane createMainContainer() {
         StackPane root = new StackPane();
         root.setStyle(GRADIENT_BACKGROUND);
-        createBackgroundCircles(root);
+        DisplayUtil.createBackgroundCircles(root);
         return root;
     }
 
@@ -207,46 +196,15 @@ public class ChangePassword {
         Button backButton = createBackButton();
 
         setupButtonEvents(changePasswordButton, backButton);
-        addButtonHoverEffects(changePasswordButton, backButton);
+        AnimationUtil.addButtonHoverEffects(changePasswordButton, backButton);
 
         buttonSection.getChildren().addAll(changePasswordButton, backButton);
         return buttonSection;
     }
 
-    private Button createChangePasswordButton() {
-        Button button = new Button("Change Password");
-        button.setPrefWidth(320);
-        button.setPrefHeight(50);
-        button.setFont(Font.font("System", FontWeight.BOLD, 16));
-        button.setStyle(
-                GRADIENT_BACKGROUND +
-                        "-fx-text-fill: white;" +
-                        "-fx-background-radius: 25;" +
-                        "-fx-cursor: hand;" +
-                        "-fx-effect: dropshadow(gaussian, rgba(102,126,234,0.4), 15, 0, 0, 5);"
-        );
-        return button;
-    }
-
-    private Button createBackButton() {
-        Button button = new Button("← Back to Profile");
-        button.setPrefWidth(320);
-        button.setPrefHeight(45);
-        button.setFont(Font.font("System", FontWeight.MEDIUM, 14));
-        button.setStyle(
-                "-fx-background-color: transparent;" +
-                        "-fx-border-color: #667eea;" +
-                        "-fx-border-width: 2;" +
-                        "-fx-border-radius: 22;" +
-                        "-fx-text-fill: #667eea;" +
-                        "-fx-cursor: hand;"
-        );
-        return button;
-    }
-
     private void setupFormInteractions() {
         addFieldFocusEffects(emailField, currentPasswordField, newPasswordField, confirmPasswordField);
-        addPasswordStrengthIndicator(newPasswordField, passwordStrength);
+        AnimationUtil.addPasswordStrengthIndicator(newPasswordField, passwordStrength);
 
         // Enter key support
         confirmPasswordField.setOnAction(event -> handlePasswordChange());
@@ -267,91 +225,11 @@ public class ChangePassword {
         stage.setResizable(false);
     }
 
-    private void createBackgroundCircles(StackPane root) {
-        Circle[] circles = {
-                createBackgroundCircle(90, -160, -250, 0.1),
-                createBackgroundCircle(70, 190, -180, 0.1),
-                createBackgroundCircle(50, -190, 280, 0.1),
-                createBackgroundCircle(110, 160, 250, 0.05)
-        };
-
-        root.getChildren().addAll(circles);
-    }
-
-    private Circle createBackgroundCircle(double radius, double translateX, double translateY, double opacity) {
-        Circle circle = new Circle(radius);
-        circle.setFill(Color.web("#ffffff", opacity));
-        circle.setTranslateX(translateX);
-        circle.setTranslateY(translateY);
-        return circle;
-    }
-
     private void addFieldFocusEffects(javafx.scene.control.Control... fields) {
         for (javafx.scene.control.Control field : fields) {
             field.focusedProperty().addListener((obs, oldVal, newVal) ->
                     field.setStyle(newVal ? FOCUS_STYLE : FIELD_STYLE));
         }
-    }
-
-    private void addButtonHoverEffects(@NotNull Button... buttons) {
-        for (Button button : buttons) {
-            button.setOnMouseEntered(e -> animateButtonScale(button, 1.05));
-            button.setOnMouseExited(e -> animateButtonScale(button, 1.0));
-        }
-    }
-
-    private void animateButtonScale(Button button, double scale) {
-        ScaleTransition scaleTransition = new ScaleTransition(Duration.millis(100), button);
-        scaleTransition.setToX(scale);
-        scaleTransition.setToY(scale);
-        scaleTransition.play();
-    }
-
-    private void addPasswordStrengthIndicator(@NotNull PasswordField passwordField, Text strengthText) {
-        passwordField.textProperty().addListener((obs, oldVal, newVal) -> {
-            updatePasswordStrengthDisplay(newVal, strengthText);
-        });
-    }
-
-    private void updatePasswordStrengthDisplay(String password, Text strengthText) {
-        int strength = calculatePasswordStrength(password);
-
-        String[] messages = {"", "Password strength: Weak", "Password strength: Fair",
-                "Password strength: Good", "Password strength: Strong"};
-        Color[] colors = {Color.TRANSPARENT, Color.web("#e53e3e"), Color.web("#dd6b20"),
-                Color.web("#3182ce"), Color.web("#38a169")};
-
-        if (strength < messages.length) {
-            strengthText.setText(messages[strength]);
-            strengthText.setFill(colors[strength]);
-        }
-    }
-
-    private int calculatePasswordStrength(@NotNull String password) {
-        if (password.isEmpty()) return 0;
-
-        int score = 0;
-        if (password.length() >= 8) score++;
-        if (password.matches(".*[a-z].*")) score++;
-        if (password.matches(".*[A-Z].*")) score++;
-        if (password.matches(".*[0-9].*")) score++;
-        if (password.matches(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?].*")) score++;
-
-        return Math.min(score, 4);
-    }
-
-    private void addEntranceAnimation(@NotNull VBox card) {
-        card.setOpacity(0);
-        card.setScaleY(0.8);
-
-        FadeTransition fadeIn = new FadeTransition(Duration.millis(600), card);
-        fadeIn.setToValue(1.0);
-
-        ScaleTransition scaleIn = new ScaleTransition(Duration.millis(600), card);
-        scaleIn.setToY(1.0);
-
-        fadeIn.play();
-        scaleIn.play();
     }
 
     private void handlePasswordChange() {
@@ -360,51 +238,19 @@ public class ChangePassword {
         String newPassword = newPasswordField.getText();
         String confirmPassword = confirmPasswordField.getText();
 
-        if (!validateInputs(email, currentPassword, newPassword, confirmPassword)) {
+        String error = ValidateUtil.getValidationError(email, currentPassword, newPassword, confirmPassword);
+        if (error != null) {
+            showMessage(error, Color.web("#e53e3e"));
             return;
         }
 
         performPasswordChange(email, currentPassword, newPassword);
     }
 
-    private boolean validateInputs(String email, String currentPassword, String newPassword, String confirmPassword) {
-        if (email.isEmpty() || currentPassword.isEmpty() || newPassword.isEmpty() || confirmPassword.isEmpty()) {
-            showMessage("Please fill in all fields", Color.web("#e53e3e"));
-            return false;
-        }
-
-        if (!isValidEmail(email)) {
-            showMessage("Please enter a valid email address", Color.web("#e53e3e"));
-            return false;
-        }
-
-        if (newPassword.length() < 6) {
-            showMessage("New password must be at least 6 characters", Color.web("#e53e3e"));
-            return false;
-        }
-
-        if (!newPassword.equals(confirmPassword)) {
-            showMessage("New passwords do not match", Color.web("#e53e3e"));
-            return false;
-        }
-
-        if (currentPassword.equals(newPassword)) {
-            showMessage("New password must be different from current password", Color.web("#e53e3e"));
-            return false;
-        }
-
-        return true;
-    }
-
-    private boolean isValidEmail(String email) {
-        String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
-        return email.matches(emailRegex);
-    }
-
     private void performPasswordChange(String email, String currentPassword, String newPassword) {
         new Thread(() -> {
             try {
-                SocketClient client = new SocketClient("localhost", 12345);
+                SocketClient client = new SocketClient("localhost", 8080);
                 String request = new org.json.JSONObject()
                         .put("type", "CHANGE_PASSWORD")
                         .put("email", email)
@@ -441,7 +287,7 @@ public class ChangePassword {
     }
 
     private void handleSuccessfulPasswordChange() {
-        showMessage("Password changed successfully!", Color.web("#38a169"));
+        showMessage("Password changed successfully! Please check your email for confirm a new password", Color.web("#38a169"));
         clearAllFields();
         scheduleAutoClose();
     }

@@ -85,7 +85,7 @@ public class Login {
 
         new Thread(() -> {
             try {
-                SocketClient socketClient = new SocketClient("localhost", 12345);
+                SocketClient socketClient = new SocketClient("localhost", 8080);
 
                 // Gửi JSON login request
                 String request = new JSONObject()
@@ -128,9 +128,6 @@ public class Login {
                         );
                     }
                 });
-
-                socketClient.close();
-
             } catch (Exception e) {
                 e.printStackTrace();
                 javafx.application.Platform.runLater(() -> {

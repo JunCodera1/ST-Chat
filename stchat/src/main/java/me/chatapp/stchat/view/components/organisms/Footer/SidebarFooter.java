@@ -97,7 +97,7 @@ public class SidebarFooter extends VBox {
                             try {
                                 ChatModel model = new ChatModel();
                                 ChatViewConfig config = new ChatViewConfig();
-                                ChatView view = new ChatView(config, user);
+                                ChatView view = new ChatView(config, user, stage);
                                 ChatController controller = new ChatController(model, view, client);
 
                                 Stage mainStage = new Stage();

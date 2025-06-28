@@ -24,7 +24,7 @@ public class ConnectionPanel {
         TitledLabel title = new TitledLabel("Connection Settings");
 
         serverGroup = new InputFieldGroup("Server Address", "localhost", "localhost");
-        usernameGroup = new InputFieldGroup("Username", "Enter your name", null);
+        usernameGroup = new InputFieldGroup("Username or Email", "Enter your name or email", null);
 
         connectButton = new PrimaryButton("Connect");
         disconnectButton = new SecondaryButton("Disconnect");

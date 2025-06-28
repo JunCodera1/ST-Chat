@@ -156,7 +156,7 @@
     <build>
         <resources>
             <resource>
-                <directory>src/main/resources</directory>
+                <directory>src/resources</directory>
                 <includes>
                     <include>**/*.css</include>
                 </includes>

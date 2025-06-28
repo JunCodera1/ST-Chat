@@ -3,7 +3,7 @@ package me.chatapp.stchat.view.config;
 
 public class ChatViewConfig {
 
-    public static final int DEFAULT_PORT = 12345;
+    public static final int DEFAULT_PORT = 8080;
     public static final String DEFAULT_TITLE = "ST Chat - Modern Interface";
     public static final double DEFAULT_WIDTH = 1000;
     public static final double DEFAULT_HEIGHT = 700;

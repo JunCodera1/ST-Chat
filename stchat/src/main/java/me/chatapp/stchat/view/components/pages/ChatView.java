@@ -2,7 +2,6 @@ package me.chatapp.stchat.view.components.pages;
 
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -22,7 +21,6 @@ import me.chatapp.stchat.view.components.organisms.Panel.ConnectionPanel;
 import me.chatapp.stchat.view.components.organisms.Panel.MessageInputPanel;
 import me.chatapp.stchat.view.config.ChatViewConfig;
 import me.chatapp.stchat.view.handlers.*;
-import me.chatapp.stchat.view.layout.ChatViewLayoutManager;
 import me.chatapp.stchat.view.state.ChatViewStateManager;
 
 import java.io.IOException;
@@ -54,13 +52,10 @@ public class ChatView extends Application {
     private VBox chatAreaContainer;
 
     // Managers
-    private ChatViewLayoutManager layoutManager;
     private ChatViewStateManager stateManager;
     private ChatViewEventHandler eventHandler;
 
-    // Legacy handlers
-    private ConnectionHandler connectionHandler;
-    private MessageHandler messageHandler;
+
 
     // Stage reference
     private Stage currentStage;
@@ -77,11 +72,12 @@ public class ChatView extends Application {
         initializeUI();
     }
 
-    public ChatView(ChatViewConfig config, User user) {
+    public ChatView(ChatViewConfig config, User user, Stage stage) {
         this.config = config;
         this.root = new BorderPane();
         this.scene = new Scene(root, config.getWidth(), config.getHeight());
         this.currentUser = user;
+        this.currentStage = stage;
 
         initializeUI();
 
@@ -102,7 +98,6 @@ public class ChatView extends Application {
         initializeComponents();
         initializeManagers();
         initializeLayout();
-        initializeLegacyHandlers();
         setupTestData();
     }
 
@@ -168,19 +163,11 @@ public class ChatView extends Application {
             }
         });
 
-        navigationSidebar.setOnChannelSelected(channelName -> {
-            chatHeader.setActiveConversation(channelName);
-            loadConversationMessages(channelName);
-        });
+        navigationSidebar.setOnChannelSelected(channelName -> chatHeader.setActiveConversation(channelName));
 
-        navigationSidebar.setOnDirectMessageSelected(userName -> {
-            chatHeader.setActiveConversation(userName);
-            loadConversationMessages(userName);
-        });
+        navigationSidebar.setOnDirectMessageSelected(userName -> chatHeader.setActiveConversation(userName));
 
-        navigationSidebar.setOnSettingsClicked(() -> {
-            showInfo("Settings", "Settings panel will be implemented soon!");
-        });
+        navigationSidebar.setOnSettingsClicked(() -> showInfo("Settings", "Settings panel will be implemented soon!"));
     }
 
     private void setupChatAreaLayout() {
@@ -202,13 +189,11 @@ public class ChatView extends Application {
                     messageInputPanel, stateManager
             );
 
-            // 👉 3. Gán vào eventHandler trước khi dùng
             eventHandler.setSocketClient(socketClient);
 
-            // 👉 4. Tạo navigationSidebar sau khi socketClient đã có
             navigationSidebar = new NavigationSidebar(
                     currentUser,
-                    socketClient,              // Không bị lỗi IllegalStateException nữa
+                    socketClient,
                     currentStage,
                     this::logout
             );
@@ -232,13 +217,6 @@ public class ChatView extends Application {
         }
     }
 
-
-    private void initializeLegacyHandlers() {
-        connectionHandler = new ConnectionHandler(this);
-        messageHandler = new MessageHandler(this);
-        UIStateHandler uiStateHandler = new UIStateHandler(this);
-    }
-
     private void setupTestData() {
         if (currentUser == null) {
             stateManager.addMessage("Welcome to ST Chat! Select a conversation to start chatting.");
@@ -250,44 +228,6 @@ public class ChatView extends Application {
         }
     }
 
-    private void loadConversationMessages(String conversationName) {
-        chatPanel.clearMessages();
-        chatPanel.showTypingIndicator(conversationName);
-        new Thread(() -> {
-            try {
-                Thread.sleep(1000);
-                Platform.runLater(() -> {
-                    chatPanel.hideTypingIndicator();
-                    if ("Alice Johnson".equals(conversationName)) {
-                        stateManager.addMessage(new Message("Alice", "Hey! How are you doing? 😊", MessageType.USER, LocalDateTime.now().minusMinutes(5)));
-                        stateManager.addMessage(new Message("You", "Hi Alice! I'm doing great, thanks for asking!", MessageType.BOT, LocalDateTime.now().minusMinutes(3)));
-                        stateManager.addMessage(new Message("Alice", "That's awesome! Want to grab coffee later? ☕", MessageType.USER, LocalDateTime.now().minusMinutes(2)));
-                        stateManager.addMessage(new Message("You", "Sure! How about 3 PM at the usual place?", MessageType.BOT, LocalDateTime.now().minusMinutes(1)));
-                        stateManager.addMessage(new Message("Alice", "Perfect! See you there 👍", MessageType.USER, LocalDateTime.now()));
-                    } else if ("Bob Smith".equals(conversationName)) {
-                        stateManager.addMessage(new Message("Bob", "Thanks for the help earlier with the project", MessageType.USER, LocalDateTime.now().minusHours(1)));
-                        stateManager.addMessage(new Message("You", "No problem! Happy to help anytime.", MessageType.BOT, LocalDateTime.now().minusHours(1)));
-                        stateManager.addMessage(new Message("Bob", "The client loved the final presentation 🎉", MessageType.USER, LocalDateTime.now().minusMinutes(30)));
-                        stateManager.addMessage(new Message("You", "That's fantastic news! Great teamwork 💪", MessageType.BOT, LocalDateTime.now().minusMinutes(25)));
-                    } else if ("Team Chat".equals(conversationName)) {
-                        stateManager.addMessage(new Message("John", "Meeting at 3 PM in conference room A", MessageType.USER, LocalDateTime.now().minusHours(3)));
-                        stateManager.addMessage(new Message("Sarah", "Got it, I'll be there", MessageType.USER, LocalDateTime.now().minusHours(2)));
-                        stateManager.addMessage(new Message("You", "Same here, see you all at 3", MessageType.BOT, LocalDateTime.now().minusHours(2)));
-                        stateManager.addMessage(new Message("Mike", "Can we push it to 3:30? Running a bit late", MessageType.USER, LocalDateTime.now().minusMinutes(30)));
-                        stateManager.addMessage(new Message("John", "Sure, 3:30 works for everyone", MessageType.USER, LocalDateTime.now().minusMinutes(25)));
-                    } else if ("Mom".equals(conversationName)) {
-                        stateManager.addMessage(new Message("Mom", "Don't forget to call! 📞", MessageType.USER, LocalDateTime.now().minusDays(1)));
-                        stateManager.addMessage(new Message("You", "I'll call you tonight, promise! ❤️", MessageType.BOT, LocalDateTime.now().minusHours(20)));
-                        stateManager.addMessage(new Message("Mom", "Looking forward to it sweetie", MessageType.USER, LocalDateTime.now().minusHours(19)));
-                    } else {
-                        stateManager.addMessage(new Message("System", "Conversation with " + conversationName + " loaded", MessageType.SYSTEM, LocalDateTime.now()));
-                    }
-                });
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }).start();
-    }
 
     private void autoConnectToChat() {
         if (currentUser != null) {
@@ -391,9 +331,9 @@ public class ChatView extends Application {
                     loginStage.close();
                     ChatModel model = new ChatModel();
                     ChatViewConfig config = new ChatViewConfig();
-                    ChatView view = new ChatView(config, user);
+                    ChatView view = new ChatView(config, user, loginStage);
                     String host = "localhost";
-                    int portAsInt = 12345;
+                    int portAsInt = 8080;
                     SocketClient client = new SocketClient(host, portAsInt);
                     ChatController controller = new ChatController(model, view, client);
                     Stage newStage = new Stage();
@@ -426,32 +366,12 @@ public class ChatView extends Application {
 
     public HeaderComponent getHeaderComponent() { return headerComponent; }
     public ConnectionPanel getConnectionPanel() { return connectionPanel; }
-    public ChatPanel getChatPanel() { return chatPanel; }
     public MessageInputPanel getMessageInputPanel() { return messageInputPanel; }
     public StatusBar getStatusBar() { return statusBar; }
-    public ChatHeader getChatHeader() { return chatHeader; }
     public Scene getScene() { return scene; }
-
-    public void setMessageHandler(MessageHandler messageHandler) {
-        this.messageHandler = messageHandler;
-    }
-
-    public ConnectionHandler getConnectionHandler() {
-        return connectionHandler;
-    }
-
-    public void setConnectionHandler(ConnectionHandler connectionHandler) {
-        this.connectionHandler = connectionHandler;
-    }
 
     public TextField getMessageField() { return messageInputPanel.getMessageField(); }
     public Button getSendButton() { return messageInputPanel.getSendButton(); }
     public Label getStatusLabel() { return statusBar.getStatusLabel(); }
     public TextField getUserNameField() { return connectionPanel.getUsernameField(); }
-    public NavigationSidebar getNavigationSidebar() {
-        return navigationSidebar;
-    }
-    public Parent getPage() {
-        return root;
-    }
 }
