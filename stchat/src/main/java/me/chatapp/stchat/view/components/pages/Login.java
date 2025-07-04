@@ -5,7 +5,7 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import me.chatapp.stchat.model.User;
-import me.chatapp.stchat.network.SocketClient;
+import me.chatapp.stchat.api.SocketClient;
 import me.chatapp.stchat.view.components.atoms.Text.StatusText;
 import me.chatapp.stchat.view.components.templates.LoginTemplate;
 import org.json.JSONObject;

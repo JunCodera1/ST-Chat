@@ -1,6 +1,5 @@
 package me.chatapp.stchat.view.components.pages;
 
-import javafx.animation.FadeTransition;
 import javafx.animation.ScaleTransition;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -18,10 +17,15 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-import me.chatapp.stchat.network.SocketClient;
+import me.chatapp.stchat.api.SocketClient;
 import org.json.JSONObject;
 
 import java.util.logging.Logger;
+
+import static me.chatapp.stchat.util.AnimationUtil.addEntranceAnimation;
+import static me.chatapp.stchat.util.CSSUtil.LOGIN_BUTTON;
+import static me.chatapp.stchat.util.DisplayUtil.addFieldFocusEffects;
+import static me.chatapp.stchat.util.DisplayUtil.createBackgroundCircles;
 
 public class ForgotPassword {
 
@@ -107,13 +111,7 @@ public class ForgotPassword {
         loginText.setFill(Color.web("#718096"));
 
         Button loginButton = new Button("Back to Sign In");
-        loginButton.setStyle(
-                "-fx-background-color: transparent;" +
-                        "-fx-text-fill: #667eea;" +
-                        "-fx-font-weight: bold;" +
-                        "-fx-cursor: hand;" +
-                        "-fx-font-size: 14;"
-        );
+        loginButton.setStyle(LOGIN_BUTTON);
 
         loginContainer.getChildren().addAll(loginText, loginButton);
 
@@ -159,55 +157,6 @@ public class ForgotPassword {
         addEntranceAnimation(card);
     }
 
-    private void createBackgroundCircles(StackPane root) {
-        Circle circle1 = new Circle(80);
-        circle1.setFill(Color.web("#ffffff", 0.1));
-        circle1.setTranslateX(-150);
-        circle1.setTranslateY(-200);
-
-        Circle circle2 = new Circle(60);
-        circle2.setFill(Color.web("#ffffff", 0.1));
-        circle2.setTranslateX(180);
-        circle2.setTranslateY(-150);
-
-        Circle circle3 = new Circle(40);
-        circle3.setFill(Color.web("#ffffff", 0.1));
-        circle3.setTranslateX(-180);
-        circle3.setTranslateY(250);
-
-        Circle circle4 = new Circle(100);
-        circle4.setFill(Color.web("#ffffff", 0.05));
-        circle4.setTranslateX(150);
-        circle4.setTranslateY(200);
-
-        root.getChildren().addAll(circle1, circle2, circle3, circle4);
-    }
-
-    private void addFieldFocusEffects(TextField emailField) {
-        String focusStyle =
-                "-fx-background-color: #ffffff;" +
-                        "-fx-border-color: #667eea;" +
-                        "-fx-border-width: 2;" +
-                        "-fx-border-radius: 12;" +
-                        "-fx-background-radius: 12;" +
-                        "-fx-padding: 0 15;" +
-                        "-fx-font-size: 14;" +
-                        "-fx-effect: dropshadow(gaussian, rgba(102,126,234,0.3), 10, 0, 0, 2);";
-
-        String normalStyle =
-                "-fx-background-color: #f7fafc;" +
-                        "-fx-border-color: #e2e8f0;" +
-                        "-fx-border-width: 2;" +
-                        "-fx-border-radius: 12;" +
-                        "-fx-background-radius: 12;" +
-                        "-fx-padding: 0 15;" +
-                        "-fx-font-size: 14;";
-
-        emailField.focusedProperty().addListener((obs, oldVal, newVal) -> {
-            emailField.setStyle(newVal ? focusStyle : normalStyle);
-        });
-    }
-
     private void addButtonHoverEffects(Button... buttons) {
         for (Button button : buttons) {
             button.setOnMouseEntered(e -> {
@@ -224,20 +173,6 @@ public class ForgotPassword {
                 scale.play();
             });
         }
-    }
-
-    private void addEntranceAnimation(VBox card) {
-        card.setOpacity(0);
-        card.setScaleY(0.8);
-
-        FadeTransition fadeIn = new FadeTransition(Duration.millis(600), card);
-        fadeIn.setToValue(1.0);
-
-        ScaleTransition scaleIn = new ScaleTransition(Duration.millis(600), card);
-        scaleIn.setToY(1.0);
-
-        fadeIn.play();
-        scaleIn.play();
     }
 
     private void handleResetPassword(TextField emailField, Text statusMessage, Button resetButton) {

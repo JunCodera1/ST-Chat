@@ -18,6 +18,10 @@ module me.chatapp.stchat {
     requires java.desktop;
     requires com.h2database;
     requires org.json;
+    requires org.kordamp.ikonli.fontawesome;
+    requires java.net.http;
+    requires com.fasterxml.jackson.databind;
+    requires com.fasterxml.jackson.datatype.jsr310;
 
     opens me.chatapp.stchat to javafx.fxml;
     exports me.chatapp.stchat;

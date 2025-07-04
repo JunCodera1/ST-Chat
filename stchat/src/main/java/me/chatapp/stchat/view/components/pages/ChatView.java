@@ -3,22 +3,22 @@ package me.chatapp.stchat.view.components.pages;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
+import me.chatapp.stchat.api.ConversationApiClient;
 import me.chatapp.stchat.controller.ChatController;
-import me.chatapp.stchat.model.ChatModel;
 import me.chatapp.stchat.model.Message;
-import me.chatapp.stchat.model.MessageType;
 import me.chatapp.stchat.model.User;
-import me.chatapp.stchat.network.SocketClient;
+import me.chatapp.stchat.api.SocketClient;
 import me.chatapp.stchat.view.components.organisms.Bar.NavigationSidebar;
 import me.chatapp.stchat.view.components.organisms.Bar.StatusBar;
+import me.chatapp.stchat.view.components.organisms.Window.CallWindow;
 import me.chatapp.stchat.view.components.organisms.Header.ChatHeader;
 import me.chatapp.stchat.view.components.organisms.Header.HeaderComponent;
 import me.chatapp.stchat.view.components.organisms.Panel.ChatPanel;
 import me.chatapp.stchat.view.components.organisms.Panel.ConnectionPanel;
 import me.chatapp.stchat.view.components.organisms.Panel.MessageInputPanel;
+import me.chatapp.stchat.view.components.organisms.Window.VideoCallWindow;
 import me.chatapp.stchat.view.config.ChatViewConfig;
 import me.chatapp.stchat.view.handlers.*;
 import me.chatapp.stchat.view.state.ChatViewStateManager;
@@ -55,6 +55,8 @@ public class ChatView extends Application {
     private ChatViewStateManager stateManager;
     private ChatViewEventHandler eventHandler;
 
+    // API
+    private ConversationApiClient conversationApiClient;
 
 
     // Stage reference
@@ -98,7 +100,7 @@ public class ChatView extends Application {
         initializeComponents();
         initializeManagers();
         initializeLayout();
-        setupTestData();
+        setupSystemMessage();
     }
 
 
@@ -116,7 +118,7 @@ public class ChatView extends Application {
     private void initializeComponents() {
         headerComponent = new HeaderComponent();
         connectionPanel = new ConnectionPanel();
-        chatPanel = new ChatPanel();
+        chatPanel = new ChatPanel(currentUser, this::handleSendMessage);
         messageInputPanel = new MessageInputPanel();
         statusBar = new StatusBar();
         chatHeader = new ChatHeader();
@@ -133,6 +135,7 @@ public class ChatView extends Application {
         chatAreaContainer = new VBox();
         chatAreaContainer.setStyle("-fx-background-color: white;");
         HBox.setHgrow(chatAreaContainer, Priority.ALWAYS);
+        VBox.setVgrow(chatAreaContainer, Priority.ALWAYS);
 
         setupChatAreaLayout();
 
@@ -163,9 +166,15 @@ public class ChatView extends Application {
             }
         });
 
-        navigationSidebar.setOnChannelSelected(channelName -> chatHeader.setActiveConversation(channelName));
+        navigationSidebar.setOnChannelSelected(channelName -> {
+            chatHeader.setActiveConversation(channelName);
+            chatPanel.clearMessages();
+        });
 
-        navigationSidebar.setOnDirectMessageSelected(userName -> chatHeader.setActiveConversation(userName));
+        navigationSidebar.setOnDirectMessageSelected(userName -> {
+            chatHeader.setActiveConversation(userName);
+            chatPanel.clearMessages();
+        });
 
         navigationSidebar.setOnSettingsClicked(() -> showInfo("Settings", "Settings panel will be implemented soon!"));
     }
@@ -201,8 +210,16 @@ public class ChatView extends Application {
             setupNavigationSidebarHandlers();
 
             // Tiếp tục set các sự kiện
-            chatHeader.setOnCallAction(() -> showInfo("Voice Call", "Voice call feature coming soon!"));
-            chatHeader.setOnVideoCallAction(() -> showInfo("Video Call", "Video call feature coming soon!"));
+            chatHeader.setOnCallAction(() -> {
+                String name = currentUser.getUsername();
+                new CallWindow(name).show();
+            });
+
+            chatHeader.setOnVideoCallAction(() -> {
+                VideoCallWindow videoCallWindow = new VideoCallWindow("You", "Alice");
+                videoCallWindow.show();
+            });
+
             chatHeader.setOnInfoAction(() -> showInfo("Conversation Info", "Conversation details coming soon!"));
 
             messageInputPanel.getMessageField().textProperty().addListener((obs, oldText, newText) -> {
@@ -217,15 +234,19 @@ public class ChatView extends Application {
         }
     }
 
-    private void setupTestData() {
+    private void setupSystemMessage() {
         if (currentUser == null) {
             stateManager.addMessage("Welcome to ST Chat! Select a conversation to start chatting.");
-            stateManager.addMessage(new Message("System", "Please connect to start chatting", MessageType.SYSTEM, LocalDateTime.now()));
         } else {
             stateManager.addMessage(new Message("System",
                     "Welcome back, " + currentUser.getUsername() + "! 🎉",
-                    MessageType.SYSTEM, LocalDateTime.now()));
+                    Message.MessageType.SYSTEM, LocalDateTime.now()));
         }
+        for (int i = 1; i <= 30; i++) {
+            chatPanel.addMessage(new Message("Bot", "This is message #" + i,
+                    Message.MessageType.BOT, LocalDateTime.now()));
+        }
+
     }
 
 
@@ -237,11 +258,11 @@ public class ChatView extends Application {
                     Platform.runLater(() -> {
                         stateManager.addMessage(new Message("System",
                                 "🔄 Connecting to chat server...",
-                                MessageType.SYSTEM, LocalDateTime.now()));
+                                Message.MessageType.SYSTEM, LocalDateTime.now()));
                         updateConnectionStatus(true);
                         stateManager.addMessage(new Message("System",
                                 "✅ Connected successfully! You can now start chatting.",
-                                MessageType.SYSTEM, LocalDateTime.now()));
+                                Message.MessageType.SYSTEM, LocalDateTime.now()));
                         LOGGER.info("Auto-connected user: " + currentUser.getUsername());
                     });
                 } catch (InterruptedException e) {
@@ -300,7 +321,7 @@ public class ChatView extends Application {
             LOGGER.info("User " + currentUser.getUsername() + " logged out");
             stateManager.addMessage(new Message("System",
                     "👋 Logged out successfully",
-                    MessageType.SYSTEM, LocalDateTime.now()));
+                    Message.MessageType.SYSTEM, LocalDateTime.now()));
             currentUser = null;
             if (connectionPanel != null) {
                 connectionPanel.getUsernameField().setText("");
@@ -318,50 +339,52 @@ public class ChatView extends Application {
     private void showLoginStage() {
         Platform.runLater(() -> {
             Stage loginStage = new Stage();
-            Login login = new Login(() -> {
-                loginStage.close();
-                Stage signUpStage = new Stage();
-                SignUp signUp = new SignUp(() -> {
-                    signUpStage.close();
-                    showLoginStage();
-                });
-                signUp.show();
-            }, user -> {
-                try {
-                    loginStage.close();
-                    ChatModel model = new ChatModel();
-                    ChatViewConfig config = new ChatViewConfig();
-                    ChatView view = new ChatView(config, user, loginStage);
-                    String host = "localhost";
-                    int portAsInt = 8080;
-                    SocketClient client = new SocketClient(host, portAsInt);
-                    ChatController controller = new ChatController(model, view, client);
-                    Stage newStage = new Stage();
-                    view.start(newStage);
-                    controller.initialize();
-                }catch (IOException e){
-                    e.printStackTrace();
-                }
-
-            });
+            Login login = createLoginStage(loginStage);
             login.show();
         });
     }
 
-    public ChatViewEventHandler getEventHandler(){
-        return eventHandler;
+    private Login createLoginStage(Stage loginStage) {
+        return new Login(
+                () -> openSignUpStage(loginStage),
+                user -> handleLoginSuccess(user, loginStage)
+        );
     }
 
-    public void setOnConnectAction(ChatEventActions.ConnectAction action) {
-        eventHandler.setOnConnectAction(action);
+    private void openSignUpStage(Stage previousStage) {
+        previousStage.close();
+        Stage signUpStage = new Stage();
+
+        SignUp signUp = new SignUp(() -> {
+            signUpStage.close();
+            showLoginStage();
+        });
+
+        signUp.show();
     }
 
-    public void setOnDisconnectAction(ChatEventActions.DisconnectAction action) {
-        eventHandler.setOnDisconnectAction(action);
+    private void handleSendMessage(String content) {
+        System.out.println("Message to send: " + content);
     }
 
-    public void setOnSendMessageAction(ChatEventActions.SendMessageAction action) {
-        eventHandler.setOnSendMessageAction(action);
+
+    private void handleLoginSuccess(User user, Stage loginStage) {
+        try {
+            loginStage.close();
+            ChatViewConfig config = new ChatViewConfig();
+            ChatView view = new ChatView(config, user, loginStage);
+
+            String host = "localhost";
+            int port = 8080;
+            SocketClient client = new SocketClient(host, port);
+
+            ChatController controller = new ChatController(user, client, loginStage);
+            Stage chatStage = new Stage();
+            view.start(chatStage);
+            controller.initialize();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public HeaderComponent getHeaderComponent() { return headerComponent; }
@@ -369,9 +392,4 @@ public class ChatView extends Application {
     public MessageInputPanel getMessageInputPanel() { return messageInputPanel; }
     public StatusBar getStatusBar() { return statusBar; }
     public Scene getScene() { return scene; }
-
-    public TextField getMessageField() { return messageInputPanel.getMessageField(); }
-    public Button getSendButton() { return messageInputPanel.getSendButton(); }
-    public Label getStatusLabel() { return statusBar.getStatusLabel(); }
-    public TextField getUserNameField() { return connectionPanel.getUsernameField(); }
 }

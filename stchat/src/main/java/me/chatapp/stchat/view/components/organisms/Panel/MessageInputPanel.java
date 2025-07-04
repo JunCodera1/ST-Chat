@@ -26,7 +26,7 @@ public class MessageInputPanel {
 
         inputRow = new HBox();
         messageField = new MessageTextField();
-        emojiPicker = new EmojiPicker(this::onEmojiSelected);
+        emojiPicker = new EmojiPicker(this::appendToInput);
         attachmentButton = new AttachmentButton();
         sendButton = new SendButton();
         microphoneButton = new MicrophoneButton();
@@ -36,6 +36,12 @@ public class MessageInputPanel {
 
         container.getChildren().add(inputRow);
     }
+
+    private void appendToInput(String iconCode) {
+        messageField.appendText(" :" + iconCode + ": "); // ví dụ chèn :fas-smile:
+        messageField.requestFocus();
+    }
+
 
     private void setupContainer() {
         container.setPadding(new Insets(15, 20, 15, 20));
@@ -98,8 +104,6 @@ public class MessageInputPanel {
     }
 
     private void onEmojiSelected() {
-        // This would be implemented to add emoji to text field
-        // For now, just focus back to text field
         messageField.requestFocus();
     }
 

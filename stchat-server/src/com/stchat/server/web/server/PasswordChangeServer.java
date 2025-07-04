@@ -1,4 +1,4 @@
-package com.stchat.server.web;
+package com.stchat.server.web.server;
 
 import com.stchat.server.service.PasswordService;
 import io.javalin.Javalin;
@@ -13,7 +13,6 @@ public class PasswordChangeServer {
         }).start(9090);
 
 
-        // Middleware để đặt Content-Type mặc định
         app.before(ctx -> ctx.contentType("text/plain"));
 
         app.get("/api/confirm-password-change", PasswordChangeServer::handleConfirmPasswordChange);

@@ -7,22 +7,33 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
-import javafx.scene.effect.DropShadow;
+import javafx.scene.text.TextFlow;
 import me.chatapp.stchat.model.Message;
-import me.chatapp.stchat.model.MessageType;
+import me.chatapp.stchat.model.User;
+import org.kordamp.ikonli.fontawesome.FontAwesome;
+import org.kordamp.ikonli.javafx.FontIcon;
+
 
 import java.time.LocalDateTime;
+import java.util.function.Consumer;
+
+import static me.chatapp.stchat.util.CSSUtil.*;
+import static me.chatapp.stchat.util.DisplayUtil.*;
 
 public class ChatPanel {
+
     private final VBox chatContainer;
     private final ScrollPane scrollPane;
     private final VBox messageContainer;
+    private final User currentUser;
     private Label messageCountLabel;
+    private Label chatTitleLabel;
 
-    public ChatPanel() {
+    public ChatPanel(User currentUser, Consumer<String> sendMessageHandler) {
+        this.currentUser = currentUser;
         chatContainer = new VBox();
         chatContainer.setSpacing(0);
-        chatContainer.setStyle("-fx-background-color: #ffffff;");
+        chatContainer.setStyle(STYLE_CHAT_CONTAINER);
 
         // Chat header with improved styling
         HBox headerBox = createChatHeader();
@@ -31,11 +42,11 @@ public class ChatPanel {
         messageContainer = new VBox();
         messageContainer.setSpacing(2);
         messageContainer.setPadding(new Insets(10, 15, 10, 15));
-        messageContainer.setStyle("-fx-background-color: #ffffff;");
+        messageContainer.setStyle(STYLE_MESSAGE_CONTAINER);
 
         // Empty state
         Label emptyStateLabel = new Label("No messages yet");
-        emptyStateLabel.setStyle("-fx-text-fill: #9e9e9e; -fx-font-size: 14px;");
+        emptyStateLabel.setStyle(STYLE_EMPTY_STATE_LABEL);
         emptyStateLabel.setAlignment(Pos.CENTER);
         VBox emptyStateContainer = new VBox(emptyStateLabel);
         emptyStateContainer.setAlignment(Pos.CENTER);
@@ -48,10 +59,11 @@ public class ChatPanel {
         scrollPane.setFitToWidth(true);
         scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        scrollPane.setStyle("-fx-background: #ffffff; -fx-background-color: transparent;");
+        scrollPane.setStyle(STYLE_SCROLL_PANE);
+
+        chatContainer.getChildren().addAll(headerBox, createSeparator(), scrollPane);
 
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
-        chatContainer.getChildren().addAll(headerBox, createSeparator(), scrollPane);
     }
 
     private HBox createChatHeader() {
@@ -60,25 +72,31 @@ public class ChatPanel {
         headerBox.setPadding(new Insets(15, 20, 15, 20));
         headerBox.setStyle("-fx-background-color: #ffffff;");
 
-        Label chatTitle = new Label("Messages");
-        chatTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;");
+        chatTitleLabel = new Label("Messages");
+        chatTitleLabel.setStyle(STYLE_CHAT_TITLE);
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         messageCountLabel = new Label("0 messages");
-        messageCountLabel.setStyle("-fx-text-fill: #7f8c8d; -fx-font-size: 12px; -fx-font-weight: 500;");
+        messageCountLabel.setStyle(STYLE_MESSAGE_COUNT);
 
-        headerBox.getChildren().addAll(chatTitle, spacer, messageCountLabel);
+        headerBox.getChildren().addAll(chatTitleLabel, spacer, messageCountLabel);
         return headerBox;
     }
 
-    private Region createSeparator() {
-        Region separator = new Region();
-        separator.setPrefHeight(1);
-        separator.setStyle("-fx-background-color: #ecf0f1;");
-        return separator;
+    public void setCurrentContact(String name, String type) {
+        Platform.runLater(() -> {
+            if (type.equalsIgnoreCase("user")) {
+                chatTitleLabel.setText("Chat with " + name);
+            } else if (type.equalsIgnoreCase("channel")) {
+                chatTitleLabel.setText("#" + name);
+            } else {
+                chatTitleLabel.setText(name);
+            }
+        });
     }
+
 
     public VBox getComponent() {
         return chatContainer;
@@ -86,25 +104,20 @@ public class ChatPanel {
 
     public void addMessage(String message) {
         Platform.runLater(() -> {
-            Message msgObj = new Message("System", message, MessageType.SYSTEM, LocalDateTime.now());
+            Message msgObj = new Message("System", message, Message.MessageType.SYSTEM, LocalDateTime.now());
             addMessageToContainer(msgObj);
         });
     }
 
     public void addMessage(Message message) {
-        Platform.runLater(() -> {
-            addMessageToContainer(message);
-        });
+        Platform.runLater(() -> addMessageToContainer(message));
     }
 
     private void addMessageToContainer(Message message) {
-        // Remove empty state if this is the first message
-        if (messageContainer.getChildren().size() == 1 &&
-                messageContainer.getChildren().get(0) instanceof VBox) {
-            messageContainer.getChildren().clear();
-        }
+        // Kiểm tra và xóa empty state nếu có
+        removeEmptyStateIfExists();
 
-        VBox messageBox = createEnhancedMessageBox(message);
+        VBox messageBox = createMessageBox(message);
         messageContainer.getChildren().add(messageBox);
 
         // Add spacing between messages
@@ -116,7 +129,24 @@ public class ChatPanel {
         updateMessageCount();
     }
 
-    private VBox createEnhancedMessageBox(Message message) {
+    private void removeEmptyStateIfExists() {
+        if (messageContainer.getChildren().size() == 1) {
+            javafx.scene.Node firstChild = messageContainer.getChildren().get(0);
+            if (firstChild instanceof VBox) {
+                VBox vbox = (VBox) firstChild;
+                // Kiểm tra xem có phải là empty state container không
+                if (vbox.getChildren().size() == 1 &&
+                        vbox.getChildren().get(0) instanceof Label) {
+                    Label label = (Label) vbox.getChildren().get(0);
+                    if ("No messages yet".equals(label.getText())) {
+                        messageContainer.getChildren().clear();
+                    }
+                }
+            }
+        }
+    }
+
+    private VBox createMessageBox(Message message) {
         VBox messageBox = new VBox();
         messageBox.setSpacing(6);
 
@@ -140,26 +170,46 @@ public class ChatPanel {
         senderTimeBox.setSpacing(2);
 
         Label senderLabel = new Label(message.getSender());
-        senderLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13px;");
+        senderLabel.setStyle(STYLE_SENDER_LABEL);
 
         Label timeLabel = new Label(message.getFormattedTime());
-        timeLabel.setStyle("-fx-text-fill: #95a5a6; -fx-font-size: 11px;");
+        timeLabel.setStyle(STYLE_TIME_LABEL);
 
         senderTimeBox.getChildren().addAll(senderLabel, timeLabel);
         headerBox.getChildren().addAll(avatar, senderTimeBox);
 
         // Message content
-        Label contentLabel = new Label(processMessageContent(message));
-        contentLabel.setWrapText(true);
-        contentLabel.setStyle("-fx-font-size: 14px; -fx-line-spacing: 2px;");
-
-        bubble.getChildren().addAll(headerBox, contentLabel);
+        TextFlow contentFlow = parseMessageToTextFlow(processMessageContent(message));
+        contentFlow.setMaxWidth(450);
+        contentFlow.setStyle(STYLE_CONTENT_LABEL);
+        bubble.getChildren().addAll(headerBox, contentFlow);
 
         // Style message bubble based on type
-        styleMessageBubble(bubble, senderLabel, contentLabel, message);
+        styleMessageBubble(bubble, senderLabel, contentFlow, message);
 
-        // Align message based on type
-        if (message.getType() == MessageType.USER) {
+        HBox actionBar = new HBox();
+        actionBar.setSpacing(8);
+        actionBar.setAlignment(Pos.CENTER_RIGHT);
+
+        // Reply
+        Button replyBtn = new Button();
+        replyBtn.setGraphic(new FontIcon(FontAwesome.REPLY));
+        replyBtn.setOnAction(e -> handleReply(message));
+
+        // Edit
+        Button editBtn = new Button();
+        editBtn.setGraphic(new FontIcon(FontAwesome.EDIT));
+        editBtn.setOnAction(e -> handleEdit(message));
+
+        // Delete
+        Button deleteBtn = new Button();
+        deleteBtn.setGraphic(new FontIcon(FontAwesome.TRASH));
+        deleteBtn.setOnAction(e -> handleDelete(message));
+
+        actionBar.getChildren().addAll(replyBtn, editBtn, deleteBtn);
+        bubble.getChildren().add(actionBar);
+
+        if (message.getType() == Message.MessageType.USER) {
             bubbleContainer.setAlignment(Pos.CENTER_RIGHT);
             HBox.setMargin(bubble, new Insets(0, 0, 0, 50));
         } else {
@@ -170,94 +220,96 @@ public class ChatPanel {
         bubbleContainer.getChildren().add(bubble);
         messageBox.getChildren().add(bubbleContainer);
 
+        messageBox.setUserData(message);
+
         return messageBox;
     }
 
-    private Circle createAvatar(Message message) {
-        Circle avatar = new Circle(16);
+    private void handleDelete(Message message) {
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Delete Message");
+        confirm.setHeaderText("Do you want to delete this message?");
+        confirm.setContentText("\"" + message.getContent() + "\"");
 
-        switch (message.getType()) {
-            case USER:
-                avatar.setFill(Color.web("#3498db"));
-                break;
-            case BOT:
-                if (message.getContent().startsWith("(Private)")) {
-                    avatar.setFill(Color.web("#e74c3c"));
-                } else {
-                    avatar.setFill(Color.web("#27ae60"));
-                }
-                break;
-            case SYSTEM:
-                avatar.setFill(Color.web("#f39c12"));
-                break;
-        }
-
-        // Add subtle shadow
-        DropShadow shadow = new DropShadow();
-        shadow.setColor(Color.rgb(0, 0, 0, 0.1));
-        shadow.setRadius(2);
-        shadow.setOffsetX(0);
-        shadow.setOffsetY(1);
-        avatar.setEffect(shadow);
-
-        return avatar;
+        confirm.showAndWait().ifPresent(result -> {
+            if (result == ButtonType.OK) {
+                messageContainer.getChildren().removeIf(node -> {
+                    if (node instanceof VBox messageBox) {
+                        return messageBox.getUserData() == message;
+                    }
+                    return false;
+                });
+                updateMessageCount();
+            }
+        });
     }
 
-    private void styleMessageBubble(VBox bubble, Label senderLabel, Label contentLabel, Message message) {
-        switch (message.getType()) {
-            case USER:
-                bubble.setStyle("-fx-background-color: #3498db; -fx-background-radius: 18 18 4 18;");
-                senderLabel.setTextFill(Color.WHITE);
-                contentLabel.setTextFill(Color.WHITE);
-                break;
-            case BOT:
-                if (message.getContent().startsWith("(Private)")) {
-                    bubble.setStyle("-fx-background-color: #fdf2f2; -fx-background-radius: 18 18 18 4; -fx-border-color: #e74c3c; -fx-border-width: 1; -fx-border-radius: 18 18 18 4;");
-                    senderLabel.setTextFill(Color.web("#c0392b"));
-                    contentLabel.setTextFill(Color.web("#2c3e50"));
-                } else {
-                    bubble.setStyle("-fx-background-color: #f8f9fa; -fx-background-radius: 18 18 18 4; -fx-border-color: #e9ecef; -fx-border-width: 1; -fx-border-radius: 18 18 18 4;");
-                    senderLabel.setTextFill(Color.web("#27ae60"));
-                    contentLabel.setTextFill(Color.web("#2c3e50"));
-                }
-                break;
-            case SYSTEM:
-                bubble.setStyle("-fx-background-color: #fff3cd; -fx-background-radius: 12; -fx-border-color: #ffeaa7; -fx-border-width: 1; -fx-border-radius: 12;");
-                senderLabel.setTextFill(Color.web("#856404"));
-                contentLabel.setTextFill(Color.web("#856404"));
-                break;
-        }
+    private void handleEdit(Message message) {
+        TextInputDialog dialog = new TextInputDialog(message.getContent());
+        dialog.setTitle("Edit Message");
+        dialog.setHeaderText("Update your message:");
+        dialog.setContentText("Message:");
 
-        // Add subtle shadow to all bubbles
-        DropShadow shadow = new DropShadow();
-        shadow.setColor(Color.rgb(0, 0, 0, 0.08));
-        shadow.setRadius(4);
-        shadow.setOffsetX(0);
-        shadow.setOffsetY(2);
-        bubble.setEffect(shadow);
+        dialog.showAndWait().ifPresent(newContent -> {
+            if (!newContent.trim().isEmpty()) {
+                message.setContent(newContent.trim());
+                refreshMessageNode(message);
+            }
+        });
     }
+
+
+    private void handleReply(Message original) {
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Reply to " + original.getSender());
+        dialog.setHeaderText("Enter your reply:");
+        dialog.setContentText("Reply:");
+
+        dialog.showAndWait().ifPresent(reply -> {
+            if (!reply.trim().isEmpty()) {
+                Message replyMsg = new Message(
+                        "You",
+                        "↩️ Reply to " + original.getSender() + ": " + reply.trim(),
+                        Message.MessageType.USER,
+                        LocalDateTime.now()
+                );
+                addMessage(replyMsg);
+            }
+        });
+    }
+
 
     private String processMessageContent(Message message) {
         String content = message.getContent();
 
         // Handle private messages
-        if (content.startsWith("(Private)") && message.getType() == MessageType.BOT) {
+        if (content.startsWith("(Private)") && message.getType() == Message.MessageType.BOT) {
             return "🔒 " + content.substring(9).trim();
         }
 
         // Handle system messages
-        if (message.getType() == MessageType.SYSTEM) {
+        if (message.getType() == Message.MessageType.SYSTEM) {
             return "ℹ️ " + content;
         }
 
         return content;
     }
 
+
     private void scrollToBottom() {
         Platform.runLater(() -> {
-            scrollPane.setVvalue(1.0);
+            scrollPane.layout();
+
+            // Tính toán vị trí cuộn chính xác
+            double contentHeight = messageContainer.getBoundsInLocal().getHeight();
+            double viewportHeight = scrollPane.getViewportBounds().getHeight();
+
+            if (contentHeight > viewportHeight) {
+                scrollPane.setVvalue(1.0);
+            }
         });
     }
+
 
     public void clearMessages() {
         Platform.runLater(() -> {
@@ -277,25 +329,28 @@ public class ChatPanel {
     }
 
     private void updateMessageCount() {
-        int count = messageContainer.getChildren().size();
-        // Subtract 1 if empty state is showing
-        if (count == 1 && messageContainer.getChildren().get(0) instanceof VBox) {
-            VBox child = (VBox) messageContainer.getChildren().get(0);
-            if (child.getChildren().size() == 1 && child.getChildren().get(0) instanceof Label) {
-                count = 0;
+        int count = 0;
+
+        for (javafx.scene.Node node : messageContainer.getChildren()) {
+            if (node instanceof VBox) {
+                VBox vbox = (VBox) node;
+                // Kiểm tra xem có phải là message box thật không (có userData)
+                if (vbox.getUserData() instanceof Message) {
+                    count++;
+                }
+                // Hoặc kiểm tra theo structure
+                else if (vbox.getChildren().size() == 1 &&
+                        vbox.getChildren().get(0) instanceof HBox) {
+                    HBox hbox = (HBox) vbox.getChildren().get(0);
+                    if (hbox.getChildren().size() == 1 &&
+                            hbox.getChildren().get(0) instanceof VBox) {
+                        count++;
+                    }
+                }
             }
         }
 
         messageCountLabel.setText(count + " message" + (count != 1 ? "s" : ""));
-    }
-
-    // Getter methods for backward compatibility
-    public ScrollPane getScrollPane() {
-        return scrollPane;
-    }
-
-    public VBox getMessageContainer() {
-        return messageContainer;
     }
 
     // Method to add typing indicator
@@ -305,13 +360,13 @@ public class ChatPanel {
             typingBox.setSpacing(8);
             typingBox.setAlignment(Pos.CENTER_LEFT);
             typingBox.setPadding(new Insets(8, 16, 8, 16));
-            typingBox.setStyle("-fx-background-color: #f8f9fa; -fx-background-radius: 18; -fx-opacity: 0.8;");
+            typingBox.setStyle(STYLE_TYPING_BOX);
 
             Circle avatar = new Circle(12);
             avatar.setFill(Color.web("#95a5a6"));
 
             Label typingLabel = new Label(sender + " is typing...");
-            typingLabel.setStyle("-fx-text-fill: #7f8c8d; -fx-font-style: italic; -fx-font-size: 12px;");
+            typingLabel.setStyle(STYLE_TYPING_LABEL);
 
             typingBox.getChildren().addAll(avatar, typingLabel);
 
@@ -327,15 +382,11 @@ public class ChatPanel {
 
     public void hideTypingIndicator() {
         Platform.runLater(() -> {
-            // Remove the last typing indicator (if exists)
             if (!messageContainer.getChildren().isEmpty()) {
                 int lastIndex = messageContainer.getChildren().size() - 1;
-                if (messageContainer.getChildren().get(lastIndex) instanceof HBox) {
-                    HBox lastItem = (HBox) messageContainer.getChildren().get(lastIndex);
-                    if (!lastItem.getChildren().isEmpty() && lastItem.getChildren().get(0) instanceof HBox) {
-                        HBox typingBox = (HBox) lastItem.getChildren().get(0);
-                        if (typingBox.getChildren().size() > 1 && typingBox.getChildren().get(1) instanceof Label) {
-                            Label label = (Label) typingBox.getChildren().get(1);
+                if (messageContainer.getChildren().get(lastIndex) instanceof HBox lastItem) {
+                    if (!lastItem.getChildren().isEmpty() && lastItem.getChildren().get(0) instanceof HBox typingBox) {
+                        if (typingBox.getChildren().size() > 1 && typingBox.getChildren().get(1) instanceof Label label) {
                             if (label.getText().contains(" is typing...")) {
                                 messageContainer.getChildren().remove(lastIndex);
                             }
@@ -344,5 +395,32 @@ public class ChatPanel {
                 }
             }
         });
+    }
+
+    private void refreshMessageNode(Message message) {
+        for (javafx.scene.Node node : messageContainer.getChildren()) {
+            if (node instanceof VBox messageBox) {
+                if (messageBox.getUserData() == message) {
+                    if (!messageBox.getChildren().isEmpty() && messageBox.getChildren().get(0) instanceof HBox bubbleContainer) {
+                        if (!bubbleContainer.getChildren().isEmpty() && bubbleContainer.getChildren().get(0) instanceof VBox bubble) {
+                            for (javafx.scene.Node child : bubble.getChildren()) {
+                                if (child instanceof TextFlow) {
+                                    TextFlow updatedFlow = parseMessageToTextFlow(processMessageContent(message));
+                                    updatedFlow.setMaxWidth(450);
+                                    updatedFlow.setStyle(STYLE_CONTENT_LABEL);
+                                    int idx = bubble.getChildren().indexOf(child);
+                                    bubble.getChildren().set(idx, updatedFlow);
+
+                                    VBox senderTimeBox = (VBox) ((HBox) bubble.getChildren().get(0)).getChildren().get(1);
+                                    Label senderLabel = (Label) senderTimeBox.getChildren().get(0);
+                                    styleMessageBubble(bubble, senderLabel, updatedFlow, message);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }

@@ -191,47 +191,6 @@ public class UserDAO {
         return false;
     }
 
-    public boolean changePassword(String email, String oldPassword, String newPassword) {
-        String username = getUsernameByEmail(email);
-        if (username == null || !AuthService.authenticateUser(username, oldPassword)) {
-            LOGGER.warning("Invalid credentials for email: " + email);
-            return false;
-        }
-
-        String sql = "UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE email = ?";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            String hashedNewPassword = PasswordUtil.hashPassword(newPassword);
-            pstmt.setString(1, hashedNewPassword);
-            pstmt.setString(2, email);
-
-            int rowsAffected = pstmt.executeUpdate();
-
-            if (rowsAffected > 0) {
-                LOGGER.info("Changed password for user with email: " + email);
-
-                // Gửi mail xác nhận
-                String subject = "ST Chat - Mật khẩu đã thay đổi";
-                String content = "Xin chào " + username + ",\n\nMật khẩu của bạn đã được thay đổi thành công.\n"
-                        + "Nếu bạn không thực hiện hành động này, vui lòng liên hệ hỗ trợ ngay.";
-
-                boolean sent = EmailSender.send(email, subject, content);
-                if (!sent) {
-                    LOGGER.warning("Password changed but failed to send confirmation email to " + email);
-                }
-
-                return true;
-            }
-
-        } catch (SQLException e) {
-            LOGGER.severe("Error occurred when changing password for " + email + ": " + e.getMessage());
-        }
-
-        return false;
-    }
-
     public String getUsernameByEmail(String email) {
         String sql = "SELECT username FROM users WHERE email = ?";
         try (Connection conn = DatabaseConnection.getConnection();

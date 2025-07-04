@@ -1,6 +1,6 @@
 package me.chatapp.stchat;
 
-import me.chatapp.stchat.network.SocketClient;
+import me.chatapp.stchat.api.SocketClient;
 
 public class MultiClientLauncher {
     public static void main(String[] args) {

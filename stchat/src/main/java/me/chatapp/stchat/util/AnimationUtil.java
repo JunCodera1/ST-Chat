@@ -10,8 +10,6 @@ import javafx.scene.text.Text;
 import javafx.util.Duration;
 import org.jetbrains.annotations.NotNull;
 
-import static me.chatapp.stchat.util.ValidateUtil.calculatePasswordStrength;
-
 public class AnimationUtil {
     public static void addEntranceAnimation(@NotNull VBox card) {
         card.setOpacity(0);
@@ -42,9 +40,7 @@ public class AnimationUtil {
     }
 
     public static void addPasswordStrengthIndicator(@NotNull PasswordField passwordField, Text strengthText) {
-        passwordField.textProperty().addListener((obs, oldVal, newVal) -> {
-            DisplayUtil.updatePasswordStrengthDisplay(newVal, strengthText);
-        });
+        passwordField.textProperty().addListener((obs, oldVal, newVal) -> DisplayUtil.updatePasswordStrengthDisplay(newVal, strengthText));
     }
 
     public static void addButtonSignUpHoverEffects(@NotNull Button... buttons) {
@@ -76,4 +72,5 @@ public class AnimationUtil {
         messageScale.setCycleCount(2);
         messageScale.play();
     }
+
 }

@@ -17,7 +17,7 @@ public class AuthService {
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, identifier);
-            pstmt.setString(2, identifier);  // Cho phép username hoặc email
+            pstmt.setString(2, identifier);
 
             ResultSet rs = pstmt.executeQuery();
 

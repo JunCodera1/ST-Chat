@@ -3,8 +3,7 @@ package me.chatapp.stchat;
 import javafx.application.Application;
 import javafx.stage.Stage;
 import me.chatapp.stchat.controller.ChatController;
-import me.chatapp.stchat.model.ChatModel;
-import me.chatapp.stchat.network.SocketClient;
+import me.chatapp.stchat.api.SocketClient;
 import me.chatapp.stchat.view.core.SceneManager;
 import me.chatapp.stchat.view.config.ChatViewConfig;
 import me.chatapp.stchat.view.components.pages.ChatView;
@@ -43,11 +42,10 @@ public class Main extends Application {
             try {
                 SocketClient client = this.socketClient;
 
-                ChatModel model = new ChatModel();
                 ChatViewConfig config = new ChatViewConfig();
                 ChatView view = new ChatView(config, user, loginStage);
 
-                ChatController controller = new ChatController(model, view, client);
+                ChatController controller = new ChatController(user, client, loginStage);
 
                 Stage primaryStage = SceneManager.getStage();
                 primaryStage.setTitle("ST Chat - " + user.getUsername());

@@ -1,5 +1,6 @@
-package com.stchat.server.web;
+package com.stchat.server.web.server;
 
+import com.stchat.server.web.controller.MessageController;
 import io.javalin.Javalin;
 
 public class MessageServer {

@@ -1,6 +1,7 @@
 package me.chatapp.stchat.view.components.atoms.TextField;
 
 import javafx.scene.control.TextField;
+import org.kordamp.ikonli.javafx.FontIcon;
 
 public class MessageTextField extends TextField {
     public MessageTextField() {
@@ -28,4 +29,8 @@ public class MessageTextField extends TextField {
             }
         });
     }
+    public void appendFontIcon(FontIcon icon) {
+        appendText(" :" + icon.getIconLiteral() + ": ");
+    }
+
 }

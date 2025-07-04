@@ -12,10 +12,9 @@ import java.util.logging.Logger;
 public class MessageDAO {
     private static final Logger LOGGER = Logger.getLogger(MessageDAO.class.getName());
 
-    // Lấy tất cả tin nhắn theo cuộc trò chuyện
     public List<Message> getMessagesByConversationId(int conversationId) {
         List<Message> messages = new ArrayList<>();
-        String sql = "SELECT * FROM message WHERE conservation_id = ? ORDER BY created_at ASC";
+        String sql = "SELECT * FROM message WHERE conversation_id = ? ORDER BY created_at ASC";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -36,14 +35,14 @@ public class MessageDAO {
 
     // Thêm tin nhắn mới
     public boolean addMessage(Message message) {
-        String sql = "INSERT INTO message (conservation_id, sender_id, content, message_type, reply_to_message_id, " +
+        String sql = "INSERT INTO message (conversation_id, sender_id, content, message_type, reply_to_message_id, " +
                 "file_url, file_name, file_size, is_edited, is_deleted, is_pinned, created_at, updated_at) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            pstmt.setInt(1, message.getConservationId());
+            pstmt.setInt(1, message.getConversationId());
             pstmt.setInt(2, message.getSenderId());
             pstmt.setString(3, message.getContent());
             pstmt.setString(4, message.getMessageType() != null ? message.getMessageType().name() : null);
@@ -123,7 +122,7 @@ public class MessageDAO {
     private Message extractMessageFromResultSet(ResultSet rs) throws SQLException {
         Message msg = new Message();
         msg.setId(rs.getInt("id"));
-        msg.setConservationId(rs.getInt("conservation_id"));
+        msg.setConversationId(rs.getInt("conversation_id"));
         msg.setSenderId(rs.getInt("sender_id"));
         msg.setContent(rs.getString("content"));
 
@@ -148,4 +147,93 @@ public class MessageDAO {
 
         return msg;
     }
+
+    public List<Message> getMessagesByType(int conversationId, MessageType type) {
+        List<Message> messages = new ArrayList<>();
+        String sql = "SELECT * FROM message WHERE conversation_id = ? AND message_type = ? AND is_deleted = false ORDER BY created_at ASC";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, conversationId);
+            pstmt.setString(2, type.name());
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                messages.add(extractMessageFromResultSet(rs));
+            }
+
+        } catch (SQLException e) {
+            LOGGER.severe("Failed to fetch messages by type: " + e.getMessage());
+        }
+
+        return messages;
+    }
+
+    public List<Message> getPinnedMessages(int conversationId) {
+        List<Message> messages = new ArrayList<>();
+        String sql = "SELECT * FROM message WHERE conversation_id = ? AND is_pinned = true AND is_deleted = false ORDER BY created_at DESC";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, conversationId);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                messages.add(extractMessageFromResultSet(rs));
+            }
+
+        } catch (SQLException e) {
+            LOGGER.severe("Failed to fetch pinned messages: " + e.getMessage());
+        }
+
+        return messages;
+    }
+
+    public List<Message> searchMessages(int conversationId, String keyword) {
+        List<Message> messages = new ArrayList<>();
+        String sql = "SELECT * FROM message WHERE conversation_id = ? AND content LIKE ? AND is_deleted = false ORDER BY created_at DESC";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, conversationId);
+            pstmt.setString(2, "%" + keyword + "%");
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                messages.add(extractMessageFromResultSet(rs));
+            }
+
+        } catch (SQLException e) {
+            LOGGER.severe("Failed to search messages: " + e.getMessage());
+        }
+
+        return messages;
+    }
+
+    public List<Message> getMessagesByTimeRange(int conversationId, Timestamp from, Timestamp to) {
+        List<Message> messages = new ArrayList<>();
+        String sql = "SELECT * FROM message WHERE conversation_id = ? AND created_at BETWEEN ? AND ? AND is_deleted = false ORDER BY created_at ASC";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, conversationId);
+            pstmt.setTimestamp(2, from);
+            pstmt.setTimestamp(3, to);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                messages.add(extractMessageFromResultSet(rs));
+            }
+
+        } catch (SQLException e) {
+            LOGGER.severe("Failed to fetch messages by time range: " + e.getMessage());
+        }
+
+        return messages;
+    }
+
 }
