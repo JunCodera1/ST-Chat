@@ -1,20 +1,16 @@
 package me.chatapp.stchat.util;
 
-import javafx.scene.control.PasswordField;
-import javafx.scene.control.TextField;
-import javafx.scene.paint.Color;
-import javafx.scene.text.Text;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.regex.Pattern;
 
 public class ValidateUtil {
     public static final Pattern EMAIL_PATTERN = Pattern.compile(
-            "^[A-Za-z0-9+_.-]+@([A-Za-z0-9.-]+\\.[A-Za-z]{2,})$"
+            "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$"
     );
+
     public static boolean isValidEmail(String email) {
-        String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
-        return email.matches(emailRegex);
+        return EMAIL_PATTERN.matcher(email).matches();
     }
 
     public static int calculatePasswordStrength(@NotNull String password) {

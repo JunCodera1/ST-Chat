@@ -1,8 +1,9 @@
 package com.stchat.server;
 
 import com.stchat.server.handler.ClientHandler;
-import com.stchat.server.web.MessageServer;
-import com.stchat.server.web.PasswordChangeServer;
+import com.stchat.server.web.server.ConversationServer;
+import com.stchat.server.web.server.MessageServer;
+import com.stchat.server.web.server.PasswordChangeServer;
 
 import java.io.*;
 import java.net.*;
@@ -164,6 +165,7 @@ public class Main {
 
         PasswordChangeServer.start();
         MessageServer.start();
+        ConversationServer.start();
 
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {

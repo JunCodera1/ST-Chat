@@ -8,9 +8,8 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
 import me.chatapp.stchat.controller.ChatController;
-import me.chatapp.stchat.model.ChatModel;
 import me.chatapp.stchat.model.User;
-import me.chatapp.stchat.network.SocketClient;
+import me.chatapp.stchat.api.SocketClient;
 import me.chatapp.stchat.view.components.atoms.Button.SidebarIconButton;
 import me.chatapp.stchat.view.components.atoms.Label.StatusLabel;
 import javafx.scene.control.Button;
@@ -20,6 +19,9 @@ import me.chatapp.stchat.view.components.pages.ChatView;
 import me.chatapp.stchat.view.components.pages.Login;
 import me.chatapp.stchat.view.config.ChatViewConfig;
 import org.jetbrains.annotations.NotNull;
+
+import static me.chatapp.stchat.util.CSSUtil.baseButtonStyle;
+import static me.chatapp.stchat.util.CSSUtil.hoverButtonStyle;
 
 public class SidebarFooter extends VBox {
 
@@ -95,10 +97,9 @@ public class SidebarFooter extends VBox {
                         onSettingsClicked,
                         user -> {
                             try {
-                                ChatModel model = new ChatModel();
                                 ChatViewConfig config = new ChatViewConfig();
                                 ChatView view = new ChatView(config, user, stage);
-                                ChatController controller = new ChatController(model, view, client);
+                                ChatController controller = new ChatController(user, client, stage);
 
                                 Stage mainStage = new Stage();
                                 mainStage.setTitle("ST Chat - " + user.getUsername());
@@ -140,24 +141,6 @@ public class SidebarFooter extends VBox {
         button.setOnMouseEntered(e -> button.setStyle(hoverButtonStyle()));
         button.setOnMouseExited(e -> button.setStyle(baseButtonStyle()));
         return button;
-    }
-
-    private String baseButtonStyle() {
-        return "-fx-background-color: transparent;" +
-                "-fx-text-fill: white;" +
-                "-fx-font-size: 13px;" +
-                "-fx-padding: 6 10;" +
-                "-fx-cursor: hand;" +
-                "-fx-background-radius: 4;";
-    }
-
-    private String hoverButtonStyle() {
-        return "-fx-background-color: #40444b;" +
-                "-fx-text-fill: white;" +
-                "-fx-font-size: 13px;" +
-                "-fx-padding: 6 10;" +
-                "-fx-cursor: hand;" +
-                "-fx-background-radius: 4;";
     }
 
     public void updateUser(User newUser) {

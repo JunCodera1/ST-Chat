@@ -1,21 +1,24 @@
 package me.chatapp.stchat.util;
 
-import javafx.animation.ScaleTransition;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.scene.effect.DropShadow;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-import javafx.scene.text.Text;
-import javafx.util.Duration;
+import javafx.scene.text.*;
+import me.chatapp.stchat.model.Message;
+import org.kordamp.ikonli.javafx.FontIcon;
 
-import static me.chatapp.stchat.util.CSSUtil.GRADIENT_BACKGROUND;
-import static me.chatapp.stchat.util.CSSUtil.getFieldStyle;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static me.chatapp.stchat.util.CSSUtil.*;
+import static me.chatapp.stchat.util.CSSUtil.normalStyle;
 
 public class DisplayUtil {
     public static void updatePasswordStrengthDisplay(String password, Text strengthText) {
@@ -153,5 +156,140 @@ public class DisplayUtil {
                         "-fx-effect: dropshadow(gaussian, rgba(102,126,234,0.4), 15, 0, 0, 5);"
         );
         return button;
+    }
+
+    public static void addFieldFocusEffects(TextField emailField) {
+        emailField.focusedProperty().addListener((obs, oldVal, newVal) -> {
+            emailField.setStyle(newVal ? focusStyle : normalStyle);
+        });
+    }
+
+    public static void styleMessageBubble(VBox bubble, Label senderLabel, TextFlow contentFlow, Message message) {
+        switch (message.getType()) {
+            case USER:
+                bubble.setStyle("-fx-background-color: #3498db; -fx-background-radius: 18 18 4 18;");
+                senderLabel.setTextFill(Color.WHITE);
+                contentFlow.getChildren().forEach(node -> {
+                    if (node instanceof Text) {
+                        ((Text) node).setFill(Color.WHITE);
+                    }
+                });
+                break;
+
+            case BOT:
+                if (message.getContent().startsWith("(Private)")) {
+                    bubble.setStyle("-fx-background-color: #fdf2f2; -fx-background-radius: 18 18 18 4; -fx-border-color: #e74c3c; -fx-border-width: 1; -fx-border-radius: 18 18 18 4;");
+                    senderLabel.setTextFill(Color.web("#c0392b"));
+                    contentFlow.getChildren().forEach(node -> {
+                        if (node instanceof Text) {
+                            ((Text) node).setFill(Color.web("#2c3e50"));
+                        }
+                    });
+                } else {
+                    bubble.setStyle("-fx-background-color: #f8f9fa; -fx-background-radius: 18 18 18 4; -fx-border-color: #e9ecef; -fx-border-width: 1; -fx-border-radius: 18 18 18 4;");
+                    senderLabel.setTextFill(Color.web("#27ae60"));
+                    contentFlow.getChildren().forEach(node -> {
+                        if (node instanceof Text) {
+                            ((Text) node).setFill(Color.web("#2c3e50"));
+                        }
+                    });
+                }
+                break;
+
+            case SYSTEM:
+                bubble.setStyle("-fx-background-color: #fff3cd; -fx-background-radius: 12; -fx-border-color: #ffeaa7; -fx-border-width: 1; -fx-border-radius: 12;");
+                senderLabel.setTextFill(Color.web("#856404"));
+                contentFlow.getChildren().forEach(node -> {
+                    if (node instanceof Text) {
+                        ((Text) node).setFill(Color.web("#856404"));
+                    }
+                });
+                break;
+        }
+
+        DropShadow shadow = new DropShadow();
+        shadow.setColor(Color.rgb(0, 0, 0, 0.08));
+        shadow.setRadius(4);
+        shadow.setOffsetX(0);
+        shadow.setOffsetY(2);
+        bubble.setEffect(shadow);
+    }
+
+
+    public static Circle createAvatar(Message message) {
+        Circle avatar = new Circle(16);
+
+        switch (message.getType()) {
+            case USER:
+                avatar.setFill(Color.web("#3498db"));
+                break;
+            case BOT:
+                if (message.getContent().startsWith("(Private)")) {
+                    avatar.setFill(Color.web("#e74c3c"));
+                } else {
+                    avatar.setFill(Color.web("#27ae60"));
+                }
+                break;
+            case SYSTEM:
+                avatar.setFill(Color.web("#f39c12"));
+                break;
+        }
+
+        // Add subtle shadow
+        DropShadow shadow = new DropShadow();
+        shadow.setColor(Color.rgb(0, 0, 0, 0.1));
+        shadow.setRadius(2);
+        shadow.setOffsetX(0);
+        shadow.setOffsetY(1);
+        avatar.setEffect(shadow);
+
+        return avatar;
+    }
+
+    public static Region createSeparator() {
+        Region separator = new Region();
+        separator.setPrefHeight(1);
+        separator.setStyle(STYLE_SEPARATOR);
+        return separator;
+    }
+
+    public static TextFlow parseMessageToTextFlow(String rawContent) {
+        TextFlow flow = new TextFlow();
+
+        Pattern pattern = Pattern.compile(":(\\w[\\w\\-]*):");
+        Matcher matcher = pattern.matcher(rawContent);
+
+        int lastEnd = 0;
+
+        while (matcher.find()) {
+            if (matcher.start() > lastEnd) {
+                String text = rawContent.substring(lastEnd, matcher.start());
+                flow.getChildren().add(new Text(text));
+            }
+
+            String iconLiteral = matcher.group(1);
+            try {
+                FontIcon icon = new FontIcon(iconLiteral);
+                icon.setIconSize(16);
+                flow.getChildren().add(icon);
+            } catch (Exception e) {
+                flow.getChildren().add(new Text(matcher.group()));
+            }
+
+            lastEnd = matcher.end();
+        }
+
+        if (lastEnd < rawContent.length()) {
+            String remaining = rawContent.substring(lastEnd);
+            flow.getChildren().add(new Text(remaining));
+        }
+
+        flow.setLineSpacing(4);
+        flow.setTextAlignment(TextAlignment.LEFT);
+
+        flow.setMaxWidth(Double.MAX_VALUE);
+        flow.setPrefWidth(Region.USE_COMPUTED_SIZE);
+
+        return flow;
     }
 }

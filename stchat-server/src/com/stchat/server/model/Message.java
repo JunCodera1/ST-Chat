@@ -4,7 +4,7 @@ import java.sql.Timestamp;
 
 public class Message {
     private int id;
-    private int conservationId;
+    private int conversationId;
     private int senderId;
     private String content;
     private MessageType messageType;
@@ -25,12 +25,12 @@ public class Message {
     // Constructors
     public Message() {}
 
-    public Message(int id, int conservationId, int senderId, String content, MessageType messageType,
+    public Message(int id, int conversationId, int senderId, String content, MessageType messageType,
                    Integer replyToMessageId, String fileUrl, String fileName, int fileSize,
                    boolean isEdited, boolean isDeleted, boolean isPinned,
                    Timestamp createdAt, Timestamp updatedAt) {
         this.id = id;
-        this.conservationId = conservationId;
+        this.conversationId = conversationId;
         this.senderId = senderId;
         this.content = content;
         this.messageType = messageType;
@@ -50,8 +50,8 @@ public class Message {
         return id;
     }
 
-    public int getConservationId() {
-        return conservationId;
+    public int getConversationId() {
+        return conversationId;
     }
 
     public int getSenderId() {
@@ -107,8 +107,8 @@ public class Message {
         this.id = id;
     }
 
-    public void setConservationId(int conservationId) {
-        this.conservationId = conservationId;
+    public void setConversationId(int conversationId) {
+        this.conversationId = conversationId;
     }
 
     public void setSenderId(int senderId) {

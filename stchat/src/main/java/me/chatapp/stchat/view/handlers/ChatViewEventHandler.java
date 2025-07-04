@@ -1,8 +1,7 @@
 package me.chatapp.stchat.view.handlers;
 
 import me.chatapp.stchat.model.Message;
-import me.chatapp.stchat.model.MessageType;
-import me.chatapp.stchat.network.SocketClient;
+import me.chatapp.stchat.api.SocketClient;
 import me.chatapp.stchat.view.components.organisms.Panel.ChatPanel;
 import me.chatapp.stchat.view.components.organisms.Panel.ConnectionPanel;
 import me.chatapp.stchat.view.components.organisms.Panel.MessageInputPanel;
@@ -86,7 +85,7 @@ public class ChatViewEventHandler {
             Message message = new Message(
                     senderName,
                     messageText,
-                    MessageType.USER, // Hoặc MessageType.BOT tùy vào logic của bạn
+                    Message.MessageType.USER,
                     LocalDateTime.now()
             );
 

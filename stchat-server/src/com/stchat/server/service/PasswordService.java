@@ -85,7 +85,7 @@ public class PasswordService {
         }
     }
 
-    public static boolean confirmPasswordChange(String token) {
+    public static void confirmPasswordChange(String token) {
         try (Connection conn = DatabaseConnection.getConnection()) {
             PreparedStatement selectStmt = conn.prepareStatement("SELECT email, new_password_hash FROM pending_password_changes WHERE token = ?");
             selectStmt.setString(1, token);
@@ -107,14 +107,12 @@ public class PasswordService {
                     deleteStmt.executeUpdate();
 
                     LOGGER.info("Password changed successfully after confirmation: " + email);
-                    return true;
                 }
             }
         } catch (SQLException e) {
             LOGGER.severe("Error confirming password change: " + e.getMessage());
         }
 
-        return false;
     }
 
     public String resetPassword(String email) {

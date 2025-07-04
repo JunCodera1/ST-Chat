@@ -39,7 +39,6 @@ public class ChatViewLayoutManager {
         setupCenterContent();
         setupBottomContent();
 
-        // Thêm CSS class cho root
         root.getStyleClass().add("root");
     }
 
@@ -58,7 +57,6 @@ public class ChatViewLayoutManager {
                 chatPanel.getComponent()
         );
 
-        // Chat panel sẽ mở rộng để chiếm hết không gian còn lại
         VBox.setVgrow(chatPanel.getComponent(), Priority.ALWAYS);
 
         root.setCenter(centerContent);

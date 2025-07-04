@@ -1,177 +1,116 @@
 package me.chatapp.stchat.controller;
 
 import javafx.application.Platform;
-import javafx.scene.input.KeyCode;
-import me.chatapp.stchat.model.ChatModel;
-import me.chatapp.stchat.model.MessageType;
-import me.chatapp.stchat.network.SocketClient;
-import me.chatapp.stchat.view.components.pages.ChatView;
+import javafx.scene.layout.HBox;
+import javafx.stage.Stage;
+import me.chatapp.stchat.api.SocketClient;
+import me.chatapp.stchat.api.UserApiClient;
+import me.chatapp.stchat.model.User;
+import me.chatapp.stchat.view.components.organisms.Bar.NavigationSidebar;
+import me.chatapp.stchat.view.components.organisms.Panel.ChatPanel;
 
-public class ChatController implements ChatModel.ChatModelListener {
-    private final ChatModel model;
-    private final ChatView view;
+public class ChatController {
+    private final NavigationSidebar navigationSidebar;
+    private final ChatPanel chatPanel;
     private final SocketClient socketClient;
+    private final User currentUser;
+    private final UserApiClient userApiClient = new UserApiClient();
+    private final HBox mainLayout;
 
-    public ChatController(ChatModel model, ChatView view, SocketClient socketClient) {
-        this.model = model;
-        this.view = view;
+    private final ConversationController conversationController;
+    private final MessageController messageController;
+
+    private String currentSelectedContact = null;
+    private int currentConversationId = -1;
+
+    public ChatController(User currentUser, SocketClient socketClient, Stage stage) {
+        this.currentUser = currentUser;
         this.socketClient = socketClient;
 
-        view.getEventHandler().setSocketClient(socketClient);
-        // Register this controller as listener
-        model.addListener(this);
+        this.conversationController = new ConversationController();
+        this.messageController = new MessageController();
 
-        // Set up view action handlers
-        view.setOnConnectAction(this::handleConnect);
-        view.setOnDisconnectAction(this::handleDisconnect);
-        view.setOnSendMessageAction(this::handleSendMessage);
+        this.navigationSidebar = new NavigationSidebar(currentUser, socketClient, stage, this::onSettingsClicked);
+        this.chatPanel = new ChatPanel(currentUser, this::onSendMessage);
 
-        setupEventHandlers();
-    }
-
-    private void handleConnect(String host, int port, String username) {
-        try {
-            if (username.trim().isEmpty()) {
-                view.showError("Vui lòng nhập tên người dùng");
-                return;
-            }
-            model.connect(host, port, username);
-        } catch (NumberFormatException e) {
-            view.showError("Port phải là số");
-        }
-    }
-
-    private void handleDisconnect() {
-        model.disconnect();
-    }
-
-    private void handleSendMessage(String message) {
-        if (!message.trim().isEmpty()) {
-            if (message.startsWith("/msg")) {
-                model.addMessage(model.getUserName(), "(Private) " + message, MessageType.USER);
-            } else {
-                model.addMessage(model.getUserName(), message, MessageType.USER);
-            }
-            model.sendMessage(message); // Gửi đến server
-            Platform.runLater(() -> {
-                view.getMessageField().clear();
-                view.getSendButton().setDisable(false);
-            });
-        }
+        this.mainLayout = new HBox();
+        this.mainLayout.getChildren().addAll(navigationSidebar.getComponent(), chatPanel.getComponent());
     }
 
     public void initialize() {
-        view.getStatusLabel().setText("Ứng dụng đã sẵn sàng");
-        if (view.getMessageField() != null) {
-            view.getMessageField().requestFocus();
-        }
+        setupEventHandlers();
+        setupSocketListeners();
     }
 
     private void setupEventHandlers() {
-        // Send button click
-        if (view.getSendButton() != null) {
-            view.getSendButton().setOnAction(e -> sendMessage());
+        navigationSidebar.setOnDirectMessageSelected(this::onDirectMessageSelected);
+        navigationSidebar.setOnChannelSelected(this::onChannelSelected);
+        navigationSidebar.setOnNavigationItemSelected(this::onNavigationItemSelected);
+    }
+
+    private void onDirectMessageSelected(String userName) {
+        currentSelectedContact = userName;
+        currentConversationId = conversationController.getOrCreateConversationId(userName);
+        chatPanel.setCurrentContact(userName, "user");
+        messageController.loadMessagesForConversation(currentConversationId, chatPanel);
+    }
+
+    private void onChannelSelected(String channelName) {
+        currentSelectedContact = channelName;
+        currentConversationId = conversationController.getOrCreateConversationId(channelName);
+        chatPanel.setCurrentContact(channelName, "channel");
+        messageController.loadMessagesForConversation(currentConversationId, chatPanel);
+    }
+
+    private void onSendMessage(String content) {
+        if (currentConversationId == -1 || currentSelectedContact == null) {
+            System.out.println("No contact selected");
+            return;
         }
 
-        // Enter key press in input field
-        if (view.getMessageField() != null) {
-            view.getMessageField().setOnKeyPressed(e -> {
-                if (e.getCode() == KeyCode.ENTER) {
-                    sendMessage();
+        messageController.sendMessage(currentUser, content, currentConversationId, chatPanel, socketClient);
+    }
+
+    private void setupSocketListeners() {
+        socketClient.setMessageListener(message -> {
+            Platform.runLater(() -> {
+                if (message.getConversationId() == currentConversationId) {
+                    chatPanel.addMessage(message);
                 }
             });
-        }
-
-
-        // Username field change listener
-        if (view.getUserNameField() != null) {
-            view.getUserNameField().textProperty().addListener((obs, oldVal, newVal) -> {
-                // Handle username change if needed
-            });
-        }
-    }
-
-
-    private void sendMessage() {
-        if (view.getMessageField() != null && view.getSendButton() != null) {
-            String message = view.getMessageField().getText().trim();
-            if (!message.isEmpty()) {
-                view.getStatusLabel().setText("Đang gửi...");
-
-                // Disable send button temporarily
-                view.getSendButton().setDisable(true);
-
-                // Handle send message
-                handleSendMessage(message);
-
-                // Scroll to bottom
-            }
-        }
-    }
-
-    private void clearChat() {
-        model.getMessages().clear();
-        model.addSystemMessage("Đã xóa tất cả tin nhắn");
-        view.getStatusLabel().setText("Đã xóa chat");
-    }
-
-
-
-    // ChatModelListener implementation
-    @Override
-    public void onMessageAdded() {
-        Platform.runLater(() -> {
-            view.getStatusLabel().setText("New message");
         });
     }
 
-    @Override
-    public void onMessageReceived(String message) {
-        Platform.runLater(() -> {
-            if (message.startsWith("Private from ")) {
-                // Xử lý tin nhắn riêng
-                String[] parts = message.split(":", 2);
-                if (parts.length == 2) {
-                    String senderInfo = parts[0].replace("Private from ", "").trim();
-                    String content = parts[1].trim();
-                    model.addMessage(senderInfo, content, MessageType.BOT); // Có thể tạo MessageType.PRIVATE nếu muốn
-                    view.getStatusLabel().setText("Receive new private message");
-                }
-            } else {
-                // Xử lý tin nhắn broadcast hoặc hệ thống
-                String[] parts = message.split(":", 2);
-                if (parts.length == 2) {
-                    String sender = parts[0].trim();
-                    String content = parts[1].trim();
-                    model.addMessage(sender, content, MessageType.BOT);
-                } else {
-                    model.addSystemMessage(message);
-                }
-                view.getStatusLabel().setText("Nhận tin nhắn mới");
-            }
-        });
+    private void loadDirectMessages() {
+        userApiClient.getAllUsers()
+                .thenAccept(users -> {
+                    Platform.runLater(() -> {
+                        navigationSidebar.clearDirectMessages(); // bạn cần viết hàm này
+                        for (User u : users) {
+                            navigationSidebar.addDirectMessage(u.getUsername(), "👤", true, null);
+                        }
+                    });
+                })
+                .exceptionally(throwable -> {
+                    System.err.println("Error loading users: " + throwable.getMessage());
+                    return null;
+                });
     }
 
-    @Override
-    public void onConnectionStatusChanged(boolean connected) {
-        Platform.runLater(() -> {
-            view.updateConnectionStatus(connected);
-            if (connected) {
-                view.getStatusLabel().setText("Đã kết nối thành công");
-                model.addSystemMessage("Đã kết nối tới server");
-            } else {
-                view.getStatusLabel().setText("Đã ngắt kết nối");
-                model.addSystemMessage("Đã ngắt kết nối khỏi server");
-            }
-        });
+    private void onNavigationItemSelected(String item) {
+        System.out.println("Selected navigation item: " + item);
     }
 
-    @Override
-    public void onError(String error) {
-        Platform.runLater(() -> {
-            view.showError(error);
-            view.getStatusLabel().setText("Lỗi: " + error);
-            model.addSystemMessage("Lỗi: " + error);
-        });
+    private void onSettingsClicked() {
+        System.out.println("Settings clicked");
     }
+
+    public HBox getMainLayout() {
+        return mainLayout;
+    }
+
+    public void cleanup() {
+        messageController.close();
+    }
+
 }

@@ -6,7 +6,7 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import me.chatapp.stchat.model.User;
-import me.chatapp.stchat.network.SocketClient;
+import me.chatapp.stchat.api.SocketClient;
 import me.chatapp.stchat.view.components.molecules.Item.NavigationItem;
 import me.chatapp.stchat.view.components.molecules.Item.ChannelItem;
 import me.chatapp.stchat.view.components.molecules.Item.DirectMessageItem;
@@ -310,6 +310,13 @@ public class NavigationSidebar {
             }
         });
         channelsContainer.getChildren().add(item.getComponent());
+    }
+
+    public void clearDirectMessages() {
+        directMessagesContainer.getChildren().clear();
+    }
+    public void clearChannels() {
+        channelsContainer.getChildren().clear();
     }
 
     // Event handlers setters

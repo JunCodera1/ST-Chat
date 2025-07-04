@@ -1,10 +1,11 @@
-package com.stchat.server.web;
+package com.stchat.server.web.controller;
 
 import com.stchat.server.model.Message;
 import com.stchat.server.service.MessageService;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 
+import java.sql.Timestamp;
 import java.util.Objects;
 
 public class MessageController {
@@ -16,6 +17,10 @@ public class MessageController {
         app.put("/api/messages/{id}", MessageController::updateMessage);
         app.delete("/api/messages/{id}", MessageController::deleteMessage);
         app.patch("/api/messages/{id}/pin", MessageController::togglePinMessage);
+        app.get("/api/messages/search", MessageController::searchMessages);
+        app.get("/api/messages/media", MessageController::getMediaMessages);
+        app.get("/api/messages/pinned", MessageController::getPinnedMessages);
+        app.get("/api/messages/time-range", MessageController::getMessagesByTimeRange);
     }
 
     private static void getMessagesByConversation(Context ctx) {
@@ -59,5 +64,38 @@ public class MessageController {
         } else {
             ctx.status(500).result("Failed to update pin state");
         }
+    }
+
+    private static void searchMessages(Context ctx) {
+        int conversationId = Integer.parseInt(Objects.requireNonNull(ctx.queryParam("conversationId")));
+        String keyword = ctx.queryParam("q");
+        ctx.json(messageService.searchMessages(conversationId, keyword));
+    }
+
+    private static void getMediaMessages(Context ctx) {
+        int conversationId = Integer.parseInt(Objects.requireNonNull(ctx.queryParam("conversationId")));
+        String typeParam = ctx.queryParam("type");
+
+        try {
+            assert typeParam != null;
+            Message.MessageType type = Message.MessageType.valueOf(typeParam.toUpperCase());
+            ctx.json(messageService.getMedia(conversationId, type));
+        } catch (IllegalArgumentException e) {
+            ctx.status(400).result("Invalid media type");
+        }
+    }
+
+    // 📌 Lấy các tin nhắn được ghim
+    private static void getPinnedMessages(Context ctx) {
+        int conversationId = Integer.parseInt(Objects.requireNonNull(ctx.queryParam("conversationId")));
+        ctx.json(messageService.getPinnedMessages(conversationId));
+    }
+
+    // 📅 Lọc tin nhắn theo khoảng thời gian
+    private static void getMessagesByTimeRange(Context ctx) {
+        int conversationId = Integer.parseInt(Objects.requireNonNull(ctx.queryParam("conversationId")));
+        Timestamp from = Timestamp.valueOf(Objects.requireNonNull(ctx.queryParam("from"))); // Format: yyyy-[m]m-[d]d hh:mm:ss
+        Timestamp to = Timestamp.valueOf(Objects.requireNonNull(ctx.queryParam("to")));
+        ctx.json(messageService.getMessagesByTimeRange(conversationId, from, to));
     }
 }

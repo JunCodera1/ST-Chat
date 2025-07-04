@@ -2,42 +2,57 @@ package me.chatapp.stchat.view.components.molecules.Picker;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.VBox;
+import javafx.scene.control.Tooltip;
+import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.control.Button;
 import javafx.stage.Popup;
 import me.chatapp.stchat.view.components.atoms.Button.EmojiButton;
+import org.kordamp.ikonli.javafx.FontIcon;
+
+import java.util.Random;
+import java.util.function.Consumer;
 
 public class EmojiPicker {
     private final Popup emojiPopup;
-    private final EmojiButton emojiButton;
+    private final Button emojiButton;
 
-    // Emoji categories
-    private final String[] smileys = {"😀", "😃", "😄", "😁", "😅", "😂", "🤣", "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰", "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜", "🤪", "🤨", "🧐", "🤓", "😎", "🤩", "🥳"};
-    private final String[] gestures = {"👍", "👎", "👌", "🤌", "🤏", "✌️", "🤞", "🤟", "🤘", "🤙", "👈", "👉", "👆", "🖕", "👇", "☝️", "👋", "🤚", "🖐️", "✋", "🖖", "👏", "🙌", "🤲", "🤝", "🙏"};
-    private final String[] hearts = {"❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💔", "❣️", "💕", "💞", "💓", "💗", "💖", "💘", "💝"};
+    // Dữ liệu: tên icon + label
+    private final String[][] smileys = {
+            {"fas-smile", "Smile"}, {"fas-laugh", "Laugh"}, {"fas-grin-hearts", "Love"}, {"fas-kiss-wink-heart", "Flirt"}, {"fas-surprise", "Surprise"}
+    };
 
-    public EmojiPicker(Runnable onEmojiSelected) {
+    private final String[][] gestures = {
+            {"fas-thumbs-up", "Thumbs Up"}, {"fas-thumbs-down", "Thumbs Down"}, {"fas-hand-peace", "Peace"}, {"fas-hand-point-up", "Point Up"}, {"fas-hand-spock", "Spock"}
+    };
+
+    private final String[][] hearts = {
+            {"fas-heart", "Heart"}, {"fas-heart-broken", "Broken Heart"}
+    };
+
+    public EmojiPicker(Consumer<String> onEmojiSelected) {
         emojiButton = new EmojiButton();
         emojiPopup = new Popup();
 
         emojiButton.setOnAction(e -> toggleEmojiPopup());
+
         setupEmojiPopup(onEmojiSelected);
     }
 
-    private void setupEmojiPopup(Runnable onEmojiSelected) {
+    private void setupEmojiPopup(Consumer<String> onEmojiSelected) {
         VBox popupContent = new VBox(10);
         popupContent.setPadding(new Insets(15));
-        popupContent.setStyle("-fx-background-color: white; " +
-                "-fx-border-color: #e9ecef; " +
-                "-fx-border-radius: 12px; " +
-                "-fx-background-radius: 12px; " +
-                "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 5);");
+        popupContent.setStyle("""
+            -fx-background-color: white;
+            -fx-border-color: #e9ecef;
+            -fx-border-radius: 12px;
+            -fx-background-radius: 12px;
+            -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 5);
+        """);
 
-        // Title
-        Label title = new Label("What's Your Mood?");
+        Label title = new Label("Choose an icon");
         title.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #495057;");
 
         ScrollPane scrollPane = new ScrollPane();
@@ -47,10 +62,9 @@ public class EmojiPicker {
 
         VBox emojiContent = new VBox(15);
 
-        // Add categories
-        addEmojiCategory(emojiContent, "Smileys & People", smileys, onEmojiSelected);
-        addEmojiCategory(emojiContent, "Gestures", gestures, onEmojiSelected);
-        addEmojiCategory(emojiContent, "Hearts", hearts, onEmojiSelected);
+        addIconCategory(emojiContent, "Smileys", smileys, onEmojiSelected);
+        addIconCategory(emojiContent, "Gestures", gestures, onEmojiSelected);
+        addIconCategory(emojiContent, "Hearts", hearts, onEmojiSelected);
 
         scrollPane.setContent(emojiContent);
         popupContent.getChildren().addAll(title, scrollPane);
@@ -60,34 +74,41 @@ public class EmojiPicker {
         emojiPopup.setAutoHide(true);
     }
 
-    private void addEmojiCategory(VBox parent, String categoryName, String[] emojis, Runnable onEmojiSelected) {
+    private void addIconCategory(VBox parent, String categoryName, String[][] icons, Consumer<String> onEmojiSelected) {
         Label categoryLabel = new Label(categoryName);
         categoryLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #6c757d; -fx-font-weight: bold;");
 
-        FlowPane emojiGrid = new FlowPane();
-        emojiGrid.setHgap(5);
-        emojiGrid.setVgap(5);
-        emojiGrid.setAlignment(Pos.CENTER_LEFT);
+        FlowPane iconGrid = new FlowPane();
+        iconGrid.setHgap(8);
+        iconGrid.setVgap(8);
+        iconGrid.setAlignment(Pos.CENTER_LEFT);
 
-        for (String emoji : emojis) {
-            Button emojiBtn = new Button(emoji);
-            emojiBtn.setStyle("-fx-font-size: 18px; -fx-background-color: transparent; " +
-                    "-fx-border-radius: 8px; -fx-background-radius: 8px; " +
-                    "-fx-min-width: 32px; -fx-min-height: 32px;");
+        for (String[] iconInfo : icons) {
+            String iconCode = iconInfo[0];
+            String tooltip = iconInfo[1];
 
-            emojiBtn.setOnMouseEntered(e -> emojiBtn.setStyle(emojiBtn.getStyle() + "-fx-background-color: #f8f9fa;"));
-            emojiBtn.setOnMouseExited(e -> emojiBtn.setStyle(emojiBtn.getStyle().replace("-fx-background-color: #f8f9fa;", "")));
+            FontIcon icon = new FontIcon(iconCode);
+            icon.setIconSize(20);
+            icon.setIconColor(getRandomColor());
 
-            emojiBtn.setOnAction(e -> {
-                // Notify parent component
-                onEmojiSelected.run();
+            Button iconBtn = new Button();
+            iconBtn.setGraphic(icon);
+            iconBtn.setTooltip(new Tooltip(tooltip));
+            iconBtn.setStyle("-fx-background-color: transparent;");
+            iconBtn.setPrefSize(32, 32);
+
+            iconBtn.setOnMouseEntered(e -> iconBtn.setStyle("-fx-background-color: #f8f9fa; -fx-background-radius: 8px;"));
+            iconBtn.setOnMouseExited(e -> iconBtn.setStyle("-fx-background-color: transparent;"));
+
+            iconBtn.setOnAction(e -> {
+                onEmojiSelected.accept(iconCode); // truyền iconCode (ví dụ "fas-smile") về cha
                 emojiPopup.hide();
             });
 
-            emojiGrid.getChildren().add(emojiBtn);
+            iconGrid.getChildren().add(iconBtn);
         }
 
-        parent.getChildren().addAll(categoryLabel, emojiGrid);
+        parent.getChildren().addAll(categoryLabel, iconGrid);
     }
 
     private void toggleEmojiPopup() {
@@ -95,11 +116,19 @@ public class EmojiPicker {
             emojiPopup.hide();
         } else {
             javafx.geometry.Bounds bounds = emojiButton.localToScreen(emojiButton.getBoundsInLocal());
-            emojiPopup.show(emojiButton, bounds.getMinX(), bounds.getMaxY() - 220);
+            emojiPopup.show(emojiButton, bounds.getMinX(), bounds.getMaxY());
         }
     }
 
-    public EmojiButton getEmojiButton() {
+    private Color getRandomColor() {
+        Color[] palette = {
+                Color.web("#f39c12"), Color.web("#e74c3c"), Color.web("#8e44ad"),
+                Color.web("#2ecc71"), Color.web("#3498db"), Color.web("#ff6b6b")
+        };
+        return palette[new Random().nextInt(palette.length)];
+    }
+
+    public Button getEmojiButton() {
         return emojiButton;
     }
 }
