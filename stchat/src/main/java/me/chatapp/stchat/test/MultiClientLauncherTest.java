@@ -27,6 +27,18 @@ public class MultiClientLauncher {
                 e.printStackTrace();
             }
         }).start();
+
+        new Thread(() -> {
+            try {
+                SocketClient client = new SocketClient("localhost", 8080);
+                client.simulateRegister("user4", "user4@example.com", "654321");
+                Thread.sleep(100);
+                client = new SocketClient("localhost", 8080);
+                client.simulateLogin("user4", "654321");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
     }
 }
 

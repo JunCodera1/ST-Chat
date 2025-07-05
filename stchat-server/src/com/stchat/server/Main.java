@@ -77,9 +77,9 @@ public class Main {
             }
 
             threadPool.shutdown();
-            System.out.println("Server đã dừng");
+            System.out.println("Server stopped");
         } catch (IOException e) {
-            System.err.println("Lỗi khi dừng server: " + e.getMessage());
+            System.err.println("Error occurred when stopping server: " + e.getMessage());
         }
     }
 
@@ -133,7 +133,7 @@ public class Main {
 
     private void sendUserList(ClientHandler clientHandler) {
         synchronized (clientsLock) {
-            StringBuilder userList = new StringBuilder("Người dùng online: ");
+            StringBuilder userList = new StringBuilder("Online: ");
             for (String username : clients.keySet()) {
                 userList.append(username).append(", ");
             }
@@ -167,12 +167,6 @@ public class Main {
         MessageServer.start();
         ConversationServer.start();
 
-
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            System.out.println("\nStopping...");
-            server.stop();
-        }));
-
         // Start socket server
         int port = DEFAULT_PORT;
         if (args.length > 0) {
@@ -183,11 +177,9 @@ public class Main {
             }
         }
 
-        server.start(port);
-
         // Add shutdown hook
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            System.out.println("\nĐang dừng server...");
+            System.out.println("\nStopping...");
             server.stop();
         }));
 
@@ -196,7 +188,7 @@ public class Main {
             try {
                 port = Integer.parseInt(args[0]);
             } catch (NumberFormatException e) {
-                System.err.println("Port không hợp lệ, sử dụng port mặc định: " + DEFAULT_PORT);
+                System.err.println("Port uncaught, using default port: " + DEFAULT_PORT);
             }
         }
 

@@ -25,9 +25,11 @@ public class User {
         this.email = email;
     }
 
-    public User(int id, String username, String email, Timestamp createdAt) {
+    public User(int id, String username, String firstName, String lastName, String email, Timestamp createdAt) {
         this.id = id;
         this.username = username;
+        this.firstName = firstName;
+        this.lastName = lastName;
         this.email = email;
         this.createdAt = createdAt;
     }

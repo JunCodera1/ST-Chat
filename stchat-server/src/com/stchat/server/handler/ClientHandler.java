@@ -32,7 +32,6 @@ public class ClientHandler implements Runnable {
             reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             writer = new PrintWriter(clientSocket.getOutputStream(), true);
 
-            // Đọc username từ client
             String request = reader.readLine();
             System.out.println("Received from client: " + request);
 
@@ -42,61 +41,22 @@ public class ClientHandler implements Runnable {
                 return;
             }
 
-            try {
-                JSONObject json = new JSONObject(request);
-                JSONObject response = AuthProcessor.handle(json);
-                writer.println(response.toString());
+            JSONObject json = new JSONObject(request);
+            JSONObject response = AuthProcessor.handle(json);
+            writer.println(response.toString());
 
-                if ("LOGIN".equalsIgnoreCase(json.optString("type")) &&
-                        "success".equalsIgnoreCase(response.optString("status"))) {
-
-                    this.username = json.optString("username");
-                    server.addClient(username, this);
-                    sendMessage("System: Welcome " + username + " to ST Chat!");
-                    listenForMessages();
-                } else {
-                    disconnect();  // Với các request còn lại hoặc thất bại thì đóng socket
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-                JSONObject response = new JSONObject()
-                        .put("status", "error")
-                        .put("message", "Invalid request format.");
-                writer.println(response.toString());
+            if (!"LOGIN".equalsIgnoreCase(json.optString("type")) ||
+                    !"success".equalsIgnoreCase(response.optString("status"))) {
                 disconnect();
+                return;
             }
 
-            if (username == null || username.trim().isEmpty()) {
-                username = "Anonymous_" + System.currentTimeMillis();
-            }
-            username = username.trim();
-
-            // Kiểm tra username đã tồn tại chưa
-            if (server.getClientUsernames().contains(username)) {
-                username = username + "_" + System.currentTimeMillis();
-            }
-
-            // Thêm client vào server
+            this.username = json.optString("username");
             server.addClient(username, this);
+            sendMessage("System: Welcome " + username + " to ST Chat!");
 
-            // Gửi thông báo chào mừng
-            sendMessage("System: Chào mừng " + username + " đến với ST Chat!");
-
-            // Đọc tin nhắn từ client
-            String message;
-            while (connected && (message = reader.readLine()) != null) {
-                if (message.trim().isEmpty()) {
-                    continue;
-                }
-
-                // Xử lý các lệnh đặc biệt
-                if (message.startsWith("/")) {
-                    handleCommand(message);
-                } else {
-                    // Broadcast tin nhắn thường
-                    server.broadcastMessage(username, message, this);
-                }
-            }
+            // ✅ Chỉ dùng 1 lần đọc duy nhất
+            listenForMessages();
 
         } catch (IOException e) {
             if (connected) {
@@ -106,6 +66,7 @@ public class ClientHandler implements Runnable {
             disconnect();
         }
     }
+
 
     private void listenForMessages() throws IOException {
         String message;
