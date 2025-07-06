@@ -4,6 +4,7 @@ import com.stchat.server.handler.ClientHandler;
 import com.stchat.server.web.server.ConversationServer;
 import com.stchat.server.web.server.MessageServer;
 import com.stchat.server.web.server.PasswordChangeServer;
+import com.stchat.server.web.server.UserServer;
 
 import java.io.*;
 import java.net.*;
@@ -77,9 +78,9 @@ public class Main {
             }
 
             threadPool.shutdown();
-            System.out.println("Server đã dừng");
+            System.out.println("Server stopped");
         } catch (IOException e) {
-            System.err.println("Lỗi khi dừng server: " + e.getMessage());
+            System.err.println("Error occurred when stopping server: " + e.getMessage());
         }
     }
 
@@ -133,7 +134,7 @@ public class Main {
 
     private void sendUserList(ClientHandler clientHandler) {
         synchronized (clientsLock) {
-            StringBuilder userList = new StringBuilder("Người dùng online: ");
+            StringBuilder userList = new StringBuilder("Online: ");
             for (String username : clients.keySet()) {
                 userList.append(username).append(", ");
             }
@@ -166,12 +167,7 @@ public class Main {
         PasswordChangeServer.start();
         MessageServer.start();
         ConversationServer.start();
-
-
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            System.out.println("\nStopping...");
-            server.stop();
-        }));
+        UserServer.start();
 
         // Start socket server
         int port = DEFAULT_PORT;
@@ -183,11 +179,9 @@ public class Main {
             }
         }
 
-        server.start(port);
-
         // Add shutdown hook
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            System.out.println("\nĐang dừng server...");
+            System.out.println("\nStopping...");
             server.stop();
         }));
 
@@ -196,7 +190,7 @@ public class Main {
             try {
                 port = Integer.parseInt(args[0]);
             } catch (NumberFormatException e) {
-                System.err.println("Port không hợp lệ, sử dụng port mặc định: " + DEFAULT_PORT);
+                System.err.println("Port uncaught, using default port: " + DEFAULT_PORT);
             }
         }
 

@@ -1,9 +1,12 @@
 package me.chatapp.stchat.view.components.pages;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import javafx.animation.ScaleTransition;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import me.chatapp.stchat.AppContext;
 import me.chatapp.stchat.model.User;
 import me.chatapp.stchat.api.SocketClient;
 import me.chatapp.stchat.view.components.atoms.Text.StatusText;
@@ -98,6 +101,8 @@ public class Login {
 
                 // Nhận JSON response
                 String response = socketClient.receive();
+                System.out.println(">>> [Client] Received from server: " + response);
+
                 JSONObject json = new JSONObject(response);
 
                 javafx.application.Platform.runLater(() -> {
@@ -105,22 +110,44 @@ public class Login {
                     loginForm.getLoginButton().setText("Sign In");
 
                     if ("success".equalsIgnoreCase(json.optString("status"))) {
-                        User user = new User(json.getString("username"));
-                        this.currentUser = user;
+                        try {
+                            // Lấy object "user" từ phản hồi JSON
+                            JSONObject userJson = json.getJSONObject("user");
 
-                        loginForm.getStatusMessage().setStatus(
-                                "Login successful! Welcome " + user.getUsername(),
-                                StatusText.Status.SUCCESS
-                        );
+                            // Dùng Jackson để map JSON thành Java object
+                            ObjectMapper mapper = new ObjectMapper();
+                            mapper.registerModule(new JavaTimeModule()); // hỗ trợ Timestamp
 
-                        ScaleTransition successScale = new ScaleTransition(Duration.millis(200), stage.getScene().getRoot());
-                        successScale.setToX(0.95);
-                        successScale.setToY(0.95);
-                        successScale.setOnFinished(e -> {
-                            stage.close();
-                            onLoginSuccess.accept(user);
-                        });
-                        successScale.play();
+                            // Parse từ chuỗi JSON sang đối tượng User
+                            User user = mapper.readValue(userJson.toString(), User.class);
+
+                            this.currentUser = user;
+                            AppContext.getInstance().setSocketClient(socketClient);
+
+                            loginForm.getStatusMessage().setStatus(
+                                    "Login successful! Welcome " + user.getUsername(),
+                                    StatusText.Status.SUCCESS
+                            );
+
+                            socketClient.startListening(msg -> {
+                                System.out.println("Server said: " + msg);
+                            });
+
+                            ScaleTransition successScale = new ScaleTransition(Duration.millis(200), stage.getScene().getRoot());
+                            successScale.setToX(0.95);
+                            successScale.setToY(0.95);
+                            successScale.setOnFinished(e -> {
+                                stage.close();
+                                onLoginSuccess.accept(user);
+                            });
+                            successScale.play();
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
+                            loginForm.getStatusMessage().setStatus(
+                                    "Login successful, but failed to parse user data.",
+                                    StatusText.Status.ERROR
+                            );
+                        }
                     } else {
                         loginForm.getStatusMessage().setStatus(
                                 json.optString("message", "Login failed."),

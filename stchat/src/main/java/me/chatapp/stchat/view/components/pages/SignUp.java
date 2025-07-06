@@ -86,6 +86,15 @@ public class SignUp {
         VBox usernameContainer = createFieldContainer("Username", "Choose a unique username");
         TextField userTextField = (TextField) usernameContainer.getChildren().get(1);
 
+        // First name
+        VBox firstNameContainer = createFieldContainer("First Name", "Enter your first name");
+        TextField firstNameField = (TextField) firstNameContainer.getChildren().get(1);
+
+        // Last name
+        VBox lastNameContainer = createFieldContainer("Last Name", "Enter your last name");
+        TextField lastNameField = (TextField) lastNameContainer.getChildren().get(1);
+
+
         // Email field
         VBox emailContainer = createFieldContainer("Email", "Enter your email address");
         TextField emailTextField = (TextField) emailContainer.getChildren().get(1);
@@ -99,6 +108,8 @@ public class SignUp {
         PasswordField confirmPasswordField = (PasswordField) confirmPasswordContainer.getChildren().get(1);
 
         formContainer.getChildren().addAll(
+                firstNameContainer,
+                lastNameContainer,
                 usernameContainer,
                 emailContainer,
                 passwordContainer,
@@ -121,6 +132,8 @@ public class SignUp {
                         "-fx-cursor: hand;" +
                         "-fx-effect: dropshadow(gaussian, rgba(102,126,234,0.4), 15, 0, 0, 5);"
         );
+
+
 
         // Sign in link
         VBox signInContainer = new VBox(5);
@@ -165,9 +178,16 @@ public class SignUp {
         addButtonSignUpHoverEffects(registerButton, signInButton);
         addPasswordStrengthIndicator(passwordField, passwordStrength);
 
-        // Event handlers
         registerButton.setOnAction(event ->
-                handleRegistration(userTextField, emailTextField, passwordField, confirmPasswordField, statusMessage)
+                handleRegistration(
+                        userTextField,
+                        emailTextField,
+                        passwordField,
+                        confirmPasswordField,
+                        firstNameField,
+                        lastNameField,
+                        statusMessage
+                )
         );
 
         signInButton.setOnAction(event -> {
@@ -189,9 +209,11 @@ public class SignUp {
     }
 
     private void handleRegistration(TextField userField, TextField emailField,
-                                    PasswordField passField, PasswordField confirmField,
+                                    PasswordField passField, PasswordField confirmField, TextField firstnameField, TextField lastnameField,
                                     Text statusMessage) {
         String username = userField.getText().trim();
+        String firstname = firstnameField.getText().trim();
+        String lastname = lastnameField.getText().trim();
         String email = emailField.getText().trim();
         String password = passField.getText();
         String confirmPassword = confirmField.getText();
@@ -210,6 +232,8 @@ public class SignUp {
                         .put("username", username)
                         .put("email", email)
                         .put("password", password)
+                        .put("lastname", lastname)
+                        .put("firstname", firstname)
                         .toString();
 
                 client.send(request);

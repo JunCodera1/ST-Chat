@@ -28,29 +28,64 @@ public class AuthProcessor {
             return JsonResponseUtil.error("Username and password are required.");
         }
 
-        UserDAO userDAO = new UserDAO();
-        boolean authenticated = AuthService.authenticateUser(username, password);
+        if (AuthService.authenticateUser(username, password)) {
+            UserDAO userDAO = new UserDAO();
+            com.stchat.server.model.User user = userDAO.getUserByUsername(username);
 
-        if (authenticated) {
+            if (user == null) {
+                return JsonResponseUtil.error("User not found.");
+            }
+
+            // Convert Java object to JSONObject
+            JSONObject userJson = new JSONObject();
+            userJson.put("id", user.getId());
+            userJson.put("username", user.getUsername());
+            userJson.put("email", user.getEmail());
+            userJson.put("firstName", user.getFirstName());
+            userJson.put("lastName", user.getLastName());
+            userJson.put("avatarUrl", user.getAvatarUrl());
+            userJson.put("phone", user.getPhone());
+            userJson.put("bio", user.getBio());
+            userJson.put("status", user.getStatus());
+            userJson.put("lastSeen", user.getLastSeen() != null ? user.getLastSeen().toString() : null);
+            userJson.put("isActive", user.isActive());
+            userJson.put("createdAt", user.getCreatedAt() != null ? user.getCreatedAt().toString() : null);
+            userJson.put("updatedAt", user.getUpdatedAt() != null ? user.getUpdatedAt().toString() : null);
+
+            userJson.put("lastSeen", user.getLastSeen() != null
+                    ? user.getLastSeen().toLocalDateTime().toString()
+                    : null);
+            userJson.put("createdAt", user.getCreatedAt() != null
+                    ? user.getCreatedAt().toLocalDateTime().toString()
+                    : null);
+            userJson.put("updatedAt", user.getUpdatedAt() != null
+                    ? user.getUpdatedAt().toLocalDateTime().toString()
+                    : null);
+
             return new JSONObject()
                     .put("status", "success")
-                    .put("username", username);
+                    .put("message", "Login successful.")
+                    .put("user", userJson);
         } else {
             return JsonResponseUtil.error("Invalid username or password.");
         }
     }
 
+
     private static JSONObject handleRegister(JSONObject request) {
         String username = request.optString("username");
         String email = request.optString("email");
         String password = request.optString("password");
+        String firstName = request.optString("firstname");
+        String lastName = request.optString("lastname");
+
 
         if (username.isEmpty() || email.isEmpty() || password.isEmpty()) {
             return JsonResponseUtil.error("Please fill all fields.");
         }
 
         UserDAO userDAO = new UserDAO();
-        boolean registered = userDAO.registerUser(username, email, password);
+        boolean registered = userDAO.registerUser(username, email, password, firstName, lastName);
 
         if (registered) {
             return JsonResponseUtil.success("Account created successfully.");

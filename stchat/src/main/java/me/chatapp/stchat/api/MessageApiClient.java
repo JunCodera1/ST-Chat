@@ -28,6 +28,7 @@ public class MessageApiClient {
 
         this.objectMapper = new ObjectMapper();
         this.objectMapper.registerModule(new JavaTimeModule());
+        this.objectMapper.findAndRegisterModules();
     }
 
     // 1. Lấy danh sách messages theo conversation ID
@@ -58,21 +59,31 @@ public class MessageApiClient {
     public CompletableFuture<Boolean> sendMessage(Message message) {
         String url = BASE_URL + "/messages";
 
-        try {
-            String json = objectMapper.writeValueAsString(message);
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                // debug: in JSON
+                ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
+                String json = mapper.writeValueAsString(message);
+                System.out.println("[DEBUG] Sending JSON: " + json);
 
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(json))
-                    .build();
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(url))
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(json))
+                        .build();
 
-            return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-                    .thenApply(response -> response.statusCode() == 201);
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
-        } catch (IOException e) {
-            return CompletableFuture.completedFuture(false);
-        }
+                System.out.println("[DEBUG] Response code: " + response.statusCode());
+                System.out.println("[DEBUG] Response body: " + response.body());
+
+                return response.statusCode() == 200 || response.statusCode() == 201;
+            } catch (Exception e) {
+                System.err.println("[ERROR] Failed to send message: " + e.getMessage());
+                e.printStackTrace();
+                return false;
+            }
+        });
     }
 
     // 3. Cập nhật message

@@ -15,17 +15,17 @@ import java.util.logging.Logger;
 public class UserDAO {
     public static final Logger LOGGER = Logger.getLogger(UserDAO.class.getName());
 
-    public boolean registerUser(String username, String email, String password) {
-        String sql = "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)";
+    public boolean registerUser(String username, String email, String password, String firstName, String lastName) {
+        String sql = "INSERT INTO users (username, email, password_hash, first_name, last_name, created_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)";
 
         // Kiểm tra trước khi tạo kết nối
         if (isUsernameExists(username)) {
-            LOGGER.warning("Username already exist: " + username);
+            LOGGER.warning("Username already exists: " + username);
             return false;
         }
 
         if (isEmailExists(email)) {
-            LOGGER.warning("Email already exist: " + email);
+            LOGGER.warning("Email already exists: " + email);
             return false;
         }
 
@@ -33,26 +33,30 @@ public class UserDAO {
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             String hashedPassword = PasswordUtil.hashPassword(password);
+
             pstmt.setString(1, username);
             pstmt.setString(2, email);
             pstmt.setString(3, hashedPassword);
+            pstmt.setString(4, firstName);
+            pstmt.setString(5, lastName);
 
             int rowsAffected = pstmt.executeUpdate();
 
             if (rowsAffected > 0) {
-                LOGGER.info("Login success: " + username);
+                LOGGER.info("Register success: " + username);
                 return true;
             }
 
         } catch (SQLException e) {
-            LOGGER.severe("Error occured when login: " + e.getMessage());
+            LOGGER.severe("Error occurred during register: " + e.getMessage());
         }
 
         return false;
     }
 
+
     public User getUserByUsername(String username) {
-        String sql = "SELECT id, username, email, created_at FROM users WHERE username = ?";
+        String sql = "SELECT id, username, email, created_at, first_name, last_name FROM users WHERE username = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -64,6 +68,8 @@ public class UserDAO {
                 return new User(
                         rs.getInt("id"),
                         rs.getString("username"),
+                        rs.getString("first_name"),
+                        rs.getString("last_name"),
                         rs.getString("email"),
                         rs.getTimestamp("created_at")
                 );
@@ -78,7 +84,7 @@ public class UserDAO {
 
 
     public User getUserByEmail(String email) {
-        String sql = "SELECT id, username, email, created_at FROM users WHERE email = ?";
+        String sql = "SELECT id, username, first_name, last_name, email, created_at FROM users WHERE email = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -90,9 +96,12 @@ public class UserDAO {
                 return new User(
                         rs.getInt("id"),
                         rs.getString("username"),
+                        rs.getString("first_name"),
+                        rs.getString("last_name"),
                         rs.getString("email"),
                         rs.getTimestamp("created_at")
                 );
+
             }
 
         } catch (SQLException e) {
@@ -144,7 +153,7 @@ public class UserDAO {
 
     public List<User> getAllUsers() {
         List<User> users = new ArrayList<>();
-        String sql = "SELECT id, username, email, created_at FROM users ORDER BY created_at DESC";
+        String sql = "SELECT id, username, first_name, last_name, email, created_at FROM users ORDER BY created_at DESC";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -154,9 +163,12 @@ public class UserDAO {
                 User user = new User(
                         rs.getInt("id"),
                         rs.getString("username"),
+                        rs.getString("first_name"),
+                        rs.getString("last_name"),
                         rs.getString("email"),
                         rs.getTimestamp("created_at")
                 );
+
                 users.add(user);
             }
 

@@ -1,12 +1,19 @@
 package me.chatapp.stchat.view.components.organisms.Header;
 
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
+import me.chatapp.stchat.api.UserApiClient;
 import me.chatapp.stchat.view.components.atoms.Circle.AvatarCircleHeader;
 import me.chatapp.stchat.view.components.atoms.Button.IconButton;
 import me.chatapp.stchat.view.components.molecules.Conversation.ConversationInfoBlock;
+
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 
 public class ChatHeader {
     private final HBox container;
@@ -48,14 +55,68 @@ public class ChatHeader {
         setButtonsEnabled(false);
     }
 
-    public void setActiveConversation(String name) {
-        infoBlock.setName(name);
-        infoBlock.setStatus("Active now");
+    public void setActiveConversation(String username) {
+        UserApiClient client = new UserApiClient();
 
-        avatarCircle.setInitials(name);
-        avatarCircle.setColor(getColorFromName(name));
-        setButtonsEnabled(true);
+        client.findUserByUsername(username).ifPresentOrElse(user -> {
+            Platform.runLater(() -> {
+                infoBlock.setName(user.getFirstName() + " " + user.getLastName());
+                infoBlock.setStatus(user.isActive() ? "Online" : "Last seen: " + formatTime(user.getLastSeen()));
+
+                if (user.getAvatarUrl() != null && !user.getAvatarUrl().isBlank()) {
+                    avatarCircle.setImageFromUrl(user.getAvatarUrl());
+                } else {
+                    avatarCircle.setInitials(generateInitials(username));
+                    avatarCircle.setColor(getColorFromName(username));
+                }
+
+                setButtonsEnabled(true);
+            });
+        }, () -> {
+            // Trường hợp không tìm thấy user
+            Platform.runLater(() -> {
+                infoBlock.setName(username);
+                infoBlock.setStatus("Unknown");
+                avatarCircle.setInitials(generateInitials(username));
+                setButtonsEnabled(false);
+            });
+        });
     }
+
+    private String formatTime(Timestamp timestamp) {
+        if (timestamp == null) return "Offline";
+
+        LocalDateTime time = timestamp.toLocalDateTime();
+        LocalDateTime now = LocalDateTime.now();
+
+        long minutes = ChronoUnit.MINUTES.between(time, now);
+        long hours = ChronoUnit.HOURS.between(time, now);
+        long days = ChronoUnit.DAYS.between(time, now);
+
+        if (minutes < 1) return "Just now";
+        if (minutes < 60) return minutes + " minutes ago";
+        if (hours < 24) return hours + " hours ago";
+
+        if (days == 0) {
+            return "Today at " + time.format(DateTimeFormatter.ofPattern("HH:mm"));
+        }
+
+        if (days == 1) {
+            return "Yesterday at " + time.format(DateTimeFormatter.ofPattern("HH:mm"));
+        }
+
+        return time.format(DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm"));
+    }
+
+    private String generateInitials(String name) {
+        String[] parts = name.split(" ");
+        if (parts.length >= 2) {
+            return ("" + parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+        }
+        return name.substring(0, Math.min(2, name.length())).toUpperCase();
+    }
+
+
 
     public void setOnlineStatus(String status) {
         infoBlock.setStatus(status);

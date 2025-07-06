@@ -99,7 +99,7 @@ public class SidebarFooter extends VBox {
                             try {
                                 ChatViewConfig config = new ChatViewConfig();
                                 ChatView view = new ChatView(config, user, stage);
-                                ChatController controller = new ChatController(user, client, stage);
+                                ChatController controller = new ChatController(user, stage);
 
                                 Stage mainStage = new Stage();
                                 mainStage.setTitle("ST Chat - " + user.getUsername());

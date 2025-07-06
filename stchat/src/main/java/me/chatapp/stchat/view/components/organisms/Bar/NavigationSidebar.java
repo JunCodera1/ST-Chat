@@ -5,6 +5,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
+import me.chatapp.stchat.AppContext;
 import me.chatapp.stchat.model.User;
 import me.chatapp.stchat.api.SocketClient;
 import me.chatapp.stchat.view.components.molecules.Item.NavigationItem;
@@ -12,6 +13,7 @@ import me.chatapp.stchat.view.components.molecules.Item.ChannelItem;
 import me.chatapp.stchat.view.components.molecules.Item.DirectMessageItem;
 import me.chatapp.stchat.view.components.organisms.Footer.SidebarFooter;
 import me.chatapp.stchat.view.core.SceneManager;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Consumer;
 
@@ -25,18 +27,22 @@ public class NavigationSidebar {
     private User currentUser;
     private SidebarFooter footer;
 
+    private Runnable onAddFavoriteClicked;
+    private Runnable onAddDirectMessageClicked;
+    private Runnable onAddChannelClicked;
+
+
     // Event handlers
     private Consumer<String> onNavigationItemSelected;
     private Consumer<String> onChannelSelected;
     private Consumer<String> onDirectMessageSelected;
     private Runnable onSettingsClicked;
-    private final SocketClient socketClient;
     private final Stage stage;
     Stage currentStage = SceneManager.getStage();
+    private final SocketClient socketClient = AppContext.getInstance().getSocketClient();
 
-    public NavigationSidebar(User currentUser, SocketClient socketClient, Stage stage, Runnable onSettingsClicked) {
+    public NavigationSidebar(User currentUser , Stage stage, Runnable onSettingsClicked) {
         this.currentUser = currentUser;
-        this.socketClient = socketClient;
         this.stage = stage;
         this.onSettingsClicked = onSettingsClicked;
         this.root = new VBox();
@@ -212,32 +218,7 @@ public class NavigationSidebar {
         Label titleLabel = new Label(title);
         titleLabel.setStyle("-fx-text-fill: #72767d; -fx-font-size: 12px; -fx-font-weight: bold;");
 
-        // Add button
-        Button addButton = new Button("+");
-        addButton.setStyle(
-                "-fx-background-color: transparent; " +
-                        "-fx-text-fill: #72767d; " +
-                        "-fx-font-size: 14px; " +
-                        "-fx-font-weight: bold; " +
-                        "-fx-padding: 2px 6px; " +
-                        "-fx-background-radius: 3px;"
-        );
-        addButton.setOnMouseEntered(e -> addButton.setStyle(
-                "-fx-background-color: #40444b; " +
-                        "-fx-text-fill: white; " +
-                        "-fx-font-size: 14px; " +
-                        "-fx-font-weight: bold; " +
-                        "-fx-padding: 2px 6px; " +
-                        "-fx-background-radius: 3px;"
-        ));
-        addButton.setOnMouseExited(e -> addButton.setStyle(
-                "-fx-background-color: transparent; " +
-                        "-fx-text-fill: #72767d; " +
-                        "-fx-font-size: 14px; " +
-                        "-fx-font-weight: bold; " +
-                        "-fx-padding: 2px 6px; " +
-                        "-fx-background-radius: 3px;"
-        ));
+        Button addButton = getButton(title);
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -248,6 +229,27 @@ public class NavigationSidebar {
         return section;
     }
 
+    @NotNull
+    private Button getButton(String title) {
+        Button addButton = new Button("+");
+        addButton.setStyle("..."); // giữ nguyên style hover
+
+        // Gắn hành động tương ứng theo tên section
+        switch (title) {
+            case "FAVOURITES" -> addButton.setOnAction(e -> {
+                if (onAddFavoriteClicked != null) onAddFavoriteClicked.run();
+            });
+            case "DIRECT MESSAGES" -> addButton.setOnAction(e -> {
+                if (onAddDirectMessageClicked != null) onAddDirectMessageClicked.run();
+            });
+            case "CHANNELS" -> addButton.setOnAction(e -> {
+                if (onAddChannelClicked != null) onAddChannelClicked.run();
+            });
+        }
+        return addButton;
+    }
+
+
     private Region createSeparator() {
         Region separator = new Region();
         separator.setPrefHeight(1);
@@ -257,25 +259,7 @@ public class NavigationSidebar {
     }
 
     private void setupDefaultItems() {
-        // Add default favorites
-        addFavorite("Marguerite Campbell", "👤", true);
-        addFavorite("Katrina Winters", "👤", false);
-        addFavorite("Miranda Valentine", "👤", false);
-        addFavorite("Faulkner Benjamin", "👤", false);
 
-        // Add default direct messages
-        addDirectMessage("Tonia Clay", "👤", false, null);
-        addDirectMessage("Hendrik Martin", "👤", false, null);
-        addDirectMessage("Dean Vargas", "👤", false, "5");
-        addDirectMessage("Donaldson Riddle", "👤", false, null);
-        addDirectMessage("Norris Decker", "👤", false, null);
-        addDirectMessage("Zimmerman Langley", "👤", false, null);
-
-        // Add default channels
-        addChannel("Landing Design", "#", true, false);
-        addChannel("Design Phase 2", "#", false, false);
-        addChannel("Brand Suggestion", "#", false, true, "85");
-        addChannel("Reporting", "#", false, false);
     }
 
     public void addFavorite(String name, String icon, boolean isOnline) {
@@ -339,4 +323,15 @@ public class NavigationSidebar {
     public VBox getComponent() {
         return root;
     }
+
+    public void setOnAddFavoriteClicked(Runnable handler) {
+        this.onAddFavoriteClicked = handler;
+    }
+    public void setOnAddDirectMessageClicked(Runnable handler) {
+        this.onAddDirectMessageClicked = handler;
+    }
+    public void setOnAddChannelClicked(Runnable handler) {
+        this.onAddChannelClicked = handler;
+    }
+
 }

@@ -1,7 +1,13 @@
 package com.stchat.server.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.sql.Timestamp;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Message {
     private int id;
     private int conversationId;
@@ -14,13 +20,21 @@ public class Message {
     private int fileSize;
     private boolean isEdited;
     private boolean isDeleted;
+    @JsonProperty("isPinned")
     private boolean isPinned;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Timestamp createdAt;
     private Timestamp updatedAt;
 
     public enum MessageType {
-        FILE, IMAGE, LINK
-    }
+        TEXT, IMAGE, FILE, LINK, SYSTEM, USER, BOT, AUDIO, VIDEO, STICKER, POLL, EVENT;
+
+        @JsonCreator
+        public static MessageType fromValue(String value) {
+            return MessageType.valueOf(value.toUpperCase());
+        }
+
+        }
 
     // Constructors
     public Message() {}

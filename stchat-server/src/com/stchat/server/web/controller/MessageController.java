@@ -30,12 +30,17 @@ public class MessageController {
 
     private static void createMessage(Context ctx) {
         Message message = ctx.bodyAsClass(Message.class);
+        System.out.println(">>> [SERVER] Received message: " + message);
+
         if (messageService.sendMessage(message)) {
+            System.out.println(">>> [SERVER] Message saved successfully.");
             ctx.status(201).result("Message created");
         } else {
+            System.out.println(">>> [SERVER] Failed to save message.");
             ctx.status(500).result("Failed to create message");
         }
     }
+
 
     private static void updateMessage(Context ctx) {
         int id = Integer.parseInt(ctx.pathParam("id"));
