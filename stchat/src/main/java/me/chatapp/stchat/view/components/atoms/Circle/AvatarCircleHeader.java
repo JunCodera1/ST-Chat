@@ -1,8 +1,10 @@
 package me.chatapp.stchat.view.components.atoms.Circle;
 
 import javafx.scene.control.Label;
+import javafx.scene.image.Image;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.ImagePattern;
 import javafx.scene.shape.Circle;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
@@ -23,6 +25,12 @@ public class AvatarCircleHeader extends StackPane {
         String[] parts = name.trim().split("\\s+");
         if (parts.length == 1) return parts[0].substring(0, Math.min(2, parts[0].length())).toUpperCase();
         return ("" + parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+    }
+
+    public void setImageFromUrl(String imageUrl) {
+        Image image = new Image(imageUrl, true); // Load bất đồng bộ
+        circle.setFill(new ImagePattern(image));
+        initials.setVisible(false); // Ẩn chữ nếu có avatar
     }
 
     public void setColor(Color color) {

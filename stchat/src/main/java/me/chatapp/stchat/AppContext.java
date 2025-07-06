@@ -1,4 +1,6 @@
-package me.chatapp.stchat.api;
+package me.chatapp.stchat;
+
+import me.chatapp.stchat.api.SocketClient;
 
 public class AppContext {
     private static final AppContext instance = new AppContext();

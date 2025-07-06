@@ -1,40 +1,51 @@
-package me.chatapp.stchat;
+package me.chatapp.stchat.test;
 
 import me.chatapp.stchat.api.SocketClient;
 
-public class MultiClientLauncher {
+public class MultiClientLauncherTest {
     public static void main(String[] args) {
+//        new Thread(() -> {
+//            try {
+//                SocketClient client = new SocketClient("localhost", 8080);
+//                client.simulateRegister("user1", "user1@example.com", "123456");
+//                Thread.sleep(100); // Đợi 1 chút rồi login
+//                client = new SocketClient("localhost", 8080);
+//                client.simulateLogin("user1", "123456");
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+//        }).start();
+//
+//        new Thread(() -> {
+//            try {
+//                SocketClient client = new SocketClient("localhost", 8080);
+//                client.simulateRegister("user2", "user2@example.com", "654321");
+//                Thread.sleep(100);
+//                client = new SocketClient("localhost", 8080);
+//                client.simulateLogin("user2", "654321");
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+//        }).start();
+//
+//        new Thread(() -> {
+//            try {
+//                SocketClient client = new SocketClient("localhost", 8080);
+//                client.simulateRegister("user4", "user4@example.com", "654321");
+//                Thread.sleep(100);
+//                client = new SocketClient("localhost", 8080);
+//                client.simulateLogin("user4", "654321");
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+//        }).start();
         new Thread(() -> {
             try {
                 SocketClient client = new SocketClient("localhost", 8080);
-                client.simulateRegister("user1", "user1@example.com", "123456");
-                Thread.sleep(100); // Đợi 1 chút rồi login
-                client = new SocketClient("localhost", 8080);
-                client.simulateLogin("user1", "123456");
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).start();
-
-        new Thread(() -> {
-            try {
-                SocketClient client = new SocketClient("localhost", 8080);
-                client.simulateRegister("user2", "user2@example.com", "654321");
+                client.simulateRegister("user3", "m", "tien","user3@example.com", "654321");
                 Thread.sleep(100);
                 client = new SocketClient("localhost", 8080);
-                client.simulateLogin("user2", "654321");
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).start();
-
-        new Thread(() -> {
-            try {
-                SocketClient client = new SocketClient("localhost", 8080);
-                client.simulateRegister("user4", "user4@example.com", "654321");
-                Thread.sleep(100);
-                client = new SocketClient("localhost", 8080);
-                client.simulateLogin("user4", "654321");
+                client.simulateLogin("user3", "654321");
             } catch (Exception e) {
                 e.printStackTrace();
             }

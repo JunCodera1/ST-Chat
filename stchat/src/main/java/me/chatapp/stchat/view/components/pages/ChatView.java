@@ -3,10 +3,15 @@ package me.chatapp.stchat.view.components.pages;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
+import javafx.scene.control.ChoiceDialog;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
+import me.chatapp.stchat.AppContext;
 import me.chatapp.stchat.api.ConversationApiClient;
+import me.chatapp.stchat.api.UserApiClient;
 import me.chatapp.stchat.controller.ChatController;
+import me.chatapp.stchat.controller.MessageController;
 import me.chatapp.stchat.model.Message;
 import me.chatapp.stchat.model.User;
 import me.chatapp.stchat.api.SocketClient;
@@ -24,7 +29,7 @@ import me.chatapp.stchat.view.handlers.*;
 import me.chatapp.stchat.view.state.ChatViewStateManager;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Objects;
 import java.util.logging.Logger;
 
@@ -33,6 +38,8 @@ public class ChatView extends Application {
     private static final Logger LOGGER = Logger.getLogger(ChatView.class.getName());
 
     private User currentUser;
+    private int currentConversationId = -1;
+    private String currentContactName = null;
 
     // Configuration
     private final ChatViewConfig config;
@@ -55,9 +62,13 @@ public class ChatView extends Application {
     private ChatViewStateManager stateManager;
     private ChatViewEventHandler eventHandler;
 
+    // Controllers
+    private MessageController messageController;
+    private ChatController chatController;
+
     // API
     private ConversationApiClient conversationApiClient;
-
+    private SocketClient socketClient;
 
     // Stage reference
     private Stage currentStage;
@@ -70,7 +81,6 @@ public class ChatView extends Application {
         this.config = config;
         this.root = new BorderPane();
         this.scene = new Scene(root, config.getWidth(), config.getHeight());
-        // User
         initializeUI();
     }
 
@@ -94,7 +104,6 @@ public class ChatView extends Application {
         }
     }
 
-
     private void initializeUI() {
         loadStylesheets();
         initializeComponents();
@@ -102,7 +111,6 @@ public class ChatView extends Application {
         initializeLayout();
         setupSystemMessage();
     }
-
 
     private void loadStylesheets() {
         for (String cssFile : ChatViewConfig.CSS_FILES) {
@@ -118,8 +126,11 @@ public class ChatView extends Application {
     private void initializeComponents() {
         headerComponent = new HeaderComponent();
         connectionPanel = new ConnectionPanel();
-        chatPanel = new ChatPanel(currentUser, this::handleSendMessage);
-        messageInputPanel = new MessageInputPanel();
+
+        // Khởi tạo ChatPanel và MessageInputPanel với callback
+        chatPanel = new ChatPanel(currentUser);
+        messageInputPanel = new MessageInputPanel(this::handleSendMessage);
+
         statusBar = new StatusBar();
         chatHeader = new ChatHeader();
     }
@@ -130,7 +141,6 @@ public class ChatView extends Application {
         mainContainer.setSpacing(0);
 
         VBox navSidebarContainer = navigationSidebar.getComponent();
-
 
         chatAreaContainer = new VBox();
         chatAreaContainer.setStyle("-fx-background-color: white;");
@@ -145,39 +155,100 @@ public class ChatView extends Application {
     }
 
     private void setupNavigationSidebarHandlers() {
+        navigationSidebar.setOnAddFavoriteClicked(() -> {
+            UserApiClient userApiClient = new UserApiClient();
+
+            userApiClient.getAllUsers().thenAccept(users -> {
+                List<String> usernames = users.stream()
+                        .map(User::getUsername)
+                        .filter(name -> !name.equals(currentUser.getUsername()))
+                        .toList();
+
+                Platform.runLater(() -> {
+                    ChoiceDialog<String> dialog = new ChoiceDialog<>(usernames.isEmpty() ? null : usernames.get(0), usernames);
+                    dialog.setTitle("Add Favorite");
+                    dialog.setHeaderText("Select a user to add to favorites");
+                    dialog.setContentText("Username:");
+
+                    dialog.showAndWait().ifPresent(selectedUsername -> {
+                        navigationSidebar.addFavorite(selectedUsername, "😊", true);
+                        System.out.println("Added to favorites: " + selectedUsername);
+                    });
+                });
+            }).exceptionally(ex -> {
+                ex.printStackTrace();
+                return null;
+            });
+        });
+
+
+        navigationSidebar.setOnAddDirectMessageClicked(() -> {
+            TextInputDialog dialog = new TextInputDialog();
+            dialog.setTitle("New Direct Message");
+            dialog.setHeaderText("Enter username");
+            dialog.setContentText("Username:");
+
+            dialog.showAndWait().ifPresent(username -> {
+                if (!username.trim().isEmpty()) {
+                    navigationSidebar.addDirectMessage(username, "💬", true, "1");
+                    System.out.println("Started direct message with: " + username);
+                }
+            });
+        });
+
+        navigationSidebar.setOnAddChannelClicked(() -> {
+            TextInputDialog dialog = new TextInputDialog();
+            dialog.setTitle("Create Channel");
+            dialog.setHeaderText("Enter channel name");
+            dialog.setContentText("Channel name:");
+
+            dialog.showAndWait().ifPresent(channelName -> {
+                if (!channelName.trim().isEmpty()) {
+                    navigationSidebar.addChannel(channelName, "#", false, false);
+                    System.out.println("Created new channel: " + channelName);
+                }
+            });
+        });
+
+        // Gắn sự kiện điều hướng
         navigationSidebar.setOnNavigationItemSelected(item -> {
             switch (item) {
-                case "chats":
-                    // Handle chats navigation
-                    showInfo("Navigation", "Switched to Chats view");
-                    break;
-                case "threads":
-                    // Handle threads navigation
-                    showInfo("Navigation", "Switched to Threads view");
-                    break;
-                case "calls":
-                    // Handle calls navigation
-                    showInfo("Navigation", "Switched to Calls view");
-                    break;
-                case "bookmarks":
-                    // Handle bookmarks navigation
-                    showInfo("Navigation", "Switched to Bookmarks view");
-                    break;
+                case "chats" -> showInfo("Navigation", "Switched to Chats view");
+                case "threads" -> showInfo("Navigation", "Switched to Threads view");
+                case "calls" -> showInfo("Navigation", "Switched to Calls view");
+                case "bookmarks" -> showInfo("Navigation", "Switched to Bookmarks view");
             }
         });
 
+        // Xử lý khi chọn channel hoặc direct message
         navigationSidebar.setOnChannelSelected(channelName -> {
+            currentContactName = channelName;
+            currentConversationId = getOrCreateConversationId(channelName);
             chatHeader.setActiveConversation(channelName);
+            chatPanel.setCurrentContact(channelName, "channel");
             chatPanel.clearMessages();
+
+            if (messageController != null) {
+                messageController.loadMessagesForConversation(currentConversationId, chatPanel);
+            }
         });
 
         navigationSidebar.setOnDirectMessageSelected(userName -> {
+            currentContactName = userName;
+            currentConversationId = getOrCreateConversationId(userName);
             chatHeader.setActiveConversation(userName);
+            chatPanel.setCurrentContact(userName, "user");
             chatPanel.clearMessages();
+
+            if (messageController != null) {
+                messageController.loadMessagesForConversation(currentConversationId, chatPanel);
+            }
         });
 
-        navigationSidebar.setOnSettingsClicked(() -> showInfo("Settings", "Settings panel will be implemented soon!"));
+        navigationSidebar.setOnSettingsClicked(() ->
+                showInfo("Settings", "Settings panel will be implemented soon!"));
     }
+
 
     private void setupChatAreaLayout() {
         chatAreaContainer.getChildren().add(chatHeader.getComponent());
@@ -187,12 +258,18 @@ public class ChatView extends Application {
     }
 
     private void initializeManagers() {
-        try{
-            SocketClient socketClient = new SocketClient("localhost", config.getPort());
+        try {
+            // Khởi tạo SocketClient
+            socketClient = new SocketClient("localhost", config.getPort());
+            AppContext.getInstance().setSocketClient(socketClient);
+
+            // Khởi tạo MessageController
+            messageController = new MessageController();
 
             stateManager = new ChatViewStateManager(
                     connectionPanel, chatPanel, messageInputPanel, statusBar, scene
             );
+
             eventHandler = new ChatViewEventHandler(
                     config.getPort(), connectionPanel, chatPanel,
                     messageInputPanel, stateManager
@@ -202,53 +279,98 @@ public class ChatView extends Application {
 
             navigationSidebar = new NavigationSidebar(
                     currentUser,
-                    socketClient,
                     currentStage,
                     this::logout
             );
 
             setupNavigationSidebarHandlers();
 
-            // Tiếp tục set các sự kiện
+            // Setup chat header actions
             chatHeader.setOnCallAction(() -> {
-                String name = currentUser.getUsername();
+                String name = currentUser != null ? currentUser.getUsername() : "Unknown";
                 new CallWindow(name).show();
             });
 
             chatHeader.setOnVideoCallAction(() -> {
-                VideoCallWindow videoCallWindow = new VideoCallWindow("You", "Alice");
+                String userName = currentUser != null ? currentUser.getUsername() : "You";
+                String contactName = currentContactName != null ? currentContactName : "Unknown";
+                VideoCallWindow videoCallWindow = new VideoCallWindow(userName, contactName);
                 videoCallWindow.show();
             });
 
             chatHeader.setOnInfoAction(() -> showInfo("Conversation Info", "Conversation details coming soon!"));
 
+            // Setup typing indicator
             messageInputPanel.getMessageField().textProperty().addListener((obs, oldText, newText) -> {
                 if (!newText.isEmpty() && (oldText == null || oldText.isEmpty())) {
-                    chatPanel.showTypingIndicator("You");
+                    if (currentUser != null) {
+                        chatPanel.showTypingIndicator(currentUser.getUsername());
+                    }
                 } else if (newText.isEmpty() && oldText != null && !oldText.isEmpty()) {
                     chatPanel.hideTypingIndicator();
                 }
             });
-        }catch (IOException e){
+
+            // Setup socket message listener
+            setupSocketMessageListener();
+
+        } catch (IOException e) {
             e.printStackTrace();
+            showError("Failed to initialize chat components: " + e.getMessage());
         }
+    }
+
+    private void setupSocketMessageListener() {
+        if (socketClient != null) {
+            socketClient.setMessageListener(message -> {
+                Platform.runLater(() -> {
+                    if (message.getConversationId() == currentConversationId) {
+                        chatPanel.addMessage(message);
+                    }
+                });
+            });
+        }
+    }
+
+    private void handleSendMessage(String content) {
+        if (currentUser == null) {
+            showError("Please login first");
+            return;
+        }
+
+        if (currentConversationId == -1 || currentContactName == null) {
+            showError("Please select a conversation first");
+            return;
+        }
+
+        if (content.trim().isEmpty()) {
+            return;
+        }
+
+        System.out.println("Sending message: " + content);
+        System.out.println("To conversation: " + currentConversationId);
+        System.out.println("Contact: " + currentContactName);
+
+        // Gửi tin nhắn qua MessageController
+        if (messageController != null) {
+            messageController.sendMessage(currentUser, content, currentConversationId, chatPanel);
+        }
+    }
+
+    private int getOrCreateConversationId(String contactName) {
+        // For now, return a simple hash-based ID
+        return Math.abs(contactName.hashCode()) % 1000 + 1;
     }
 
     private void setupSystemMessage() {
         if (currentUser == null) {
-            stateManager.addMessage("Welcome to ST Chat! Select a conversation to start chatting.");
+            stateManager.addMessage("Welcome to ST Chat! Please login to start chatting.");
         } else {
             stateManager.addMessage(new Message("System",
                     "Welcome back, " + currentUser.getUsername() + "! 🎉",
-                    Message.MessageType.SYSTEM, LocalDateTime.now()));
+                    Message.MessageType.SYSTEM));
         }
-        for (int i = 1; i <= 30; i++) {
-            chatPanel.addMessage(new Message("Bot", "This is message #" + i,
-                    Message.MessageType.BOT, LocalDateTime.now()));
-        }
-
     }
-
 
     private void autoConnectToChat() {
         if (currentUser != null) {
@@ -258,11 +380,11 @@ public class ChatView extends Application {
                     Platform.runLater(() -> {
                         stateManager.addMessage(new Message("System",
                                 "🔄 Connecting to chat server...",
-                                Message.MessageType.SYSTEM, LocalDateTime.now()));
+                                Message.MessageType.SYSTEM));
                         updateConnectionStatus(true);
                         stateManager.addMessage(new Message("System",
                                 "✅ Connected successfully! You can now start chatting.",
-                                Message.MessageType.SYSTEM, LocalDateTime.now()));
+                                Message.MessageType.SYSTEM));
                         LOGGER.info("Auto-connected user: " + currentUser.getUsername());
                     });
                 } catch (InterruptedException e) {
@@ -298,8 +420,23 @@ public class ChatView extends Application {
         if (currentUser != null) {
             LOGGER.info("User " + currentUser.getUsername() + " is closing the application");
         }
+
+        // Cleanup controllers
+        if (messageController != null) {
+            messageController.close();
+        }
+
         if (eventHandler != null && eventHandler.getDisconnectAction() != null) {
             eventHandler.getDisconnectAction().execute();
+        }
+
+        // Close socket connection
+        if (socketClient != null) {
+            try {
+                socketClient.close();
+            } catch (Exception e) {
+                LOGGER.warning("Error closing socket: " + e.getMessage());
+            }
         }
     }
 
@@ -321,13 +458,17 @@ public class ChatView extends Application {
             LOGGER.info("User " + currentUser.getUsername() + " logged out");
             stateManager.addMessage(new Message("System",
                     "👋 Logged out successfully",
-                    Message.MessageType.SYSTEM, LocalDateTime.now()));
+                    Message.MessageType.SYSTEM));
             currentUser = null;
+            currentConversationId = -1;
+            currentContactName = null;
+
             if (connectionPanel != null) {
                 connectionPanel.getUsernameField().setText("");
                 connectionPanel.getUsernameField().setEditable(true);
             }
             updateConnectionStatus(false);
+
             // Close current stage and show login
             if (currentStage != null) {
                 currentStage.close();
@@ -363,33 +504,25 @@ public class ChatView extends Application {
         signUp.show();
     }
 
-    private void handleSendMessage(String content) {
-        System.out.println("Message to send: " + content);
-    }
-
-
     private void handleLoginSuccess(User user, Stage loginStage) {
         try {
             loginStage.close();
             ChatViewConfig config = new ChatViewConfig();
             ChatView view = new ChatView(config, user, loginStage);
 
-            String host = "localhost";
-            int port = 8080;
-            SocketClient client = new SocketClient(host, port);
-
-            ChatController controller = new ChatController(user, client, loginStage);
             Stage chatStage = new Stage();
             view.start(chatStage);
-            controller.initialize();
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
+            showError("Failed to open chat: " + e.getMessage());
         }
     }
 
+    // Getters
     public HeaderComponent getHeaderComponent() { return headerComponent; }
     public ConnectionPanel getConnectionPanel() { return connectionPanel; }
     public MessageInputPanel getMessageInputPanel() { return messageInputPanel; }
     public StatusBar getStatusBar() { return statusBar; }
     public Scene getScene() { return scene; }
+
 }

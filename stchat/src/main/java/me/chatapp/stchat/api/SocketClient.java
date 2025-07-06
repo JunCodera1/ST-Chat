@@ -133,13 +133,15 @@ public class SocketClient {
         }).start();
     }
 
-    public void simulateRegister(String username, String email, String password) throws IOException {
+    public void simulateRegister(String username, String firstname, String lastName, String email, String password) throws IOException {
         PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
         BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
         JSONObject registerRequest = new JSONObject()
                 .put("type", "REGISTER")
                 .put("username", username)
+                .put("firstname", firstname)
+                .put("lastname", lastName)
                 .put("email", email)
                 .put("password", password);
 

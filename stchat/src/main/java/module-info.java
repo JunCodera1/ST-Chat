@@ -25,4 +25,9 @@ module me.chatapp.stchat {
 
     opens me.chatapp.stchat to javafx.fxml;
     exports me.chatapp.stchat;
+    exports me.chatapp.stchat.api;
+    exports me.chatapp.stchat.test;
+    exports me.chatapp.stchat.model to com.fasterxml.jackson.databind;
+    opens me.chatapp.stchat.test to javafx.fxml;
+    opens me.chatapp.stchat.model to com.fasterxml.jackson.databind;
 }

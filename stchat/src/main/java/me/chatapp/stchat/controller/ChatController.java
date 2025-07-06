@@ -3,6 +3,7 @@ package me.chatapp.stchat.controller;
 import javafx.application.Platform;
 import javafx.scene.layout.HBox;
 import javafx.stage.Stage;
+import me.chatapp.stchat.AppContext;
 import me.chatapp.stchat.api.SocketClient;
 import me.chatapp.stchat.api.UserApiClient;
 import me.chatapp.stchat.model.User;
@@ -12,7 +13,7 @@ import me.chatapp.stchat.view.components.organisms.Panel.ChatPanel;
 public class ChatController {
     private final NavigationSidebar navigationSidebar;
     private final ChatPanel chatPanel;
-    private final SocketClient socketClient;
+    private final SocketClient socketClient = AppContext.getInstance().getSocketClient();
     private final User currentUser;
     private final UserApiClient userApiClient = new UserApiClient();
     private final HBox mainLayout;
@@ -23,15 +24,14 @@ public class ChatController {
     private String currentSelectedContact = null;
     private int currentConversationId = -1;
 
-    public ChatController(User currentUser, SocketClient socketClient, Stage stage) {
+    public ChatController(User currentUser , Stage stage) {
         this.currentUser = currentUser;
-        this.socketClient = socketClient;
 
         this.conversationController = new ConversationController();
         this.messageController = new MessageController();
 
-        this.navigationSidebar = new NavigationSidebar(currentUser, socketClient, stage, this::onSettingsClicked);
-        this.chatPanel = new ChatPanel(currentUser, this::onSendMessage);
+        this.navigationSidebar = new NavigationSidebar(currentUser, stage, this::onSettingsClicked);
+        this.chatPanel = new ChatPanel(currentUser);
 
         this.mainLayout = new HBox();
         this.mainLayout.getChildren().addAll(navigationSidebar.getComponent(), chatPanel.getComponent());
@@ -68,7 +68,7 @@ public class ChatController {
             return;
         }
 
-        messageController.sendMessage(currentUser, content, currentConversationId, chatPanel, socketClient);
+        messageController.sendMessage(currentUser, content, currentConversationId, chatPanel);
     }
 
     private void setupSocketListeners() {

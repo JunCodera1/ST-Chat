@@ -4,6 +4,7 @@ import com.stchat.server.handler.ClientHandler;
 import com.stchat.server.web.server.ConversationServer;
 import com.stchat.server.web.server.MessageServer;
 import com.stchat.server.web.server.PasswordChangeServer;
+import com.stchat.server.web.server.UserServer;
 
 import java.io.*;
 import java.net.*;
@@ -166,6 +167,7 @@ public class Main {
         PasswordChangeServer.start();
         MessageServer.start();
         ConversationServer.start();
+        UserServer.start();
 
         // Start socket server
         int port = DEFAULT_PORT;

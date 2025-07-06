@@ -14,20 +14,19 @@ import java.io.IOException;
 
 public class Main extends Application {
 
-    private SocketClient socketClient;
-
     @Override
     public void start(Stage primaryStage) {
         try {
-            socketClient = new SocketClient("localhost", 8080);
+            SocketClient socketClient = new SocketClient("localhost", 8080);
+            AppContext.getInstance().setSocketClient(socketClient);
         } catch (IOException e) {
             e.printStackTrace();
             return;
         }
-
         SceneManager.setStage(primaryStage);
         showSignUpStage(primaryStage);
     }
+
 
     private void showSignUpStage(Stage primaryStage) {
         SignUp signUp = new SignUp(() -> showLoginStage(new Stage()));
@@ -40,17 +39,15 @@ public class Main extends Application {
             showSignUpStage(new Stage());
         }, user -> {
             try {
-                SocketClient client = this.socketClient;
-
                 ChatViewConfig config = new ChatViewConfig();
                 ChatView view = new ChatView(config, user, loginStage);
 
-                ChatController controller = new ChatController(user, client, loginStage);
+                ChatController controller = new ChatController(user, loginStage);
 
                 Stage primaryStage = SceneManager.getStage();
                 primaryStage.setTitle("ST Chat - " + user.getUsername());
                 primaryStage.setScene(view.getScene());
-                primaryStage.setMinWidth(900);
+                primaryStage.setMinWidth(1200);
                 primaryStage.setMinHeight(650);
                 primaryStage.show();
 

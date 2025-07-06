@@ -85,8 +85,7 @@ public class ChatViewEventHandler {
             Message message = new Message(
                     senderName,
                     messageText,
-                    Message.MessageType.USER,
-                    LocalDateTime.now()
+                    Message.MessageType.USER
             );
 
             // Thêm message vào chat panel
@@ -102,9 +101,6 @@ public class ChatViewEventHandler {
         }
     }
 
-    /**
-     * Lấy tên người gửi từ username field hoặc từ current user
-     */
     private String getSenderName() {
         String username = connectionPanel.getUsernameField().getText().trim();
         return username.isEmpty() ? "You" : username;
