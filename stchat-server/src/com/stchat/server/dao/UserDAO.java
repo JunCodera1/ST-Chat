@@ -314,4 +314,26 @@ public class UserDAO {
         return false;
     }
 
+    public boolean updateAvatarUrl(int userId, String avatarUrl) {
+        String sql = "UPDATE users SET avatar_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, avatarUrl);
+            pstmt.setInt(2, userId);
+
+            int rowsAffected = pstmt.executeUpdate();
+            if (rowsAffected > 0) {
+                LOGGER.info("Avatar updated for user ID: " + userId);
+                return true;
+            }
+
+        } catch (SQLException e) {
+            LOGGER.severe("Failed to update avatar for user ID: " + userId + " - " + e.getMessage());
+        }
+
+        return false;
+    }
+
 }

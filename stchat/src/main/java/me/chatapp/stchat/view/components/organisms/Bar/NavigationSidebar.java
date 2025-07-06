@@ -12,7 +12,7 @@ import me.chatapp.stchat.view.components.molecules.Item.NavigationItem;
 import me.chatapp.stchat.view.components.molecules.Item.ChannelItem;
 import me.chatapp.stchat.view.components.molecules.Item.DirectMessageItem;
 import me.chatapp.stchat.view.components.organisms.Footer.SidebarFooter;
-import me.chatapp.stchat.view.core.SceneManager;
+import me.chatapp.stchat.view.init.SceneManager;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Consumer;

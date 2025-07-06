@@ -6,7 +6,7 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import me.chatapp.stchat.view.core.SceneManager;
+import me.chatapp.stchat.view.init.SceneManager;
 import me.chatapp.stchat.view.components.pages.ProfilePage;
 
 public class HeaderComponent {

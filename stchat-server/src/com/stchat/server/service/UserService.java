@@ -1,37 +1,64 @@
 package com.stchat.server.service;
 
+import com.stchat.server.dao.UserDAO;
 import com.stchat.server.model.User;
 
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
 
 public class UserService {
+    private final UserDAO userDAO = new UserDAO();
 
-    private static final Map<Integer, User> users = new HashMap<>();
-    private static int idCounter = 1;
-
-    public static List<User> getAllUsers() {
-        return new ArrayList<>(users.values());
+    public boolean registerUser(String username, String email, String password, String firstName, String lastName) {
+        return userDAO.registerUser(username, email, password, firstName, lastName);
     }
 
-    public static User getUserById(int id) {
-        return users.get(id);
+    public Optional<User> getUserByUsername(String username) {
+        return Optional.ofNullable(userDAO.getUserByUsername(username));
     }
 
-    public static User getUserByUsername(String username) {
-        return users.values()
-                .stream()
-                .filter(u -> u.getUsername().equalsIgnoreCase(username))
-                .findFirst()
-                .orElse(null);
+    public Optional<User> getUserByEmail(String email) {
+        return Optional.ofNullable(userDAO.getUserByEmail(email));
     }
 
-    public static User createUser(User user) {
-        user.setId(idCounter++);
-        users.put(user.getId(), user);
-        return user;
+    public List<User> getAllUsers() {
+        return userDAO.getAllUsers();
     }
 
-    public static boolean deleteUser(int id) {
-        return users.remove(id) != null;
+    public boolean isUsernameExists(String username) {
+        return userDAO.isUsernameExists(username);
     }
+
+    public boolean isEmailExists(String email) {
+        return userDAO.isEmailExists(email);
+    }
+
+    public boolean updateUser(int userId, String username, String email) {
+        return userDAO.updateUser(userId, username, email);
+    }
+
+    public boolean deleteUser(int userId) {
+        return userDAO.deleteUser(userId);
+    }
+
+    public String resetPassword(String email) {
+        return userDAO.resetPassword(email);
+    }
+
+    public int getUserCount() {
+        return userDAO.getUserCount();
+    }
+
+    public boolean updatePassword(String email, String newPasswordHashed) {
+        return userDAO.updatePassword(email, newPasswordHashed);
+    }
+
+    public Optional<String> getUsernameByEmail(String email) {
+        return Optional.ofNullable(userDAO.getUsernameByEmail(email));
+    }
+
+    public boolean updateAvatar(int userId, String avatarUrl) {
+        return userDAO.updateAvatarUrl(userId, avatarUrl);
+    }
+
 }

@@ -10,7 +10,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
-import me.chatapp.stchat.view.core.SceneManager;
+import me.chatapp.stchat.view.init.SceneManager;
 
 public class ProfilePage {
 
