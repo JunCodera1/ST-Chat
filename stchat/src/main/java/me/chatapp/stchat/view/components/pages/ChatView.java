@@ -2,6 +2,7 @@ package me.chatapp.stchat.view.components.pages;
 
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
@@ -9,6 +10,7 @@ import me.chatapp.stchat.controller.MessageController;
 import me.chatapp.stchat.model.Message;
 import me.chatapp.stchat.model.User;
 import me.chatapp.stchat.api.SocketClient;
+import me.chatapp.stchat.view.components.organisms.Bar.IconSidebar;
 import me.chatapp.stchat.view.components.organisms.Bar.NavigationSidebar;
 import me.chatapp.stchat.view.components.organisms.Bar.StatusBar;
 import me.chatapp.stchat.view.components.organisms.Header.ChatHeader;
@@ -40,6 +42,7 @@ public class ChatView extends Application {
     private final Scene scene;
 
     private NavigationSidebar navigationSidebar;
+    private IconSidebar iconSidebar;
     private ConnectionPanel connectionPanel;
     private ChatPanel chatPanel;
     private MessageInputPanel messageInputPanel;
@@ -97,6 +100,7 @@ public class ChatView extends Application {
         initializeComponents();
         initializeManagers();
         initializeLayout();
+        setupSidebarIconActions();
         setupSystemMessage();
     }
 
@@ -113,7 +117,7 @@ public class ChatView extends Application {
 
     private void initializeComponents() {
         connectionPanel = new ConnectionPanel();
-
+        iconSidebar = new IconSidebar();
         // Khởi tạo ChatPanel và MessageInputPanel với callback
         chatPanel = new ChatPanel(currentUser);
         messageInputPanel = new MessageInputPanel(this::handleSendMessage);
@@ -122,12 +126,52 @@ public class ChatView extends Application {
         chatHeader = new ChatHeader();
     }
 
+    private void restoreMainChatLayout() {
+        chatAreaContainer.getChildren().clear();
+        chatAreaContainer.getChildren().add(chatHeader.getComponent());
+        VBox.setVgrow(chatPanel.getComponent(), Priority.ALWAYS);
+        chatAreaContainer.getChildren().add(chatPanel.getComponent());
+        chatAreaContainer.getChildren().add(messageInputPanel.getComponent());
+    }
+
+
+    private void setupSidebarIconActions() {
+        iconSidebar.setIconAction("Chats", () -> {
+            navigationSidebar.switchContent("chats");
+        });
+
+        iconSidebar.setIconAction("Profile", () -> {
+            navigationSidebar.switchContent("profile");
+        });
+
+        iconSidebar.setIconAction("Messages", () -> {
+            navigationSidebar.switchContent("messages");
+        });
+
+        iconSidebar.setIconAction("Groups", () -> {
+            navigationSidebar.switchContent("groups");
+        });
+
+        iconSidebar.setIconAction("Calls", () -> {
+            navigationSidebar.switchContent("calls");
+        });
+
+        iconSidebar.setIconAction("Bookmarks", () -> {
+            navigationSidebar.switchContent("bookmarks");
+        });
+
+        iconSidebar.setIconAction("Settings", () -> {
+            navigationSidebar.switchContent("settings");
+        });
+    }
+
     private void initializeLayout() {
         // Layout containers
         HBox mainContainer = new HBox();
         mainContainer.setSpacing(0);
 
         VBox navSidebarContainer = navigationSidebar.getComponent();
+        Node iconSidebarContainer = iconSidebar.getComponent();
 
         chatAreaContainer = new VBox();
         chatAreaContainer.setStyle("-fx-background-color: white;");
@@ -136,7 +180,7 @@ public class ChatView extends Application {
 
         setupChatAreaLayout();
 
-        mainContainer.getChildren().addAll(navSidebarContainer, chatAreaContainer);
+        mainContainer.getChildren().addAll(iconSidebarContainer,navSidebarContainer, chatAreaContainer);
         root.setCenter(mainContainer);
         root.setBottom(statusBar.getComponent());
     }
@@ -147,6 +191,11 @@ public class ChatView extends Application {
         VBox.setVgrow(chatPanel.getComponent(), Priority.ALWAYS);
         chatAreaContainer.getChildren().add(chatPanel.getComponent());
         chatAreaContainer.getChildren().add(messageInputPanel.getComponent());
+    }
+
+    private void updateChatAreaContent(Node newContent) {
+        chatAreaContainer.getChildren().clear();
+        chatAreaContainer.getChildren().add(newContent);
     }
 
     private void initializeManagers() {
@@ -171,8 +220,10 @@ public class ChatView extends Application {
             this.stateManager = result.stateManager();
             this.eventHandler = result.eventHandler();
             this.navigationSidebar = result.navigationSidebar();
+            this.navigationSidebar.setOnContentChange(this::updateChatAreaContent);
 
             NavigationSidebarHandlerBinder.bindHandlers(this);
+
 
             setupSocketMessageListener();
 
@@ -266,6 +317,10 @@ public class ChatView extends Application {
         stateManager.showInfo(title, message);
     }
 
+    public void showMainChat() {
+        restoreMainChatLayout();
+    }
+
     public void logout() {
         if (currentUser != null) {
             LOGGER.info("User " + currentUser.getUsername() + " logged out");
@@ -330,6 +385,7 @@ public class ChatView extends Application {
             showError("Failed to open chat: " + e.getMessage());
         }
     }
+
 
     // Getters
     public NavigationSidebar getNavigationSidebar() {

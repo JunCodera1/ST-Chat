@@ -2,6 +2,7 @@ package me.chatapp.stchat.view.components.organisms.Bar;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
@@ -12,6 +13,8 @@ import me.chatapp.stchat.view.components.molecules.Item.NavigationItem;
 import me.chatapp.stchat.view.components.molecules.Item.ChannelItem;
 import me.chatapp.stchat.view.components.molecules.Item.DirectMessageItem;
 import me.chatapp.stchat.view.components.organisms.Footer.SidebarFooter;
+import me.chatapp.stchat.view.components.pages.ChatView;
+import me.chatapp.stchat.view.factories.*;
 import me.chatapp.stchat.view.init.SceneManager;
 import org.jetbrains.annotations.NotNull;
 
@@ -30,6 +33,9 @@ public class NavigationSidebar {
     private Runnable onAddFavoriteClicked;
     private Runnable onAddDirectMessageClicked;
     private Runnable onAddChannelClicked;
+
+    private VBox currentMainContent; // Lưu trữ nội dung chính hiện tại
+    private VBox originalContent;
 
 
     // Event handlers
@@ -55,6 +61,78 @@ public class NavigationSidebar {
 
         initializeComponent();
         setupDefaultItems();
+
+        this.originalContent = createMainContent();
+        this.currentMainContent = this.originalContent;
+    }
+
+    public void switchContent(String contentType) {
+        VBox newContent = null;
+
+        switch (contentType.toLowerCase()) {
+            case "chats":
+                newContent = originalContent; // Quay về nội dung gốc
+                break;
+            case "profile":
+                newContent = createProfileContent();
+                break;
+            case "messages":
+                newContent = createDirectMessagesContent();
+                break;
+            case "groups":
+                newContent = createGroupsContent();
+                break;
+            case "calls":
+                newContent = createCallsContent();
+                break;
+            case "bookmarks":
+                newContent = createBookmarksContent();
+                break;
+            case "settings":
+                newContent = createSettingsContent();
+                break;
+            default:
+                newContent = originalContent;
+        }
+
+        if (newContent != null) {
+            currentMainContent = newContent;
+            updateScrollContent();
+        }
+    }
+
+    private void updateScrollContent() {
+        scrollPane.setContent(currentMainContent);
+    }
+
+    // Tạo nội dung cho từng loại
+    private VBox createProfileContent() {
+        return ProfileViewFactory.create(currentUser, () -> switchContent("chats"));
+    }
+
+
+    private VBox createDirectMessagesContent() {
+        return DirectMessagesViewFactory.create(() -> switchContent("chats"));
+    }
+
+
+    private VBox createGroupsContent() {
+        return GroupsViewFactory.create(() -> switchContent("chats"));
+    }
+
+
+    private VBox createCallsContent() {
+        return CallsViewFactory.create(() -> switchContent("chats"));
+    }
+
+
+    private VBox createBookmarksContent() {
+        return BookmarksViewFactory.create(() -> switchContent("chats"));
+    }
+
+
+    private VBox createSettingsContent() {
+        return SettingsViewFactory.create(() -> switchContent("chats"));
     }
 
 
@@ -133,7 +211,6 @@ public class NavigationSidebar {
         content.setStyle("-fx-background-color: #1a1d21;");
 
         // Main navigation items
-        VBox mainNav = createMainNavigation();
 
         // Favorites section
         VBox favoritesSection = createSection("FAVOURITES", favoritesContainer);
@@ -145,7 +222,6 @@ public class NavigationSidebar {
         VBox channelsSection = createSection("CHANNELS", channelsContainer);
 
         content.getChildren().addAll(
-                mainNav,
                 createSeparator(),
                 favoritesSection,
                 createSeparator(),
@@ -157,53 +233,6 @@ public class NavigationSidebar {
         return content;
     }
 
-    private VBox createMainNavigation() {
-        VBox mainNav = new VBox();
-        mainNav.setSpacing(2);
-
-        NavigationItem chatsItem = new NavigationItem("💬", "Chats", true);
-        NavigationItem threadsItem = new NavigationItem("🧵", "Threads", false);
-        NavigationItem callsItem = new NavigationItem("📞", "Calls", false);
-        NavigationItem bookmarksItem = new NavigationItem("🔖", "Bookmarks", false);
-        NavigationItem settingsItem = new NavigationItem("⚙️", "Settings", false);
-
-        // Set click handlers
-        chatsItem.setOnAction(() -> {
-            if (onNavigationItemSelected != null) {
-                onNavigationItemSelected.accept("chats");
-            }
-        });
-
-        threadsItem.setOnAction(() -> {
-            if (onNavigationItemSelected != null) {
-                onNavigationItemSelected.accept("threads");
-            }
-        });
-
-        callsItem.setOnAction(() -> {
-            if (onNavigationItemSelected != null) {
-                onNavigationItemSelected.accept("calls");
-            }
-        });
-
-        bookmarksItem.setOnAction(() -> {
-            if (onNavigationItemSelected != null) {
-                onNavigationItemSelected.accept("bookmarks");
-            }
-        });
-
-        settingsItem.setOnAction(() -> {
-            if (onSettingsClicked != null) {
-                onSettingsClicked.run();
-            }
-        });
-
-        mainNav.getChildren().addAll(chatsItem.getComponent(), threadsItem.getComponent(),
-                callsItem.getComponent(), bookmarksItem.getComponent(),
-                settingsItem.getComponent());
-
-        return mainNav;
-    }
 
     private VBox createSection(String title, VBox container) {
         VBox section = new VBox();
@@ -332,6 +361,75 @@ public class NavigationSidebar {
     }
     public void setOnAddChannelClicked(Runnable handler) {
         this.onAddChannelClicked = handler;
+    }
+
+    // Giả sử bạn có một callback để truyền ra ngoài
+    private Consumer<Node> onContentChange;
+
+    public void setOnContentChange(Consumer<Node> handler) {
+        this.onContentChange = handler;
+    }
+
+    public void showUserProfile(User user) {
+        VBox profileView = new VBox();
+        profileView.setSpacing(10);
+        profileView.setPadding(new Insets(20));
+        profileView.setStyle("-fx-background-color: white;");
+
+        Label titleLabel = new Label("👤 User Profile");
+        titleLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+
+        Label usernameLabel = new Label("Username: " + user.getUsername());
+        usernameLabel.setStyle("-fx-font-size: 14px;");
+
+        // Thêm button quay lại chat
+        Button backButton = new Button("← Back to Chat");
+        backButton.setOnAction(e -> {
+            // Gọi callback để quay lại chat chính
+            if (onContentChange != null) {
+                // Tạo lại layout chat chính
+                VBox chatLayout = createMainChatLayout();
+                onContentChange.accept(chatLayout);
+            }
+        });
+
+        profileView.getChildren().addAll(titleLabel, usernameLabel, backButton);
+
+        if (onContentChange != null) {
+            onContentChange.accept(profileView);
+        }
+    }
+
+    private VBox createMainChatLayout() {
+        // Recreate the main chat layout structure
+        // You'll need to access chatHeader, chatPanel, messageInputPanel from ChatView
+        // This might require passing references or using a different approach
+        return new VBox();
+    }
+
+    public void showDirectMessages() {
+        VBox messagesView = new VBox(new Label("📨 Direct Messages List"));
+        if (onContentChange != null) onContentChange.accept(messagesView);
+    }
+
+    public void showChannels() {
+        VBox channelView = new VBox(new Label("📢 Channels List"));
+        if (onContentChange != null) onContentChange.accept(channelView);
+    }
+
+    public void showCallsPanel() {
+        VBox callsView = new VBox(new Label("📞 Call History"));
+        if (onContentChange != null) onContentChange.accept(callsView);
+    }
+
+    public void showBookmarks() {
+        VBox bookmarkView = new VBox(new Label("🔖 Your Bookmarks"));
+        if (onContentChange != null) onContentChange.accept(bookmarkView);
+    }
+
+    public void showSettings() {
+        VBox settingsView = new VBox(new Label("⚙️ Settings"));
+        if (onContentChange != null) onContentChange.accept(settingsView);
     }
 
 }
