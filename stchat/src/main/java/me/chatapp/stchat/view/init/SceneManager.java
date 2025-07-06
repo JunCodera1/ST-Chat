@@ -1,4 +1,4 @@
-package me.chatapp.stchat.view.core;
+package me.chatapp.stchat.view.init;
 
 import javafx.scene.Parent;
 import javafx.scene.Scene;

@@ -4,7 +4,7 @@ import javafx.application.Application;
 import javafx.stage.Stage;
 import me.chatapp.stchat.controller.ChatController;
 import me.chatapp.stchat.api.SocketClient;
-import me.chatapp.stchat.view.core.SceneManager;
+import me.chatapp.stchat.view.init.SceneManager;
 import me.chatapp.stchat.view.config.ChatViewConfig;
 import me.chatapp.stchat.view.components.pages.ChatView;
 import me.chatapp.stchat.view.components.pages.Login;
