@@ -22,6 +22,10 @@ module me.chatapp.stchat {
     requires java.net.http;
     requires com.fasterxml.jackson.databind;
     requires com.fasterxml.jackson.datatype.jsr310;
+    requires org.kordamp.ikonli.materialdesign2;
+    requires org.kordamp.ikonli.core;
+    requires org.kordamp.ikonli.feather;
+    requires org.kordamp.ikonli.material2;
 
     opens me.chatapp.stchat to javafx.fxml;
     exports me.chatapp.stchat;

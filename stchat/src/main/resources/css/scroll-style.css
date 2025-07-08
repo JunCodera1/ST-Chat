@@ -1,0 +1,35 @@
+/* Tổng thể ScrollPane */
+.scroll-pane {
+    -fx-background-color: #36393f;
+    -fx-padding: 0;
+}
+
+/* Nền vùng hiển thị nội dung */
+.scroll-pane .viewport {
+    -fx-background-color: transparent;
+}
+
+/* Thanh cuộn dọc */
+.scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-pref-width: 6px;
+}
+
+/* Phần nút kéo (thumb) - mờ đi mặc định */
+.scroll-bar:vertical .thumb {
+    -fx-background-color: #7c4dff;
+    -fx-background-radius: 4px;
+    -fx-opacity: 0.3;
+    -fx-background-insets: 0;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 2, 0, 0, 0);
+}
+
+/* Hover: sáng hơn */
+.scroll-bar:vertical .thumb:hover {
+    -fx-opacity: 0.8;
+}
+
+/* Phần track (nền rãnh) */
+.scroll-bar:vertical .track {
+    -fx-background-color: transparent;
+}

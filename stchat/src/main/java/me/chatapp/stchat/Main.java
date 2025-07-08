@@ -47,8 +47,7 @@ public class Main extends Application {
                 Stage primaryStage = SceneManager.getStage();
                 primaryStage.setTitle("ST Chat - " + user.getUsername());
                 primaryStage.setScene(view.getScene());
-                primaryStage.setMinWidth(1200);
-                primaryStage.setMinHeight(650);
+                primaryStage.setMaximized(true);
                 primaryStage.show();
 
                 controller.initialize();

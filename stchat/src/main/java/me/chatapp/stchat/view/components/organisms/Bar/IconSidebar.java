@@ -32,7 +32,6 @@ public class IconSidebar {
         addIcon("fa-comments", "Chats", true);
         addIcon("fa-user", "Profile");
         addIcon("fa-envelope", "Messages");
-        addIcon("fa-users", "Groups");
         addIcon("fa-phone", "Calls");
         addIcon("fa-bookmark", "Bookmarks");
 

@@ -9,11 +9,9 @@ import javafx.stage.Stage;
 import me.chatapp.stchat.AppContext;
 import me.chatapp.stchat.model.User;
 import me.chatapp.stchat.api.SocketClient;
-import me.chatapp.stchat.view.components.molecules.Item.NavigationItem;
 import me.chatapp.stchat.view.components.molecules.Item.ChannelItem;
 import me.chatapp.stchat.view.components.molecules.Item.DirectMessageItem;
 import me.chatapp.stchat.view.components.organisms.Footer.SidebarFooter;
-import me.chatapp.stchat.view.components.pages.ChatView;
 import me.chatapp.stchat.view.factories.*;
 import me.chatapp.stchat.view.init.SceneManager;
 import org.jetbrains.annotations.NotNull;
@@ -79,9 +77,6 @@ public class NavigationSidebar {
             case "messages":
                 newContent = createDirectMessagesContent();
                 break;
-            case "groups":
-                newContent = createGroupsContent();
-                break;
             case "calls":
                 newContent = createCallsContent();
                 break;
@@ -112,14 +107,8 @@ public class NavigationSidebar {
 
 
     private VBox createDirectMessagesContent() {
-        return DirectMessagesViewFactory.create(() -> switchContent("chats"));
+        return ContactViewFactory.create(() -> switchContent("chats"));
     }
-
-
-    private VBox createGroupsContent() {
-        return GroupsViewFactory.create(() -> switchContent("chats"));
-    }
-
 
     private VBox createCallsContent() {
         return CallsViewFactory.create(() -> switchContent("chats"));
@@ -138,8 +127,8 @@ public class NavigationSidebar {
 
     private void initializeComponent() {
         root.setPrefWidth(280);
-        root.setMinWidth(260);
-        root.setMaxWidth(320);
+        root.setMinWidth(500);
+        root.setMaxWidth(570);
         root.setStyle("-fx-background-color: #1a1d21; -fx-padding: 0;");
 
         // Header with workspace name and search
