@@ -77,9 +77,6 @@ public class NavigationSidebar {
             case "messages":
                 newContent = createDirectMessagesContent();
                 break;
-            case "groups":
-                newContent = createGroupsContent();
-                break;
             case "calls":
                 newContent = createCallsContent();
                 break;
@@ -110,14 +107,8 @@ public class NavigationSidebar {
 
 
     private VBox createDirectMessagesContent() {
-        return DirectMessagesViewFactory.create(() -> switchContent("chats"));
+        return ContactViewFactory.create(() -> switchContent("chats"));
     }
-
-
-    private VBox createGroupsContent() {
-        return GroupsViewFactory.create(() -> switchContent("chats"));
-    }
-
 
     private VBox createCallsContent() {
         return CallsViewFactory.create(() -> switchContent("chats"));
@@ -136,8 +127,8 @@ public class NavigationSidebar {
 
     private void initializeComponent() {
         root.setPrefWidth(280);
-        root.setMinWidth(260);
-        root.setMaxWidth(320);
+        root.setMinWidth(500);
+        root.setMaxWidth(570);
         root.setStyle("-fx-background-color: #1a1d21; -fx-padding: 0;");
 
         // Header with workspace name and search

@@ -14,10 +14,10 @@ public class UserServer {
                 .options("/*", ctx -> {
                     ctx.status(200);
                 })
-                .start(7072);
+                .start(6060);
 
         UserController.registerRoutes(app);
 
-        System.out.println("User server is running at http://localhost:7072/api/users");
+        System.out.println("User server is running at http://localhost:6060/api/users");
     }
 }
