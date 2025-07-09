@@ -61,6 +61,28 @@ public class UserApiClient {
         }
     }
 
+    public CompletableFuture<User> getUserById(int id) {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:6060/api/users/id/" + id))
+                .GET()
+                .build();
+
+        return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                .thenApply(response -> {
+                    if (response.statusCode() != 200) {
+                        throw new RuntimeException("User not found. Status: " + response.statusCode());
+                    }
+
+                    try {
+                        return objectMapper.readValue(response.body(), User.class);
+                    } catch (IOException e) {
+                        throw new RuntimeException("Error parsing user from JSON", e);
+                    }
+                });
+    }
+
+
+
     public void close() {
         System.out.println("UserApiClient closed.");
     }

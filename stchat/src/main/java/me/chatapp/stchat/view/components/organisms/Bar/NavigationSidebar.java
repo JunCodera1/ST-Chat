@@ -16,6 +16,7 @@ import me.chatapp.stchat.view.factories.*;
 import me.chatapp.stchat.view.init.SceneManager;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 public class NavigationSidebar {
@@ -275,6 +276,14 @@ public class NavigationSidebar {
         VBox.setMargin(separator, new Insets(10, 0, 10, 0));
         return separator;
     }
+
+    public List<String> getFavoriteUsernames() {
+        return favoritesContainer.getChildren().stream()
+                .filter(node -> node instanceof HBox)
+                .map(node -> ((Label) ((HBox) node).getChildren().get(1)).getText()) // giả sử label chứa username nằm ở index 1
+                .toList();
+    }
+
 
     private void setupDefaultItems() {
 

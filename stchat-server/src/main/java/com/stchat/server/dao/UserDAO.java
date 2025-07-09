@@ -2,7 +2,6 @@ package com.stchat.server.dao;
 
 import com.stchat.server.database.DatabaseConnection;
 import com.stchat.server.model.User;
-import com.stchat.server.service.AuthService;
 import com.stchat.server.util.EmailSender;
 import com.stchat.server.util.PasswordGenerator;
 import com.stchat.server.util.PasswordUtil;
@@ -10,6 +9,7 @@ import com.stchat.server.util.PasswordUtil;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 public class UserDAO {
@@ -110,6 +110,31 @@ public class UserDAO {
 
         return null;
     }
+
+    public Optional<User> getUserById(int id) {
+        String sql = "SELECT * FROM users WHERE id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                User user = new User(
+                        rs.getInt("id"),
+                        rs.getString("username"),
+                        rs.getString("first_name"),
+                        rs.getString("last_name"),
+                        rs.getString("email"),
+                        rs.getTimestamp("created_at")
+                );
+
+                return Optional.of(user);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return Optional.empty();
+    }
+
 
     public boolean isUsernameExists(String username) {
         String sql = "SELECT COUNT(*) FROM users WHERE username = ?";
