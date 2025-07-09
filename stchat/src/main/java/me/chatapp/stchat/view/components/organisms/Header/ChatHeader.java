@@ -60,7 +60,7 @@ public class ChatHeader {
 
         client.findUserByUsername(username).ifPresentOrElse(user -> {
             Platform.runLater(() -> {
-                infoBlock.setName(user.getFirstName() + " " + user.getLastName());
+                infoBlock.setName(user.getUsername());
                 infoBlock.setStatus(user.isActive() ? "Online" : "Last seen: " + formatTime(user.getLastSeen()));
 
                 if (user.getAvatarUrl() != null && !user.getAvatarUrl().isBlank()) {

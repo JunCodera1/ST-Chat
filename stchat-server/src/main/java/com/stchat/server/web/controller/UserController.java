@@ -23,6 +23,7 @@ public class UserController {
         app.post("/api/users/change-password", UserController::updatePassword);
         app.get("/api/users-count", UserController::getUserCount);
         app.put("/api/users/{id}/avatar", UserController::updateAvatar);
+        app.get("/api/users/id/{id}", UserController::getUserById);
     }
 
     private static void registerUser(Context ctx) {
@@ -112,5 +113,15 @@ public class UserController {
         if (updated) ctx.result("Avatar updated successfully");
         else ctx.status(400).result("Failed to update avatar");
     }
+
+    private static void getUserById(Context ctx) {
+        int id = Integer.parseInt(ctx.pathParam("id"));
+        Optional<User> userOpt = userService.getUserById(id);
+        userOpt.ifPresentOrElse(
+                user -> ctx.json(user),
+                () -> ctx.status(404).result("User not found")
+        );
+    }
+
 
 }

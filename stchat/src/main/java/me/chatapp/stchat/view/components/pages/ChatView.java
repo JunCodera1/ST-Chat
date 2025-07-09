@@ -91,6 +91,7 @@ public class ChatView extends Application {
                     currentStage.setTitle(config.getTitle() + " - " + user.getUsername());
                 }
                 autoConnectToChat();
+                NavigationSidebarHandlerBinder.fetchFavoritesForUser(user, navigationSidebar, this);
             });
         }
     }

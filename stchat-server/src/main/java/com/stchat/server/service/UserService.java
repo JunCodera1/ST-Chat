@@ -61,4 +61,8 @@ public class UserService {
         return userDAO.updateAvatarUrl(userId, avatarUrl);
     }
 
+    public Optional<User> getUserById(int id) {
+        return userDAO.getUserById(id);
+    }
+
 }

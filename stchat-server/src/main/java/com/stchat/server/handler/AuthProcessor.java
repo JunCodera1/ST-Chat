@@ -2,6 +2,7 @@ package com.stchat.server.handler;
 
 import com.stchat.server.dao.PendingPasswordChangeDAO;
 import com.stchat.server.dao.UserDAO;
+import com.stchat.server.model.User;
 import com.stchat.server.service.AuthService;
 import com.stchat.server.service.PasswordService;
 import org.json.JSONObject;
@@ -30,7 +31,7 @@ public class AuthProcessor {
 
         if (AuthService.authenticateUser(username, password)) {
             UserDAO userDAO = new UserDAO();
-            com.stchat.server.model.User user = userDAO.getUserByUsername(username);
+            User user = userDAO.getUserByUsername(username);
 
             if (user == null) {
                 return JsonResponseUtil.error("User not found.");
