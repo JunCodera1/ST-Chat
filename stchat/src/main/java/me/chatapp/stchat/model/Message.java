@@ -31,10 +31,10 @@ public class Message {
     private boolean isPinned;
 
     @JsonProperty("receiverId")
-    private String receiverId;
+    private int receiverId;
 
     @JsonProperty("channelId")
-    private String channelId;
+    private int channelId;
 
     @JsonProperty("createdAt")
     @JsonDeserialize(using = LocalDateTimeFlexibleDeserializer.class)
@@ -72,7 +72,7 @@ public class Message {
 
     public Message(int id, String sender, String content, MessageType type,
                    int conversationId, boolean isPinned,
-                   String receiverId, String channelId) {
+                   int receiverId, int channelId) {
         this();
         this.id = id;
         this.sender = sender;
@@ -140,19 +140,19 @@ public class Message {
         isPinned = pinned;
     }
 
-    public String getReceiverId() {
+    public int getReceiverId() {
         return receiverId;
     }
 
-    public void setReceiverId(String receiverId) {
+    public void setReceiverId(int receiverId) {
         this.receiverId = receiverId;
     }
 
-    public String getChannelId() {
+    public int getChannelId() {
         return channelId;
     }
 
-    public void setChannelId(String channelId) {
+    public void setChannelId(int channelId) {
         this.channelId = channelId;
     }
 
