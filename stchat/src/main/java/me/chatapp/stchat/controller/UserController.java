@@ -16,7 +16,6 @@ public class UserController {
         this.currentUser = currentUser;
     }
 
-    // Load danh sách người dùng, bỏ qua chính mình
     public void loadAllUsers(Consumer<List<User>> onUsersLoaded, Consumer<Throwable> onError) {
         userApiClient.getAllUsers()
                 .thenAccept(users -> {
