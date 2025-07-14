@@ -126,15 +126,12 @@ public class NavigationSidebarHandlerBinder {
             });
         });
 
-
-
-
         navigationSidebar.setOnAddDirectMessageClicked(() -> {
             UserApiClient userApiClient = new UserApiClient();
             userApiClient.getAllUsers().thenAccept(users -> {
                 List<String> availableUsernames = users.stream()
                         .map(User::getUsername)
-                        .filter(name -> !name.equals(currentUser.getUsername())) // loại bỏ bản thân
+                        .filter(name -> !name.equals(currentUser.getUsername()))
                         .toList();
 
                 Platform.runLater(() -> {
@@ -264,14 +261,20 @@ public class NavigationSidebarHandlerBinder {
                 int currentUserId = currentUser.getId();
                 int targetUserId = targetUser.getId();
 
-                // Tạo (hoặc lấy) conversation qua API
                 conversationController.createConversationId(currentUserId, targetUserId)
                         .thenAccept(convId -> {
                             chatView.setCurrentConversationId(convId);
+
                             Platform.runLater(() -> {
                                 chatHeader.setActiveConversation(userName);
                                 chatPanel.setCurrentContact(userName, "user");
                                 chatPanel.clearMessages();
+
+                                // ✅ GÁN sender/receiver cho MessageInputPanel
+                                chatView.getMessageInputPanel().setSender(currentUser);
+                                System.out.println(currentUser);
+                                chatView.getMessageInputPanel().setReceiver(targetUser);
+                                System.out.println(targetUser);
 
                                 if (messageController != null) {
                                     messageController.loadMessagesForConversation(convId, chatPanel);
@@ -290,6 +293,7 @@ public class NavigationSidebarHandlerBinder {
                         chatView.showError("❌ Cannot find user: " + userName));
             });
         });
+
 
 
         // Settings
@@ -325,6 +329,4 @@ public class NavigationSidebarHandlerBinder {
             return null;
         });
     }
-
-
 }
