@@ -53,4 +53,21 @@ public class MessageService {
     public List<Message> getMessagesByTimeRange(int conversationId, Timestamp start, Timestamp end) {
         return messageDAO.getMessagesByTimeRange(conversationId, start, end);
     }
+
+    public boolean sendMessage(int senderId, int receiverId, String content) {
+        // 1. Lấy hoặc tạo cuộc trò chuyện riêng tư giữa sender và receiver
+        var conversation = ConversationService.createPrivateConversation(senderId, receiverId);
+
+        // 2. Tạo message mới
+        Message msg = new Message();
+        msg.setConversationId(conversation.getId());
+        msg.setSenderId(senderId);
+        msg.setContent(content);
+        msg.setMessageType(Message.MessageType.TEXT);
+        msg.setCreatedAt(new Timestamp(System.currentTimeMillis()));
+
+        // 3. Gửi tin nhắn
+        return messageDAO.addMessage(msg);
+    }
+
 }

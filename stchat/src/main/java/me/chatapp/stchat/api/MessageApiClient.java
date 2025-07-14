@@ -224,6 +224,37 @@ public class MessageApiClient {
                 });
     }
 
+    // 10. Gửi tin nhắn trực tiếp từ user A đến user B
+    public CompletableFuture<Boolean> sendDirectMessage(int senderId, int receiverId, String content) {
+        String url = BASE_URL + "/messages/direct";
+
+        // Tạo JSON body
+        String json;
+        try {
+            var body = new java.util.HashMap<String, Object>();
+            body.put("senderId", senderId);
+            body.put("receiverId", receiverId);
+            body.put("content", content);
+            json = objectMapper.writeValueAsString(body);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to serialize direct message body", e);
+        }
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(json))
+                .build();
+
+        return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                .thenApply(response -> {
+                    System.out.println("[DEBUG] Direct message response code: " + response.statusCode());
+                    System.out.println("[DEBUG] Direct message response body: " + response.body());
+                    return response.statusCode() == 200 || response.statusCode() == 201;
+                });
+    }
+
+
     public void close() {
         // HttpClient sẽ tự động cleanup
     }
