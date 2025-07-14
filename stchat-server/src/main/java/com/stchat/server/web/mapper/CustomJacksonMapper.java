@@ -1,10 +1,8 @@
 package com.stchat.server.web.mapper;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import io.javalin.json.JsonMapper;
+import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Type;
 import java.util.function.Consumer;
@@ -18,8 +16,9 @@ public class CustomJacksonMapper implements JsonMapper {
         configurer.accept(this.objectMapper);
     }
 
+    @NotNull
     @Override
-    public String toJsonString(Object obj, Type type) {
+    public String toJsonString(@NotNull Object obj, @NotNull Type type) {
         try {
             return objectMapper.writeValueAsString(obj);
         } catch (Exception e) {
@@ -27,8 +26,9 @@ public class CustomJacksonMapper implements JsonMapper {
         }
     }
 
+    @NotNull
     @Override
-    public <T> T fromJsonString(String json, Type targetType) {
+    public <T> T fromJsonString(@NotNull String json, @NotNull Type targetType) {
         try {
             return objectMapper.readValue(json, objectMapper.constructType(targetType));
         } catch (Exception e) {

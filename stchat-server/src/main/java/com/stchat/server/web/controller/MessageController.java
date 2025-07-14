@@ -114,10 +114,8 @@ public class MessageController {
         int receiverId = Integer.parseInt(body.get("receiverId").toString());
         String content = body.get("content").toString();
 
-        // 📩 Lấy hoặc tạo conversation giữa 2 người
         var conversation = ConversationService.createPrivateConversation(senderId, receiverId);
 
-        // 📝 Tạo message
         Message message = new Message();
         message.setConversationId(conversation.getId());
         message.setSenderId(senderId);
@@ -125,10 +123,13 @@ public class MessageController {
         message.setMessageType(Message.MessageType.TEXT);
         message.setCreatedAt(new Timestamp(System.currentTimeMillis()));
 
-        boolean success = messageService.sendMessage(message); // 👈 Dùng instance
+        boolean success = messageService.sendMessage(message);
 
         if (success) {
-            ctx.status(201).result("Message sent successfully");
+            ctx.status(201).json(Map.of(
+                    "status", "success",
+                    "conversationId", conversation.getId()
+            ));
         } else {
             ctx.status(500).result("Failed to send message");
         }
