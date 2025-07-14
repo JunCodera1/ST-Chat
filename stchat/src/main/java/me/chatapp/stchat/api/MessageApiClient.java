@@ -42,6 +42,9 @@ public class MessageApiClient {
 
         return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
+                    System.out.println("[DEBUG] Status code: " + response.statusCode());
+                    System.out.println("[DEBUG] Response body: " + response.body()); // ← THÊM DÒNG NÀY
+
                     if (response.statusCode() == 200) {
                         try {
                             return objectMapper.readValue(response.body(),
@@ -225,10 +228,9 @@ public class MessageApiClient {
     }
 
     // 10. Gửi tin nhắn trực tiếp từ user A đến user B
-    public CompletableFuture<Boolean> sendDirectMessage(int senderId, int receiverId, String content) {
+    public CompletableFuture<Integer> sendDirectMessage(int senderId, int receiverId, String content) {
         String url = BASE_URL + "/messages/direct";
 
-        // Tạo JSON body
         String json;
         try {
             var body = new java.util.HashMap<String, Object>();
@@ -250,9 +252,20 @@ public class MessageApiClient {
                 .thenApply(response -> {
                     System.out.println("[DEBUG] Direct message response code: " + response.statusCode());
                     System.out.println("[DEBUG] Direct message response body: " + response.body());
-                    return response.statusCode() == 200 || response.statusCode() == 201;
+
+                    if (response.statusCode() == 200 || response.statusCode() == 201) {
+                        try {
+                            var responseMap = objectMapper.readValue(response.body(), new TypeReference<java.util.Map<String, Object>>() {});
+                            return (int) responseMap.get("conversationId");  // 👈 Lấy ID mới
+                        } catch (Exception e) {
+                            throw new RuntimeException("Failed to parse direct message response", e);
+                        }
+                    } else {
+                        throw new RuntimeException("Failed to send direct message: " + response.statusCode());
+                    }
                 });
     }
+
 
 
     public void close() {

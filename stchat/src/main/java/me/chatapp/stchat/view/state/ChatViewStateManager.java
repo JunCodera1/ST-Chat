@@ -5,7 +5,6 @@ import javafx.scene.control.Alert;
 import javafx.scene.Scene;
 import me.chatapp.stchat.model.Message;
 import me.chatapp.stchat.view.components.organisms.Panel.ChatPanel;
-import me.chatapp.stchat.view.components.organisms.Panel.ConnectionPanel;
 import me.chatapp.stchat.view.components.organisms.Panel.MessageInputPanel;
 import me.chatapp.stchat.view.components.organisms.Bar.StatusBar;
 
@@ -14,18 +13,16 @@ import java.time.format.DateTimeFormatter;
 
 public class ChatViewStateManager {
 
-    private final ConnectionPanel connectionPanel;
     private final ChatPanel chatPanel;
     private final MessageInputPanel messageInputPanel;
     private final StatusBar statusBar;
     private final Scene scene;
 
-    public ChatViewStateManager(ConnectionPanel connectionPanel,
+    public ChatViewStateManager(
                                 ChatPanel chatPanel,
                                 MessageInputPanel messageInputPanel,
                                 StatusBar statusBar,
                                 Scene scene) {
-        this.connectionPanel = connectionPanel;
         this.chatPanel = chatPanel;
         this.messageInputPanel = messageInputPanel;
         this.statusBar = statusBar;
@@ -34,13 +31,7 @@ public class ChatViewStateManager {
 
     public void updateConnectionStatus(boolean connected) {
         Platform.runLater(() -> {
-            connectionPanel.getConnectButton().setDisable(connected);
-            connectionPanel.getDisconnectButton().setDisable(!connected);
-            connectionPanel.getHostField().setDisable(connected);
-            connectionPanel.getUsernameField().setDisable(connected);
-
             messageInputPanel.getMessageField().setDisable(!connected);
-            messageInputPanel.getSendButton().setDisable(!connected);
 
             if (connected) {
                 statusBar.setStatus("Connected", true);
@@ -48,13 +39,6 @@ public class ChatViewStateManager {
             } else {
                 statusBar.setStatus("Disconnected", false);
             }
-        });
-    }
-
-    public void addMessage(String message) {
-        Platform.runLater(() -> {
-            String timestamp = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-            chatPanel.addMessage("[" + timestamp + "] " + message);
         });
     }
 
@@ -89,9 +73,5 @@ public class ChatViewStateManager {
 
     public String getCurrentMessage() {
         return messageInputPanel.getMessageField().getText().trim();
-    }
-
-    public void focusMessageInput() {
-        messageInputPanel.getMessageField().requestFocus();
     }
 }

@@ -10,7 +10,6 @@ import me.chatapp.stchat.model.User;
 import me.chatapp.stchat.view.components.organisms.Bar.NavigationSidebar;
 import me.chatapp.stchat.view.components.organisms.Header.ChatHeader;
 import me.chatapp.stchat.view.components.organisms.Panel.ChatPanel;
-import me.chatapp.stchat.view.components.organisms.Panel.ConnectionPanel;
 import me.chatapp.stchat.view.components.organisms.Panel.MessageInputPanel;
 import me.chatapp.stchat.view.components.organisms.Bar.StatusBar;
 import me.chatapp.stchat.view.config.ChatViewConfig;
@@ -28,7 +27,6 @@ public class ChatInitializer {
             ConversationController conversationController,
             MessageController messageController,
             ChatViewStateManager stateManager,
-            ChatViewEventHandler eventHandler,
             NavigationSidebar navigationSidebar
     ) {}
 
@@ -38,7 +36,6 @@ public class ChatInitializer {
             User currentUser,
             Stage currentStage,
             Scene scene,
-            ConnectionPanel connectionPanel,
             ChatPanel chatPanel,
             MessageInputPanel messageInputPanel,
             StatusBar statusBar,
@@ -48,29 +45,21 @@ public class ChatInitializer {
             Consumer<String> showError
     ) throws IOException {
 
-        // Khởi tạo SocketClient
         SocketClient socketClient = new SocketClient("localhost", config.getPort());
         AppContext.getInstance().setSocketClient(socketClient);
 
-        ConversationApiClient conversationApiClient = new ConversationApiClient(); // bạn có thể truyền base URL nếu cần
+        ConversationApiClient conversationApiClient = new ConversationApiClient();
         ConversationController conversationController = new ConversationController(conversationApiClient);
 
 
-        // Khởi tạo MessageController
         MessageController messageController = new MessageController();
 
-        // State Manager
         ChatViewStateManager stateManager = new ChatViewStateManager(
-                connectionPanel, chatPanel, messageInputPanel, statusBar, scene
+                chatPanel, messageInputPanel, statusBar, scene
         );
 
-        // Event Handler
-        ChatViewEventHandler eventHandler = new ChatViewEventHandler(
-                config.getPort(), connectionPanel, chatPanel, messageInputPanel, stateManager
-        );
-        eventHandler.setSocketClient(socketClient);
 
-        // Sidebar + gán callback
+
         NavigationSidebar navigationSidebar = new NavigationSidebar(
                 currentUser, currentStage, logoutCallback
         );
@@ -105,7 +94,6 @@ public class ChatInitializer {
                 conversationController,
                 messageController,
                 stateManager,
-                eventHandler,
                 navigationSidebar
         );
 

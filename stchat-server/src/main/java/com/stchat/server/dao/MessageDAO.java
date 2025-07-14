@@ -55,6 +55,7 @@ public class MessageDAO {
             pstmt.setBoolean(11, message.isPinned());
             pstmt.setTimestamp(12, message.getCreatedAt());
             pstmt.setTimestamp(13, message.getUpdatedAt());
+            System.out.println("[DEBUG] INSERTING message with conversation_id = " + message.getConversationId());
 
             return pstmt.executeUpdate() > 0;
 

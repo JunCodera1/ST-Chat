@@ -58,9 +58,9 @@ public class MessageController {
                 Message.MessageType.TEXT);
 
         message.setConversationId(conversationId);
-        message.setSenderId(1);
-        message.setCreatedAt(LocalDateTime.now());
+        message.setSenderId(sender.getId());
 
+        message.setCreatedAt(LocalDateTime.now());
         System.out.println("Created message: " + message);
 
         messageApiClient.sendMessage(message)
@@ -107,34 +107,29 @@ public class MessageController {
                 });
     }
 
-    public void sendDirectMessage(User sender, User receiver, String content, ChatPanel chatPanel) {
-        System.out.println("Sending direct message from " + sender.getUsername() + " to " + receiver.getUsername());
+    public void sendDirectMessage(User sender,
+                                  User receiver,
+                                  String content,
+                                  int conversationId,
+                                  ChatPanel chatPanel) {
+        if (content == null || content.isBlank()) return;
+
+        System.out.println("Sending DM from " + sender + " to " + receiver);
 
         messageApiClient.sendDirectMessage(sender.getId(), receiver.getId(), content)
-                .thenAccept(success -> {
-                    if (success) {
-                        Message message = new Message(sender.getUsername(), content, Message.MessageType.TEXT);
-                        message.setSenderId(sender.getId());
-                        message.setCreatedAt(LocalDateTime.now());
+                .thenAccept(ignored -> {
+                    Message msg = new Message(sender.getUsername(), content, Message.MessageType.USER);
+                    msg.setSenderId(sender.getId());
+                    msg.setReceiverId(receiver.getId());
+                    msg.setConversationId(conversationId);
+                    msg.setCreatedAt(LocalDateTime.now());
 
-                        if (isJavaFXApplicationActive()) {
-                            Platform.runLater(() -> {
-                                if (chatPanel != null) {
-                                    chatPanel.addMessage(message);
-                                }
-                                System.out.println("Direct message sent successfully (UI updated)");
-                            });
-                        } else {
-                            System.out.println("Direct message sent successfully");
-                        }
+                    // Cập nhật UI
+                    Platform.runLater(() -> chatPanel.addMessage(msg));
 
-                        if (socketClient != null && socketClient.isConnected()) {
-                            socketClient.sendMessage(message);
-                            System.out.println("Message sent via socket");
-                        }
-
-                    } else {
-                        System.err.println("Failed to send direct message");
+                    // Gửi socket nếu cần
+                    if (socketClient != null && socketClient.isConnected()) {
+                        socketClient.sendMessage(msg);
                     }
                 })
                 .exceptionally(ex -> {
@@ -142,6 +137,9 @@ public class MessageController {
                     return null;
                 });
     }
+
+
+
 
 
     private boolean isJavaFXApplicationActive() {

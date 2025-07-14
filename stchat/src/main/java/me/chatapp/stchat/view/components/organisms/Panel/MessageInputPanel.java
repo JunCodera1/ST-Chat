@@ -1,13 +1,23 @@
 package me.chatapp.stchat.view.components.organisms.Panel;
 
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.application.Platform;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.concurrent.Task;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Label;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import me.chatapp.stchat.funtional.TriConsumer;
 import me.chatapp.stchat.model.User;
 import me.chatapp.stchat.util.VoiceRecorder;
@@ -20,10 +30,21 @@ import me.chatapp.stchat.view.components.molecules.Picker.EmojiPicker;
 import java.io.File;
 import java.util.function.Consumer;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static me.chatapp.stchat.util.FileUtil.*;
 
 public class MessageInputPanel {
+    private static final Logger LOGGER = Logger.getLogger(MessageInputPanel.class.getName());
+    private static final long MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+    private static final int MAX_MESSAGE_LENGTH = 4000;
+    private static final String RECORDING_ANIMATION = "🔴 Recording";
+
+    // UI Components
     private final VBox container;
     private final HBox inputRow;
     private final MessageTextField messageField;
@@ -31,65 +52,83 @@ public class MessageInputPanel {
     private final AttachmentButton attachmentButton;
     private final SendButton sendButton;
     private final MicrophoneButton microphoneButton;
+    private final Label statusLabel;
+    private final ProgressBar uploadProgress;
+
+    // Data
     private User sender;
     private User receiver;
 
-
-    // Callback để gửi tin nhắn
+    // Callbacks
     private TriConsumer<User, User, String> sendMessageCallback;
-
-    // Callback để gửi file/attachment
     private Consumer<File> sendFileCallback;
-    // Callback để gửi voice message
     private Consumer<String> sendVoiceCallback;
+    private Consumer<String> typingCallback;
 
-    // Voice recording state
-    private boolean isRecording = false;
+    // State management
+    private final BooleanProperty isRecording = new SimpleBooleanProperty(false);
+    private final BooleanProperty isUploading = new SimpleBooleanProperty(false);
+    private final BooleanProperty isTyping = new SimpleBooleanProperty(false);
+    private final BooleanProperty conversationReady = new SimpleBooleanProperty(false);
+    private final BooleanProperty busy = new SimpleBooleanProperty(false);
+
     private final VoiceRecorder voiceRecorder;
+    private final ExecutorService executorService;
 
-    public void setSender(User sender) {
-        this.sender = sender;
-    }
-
-    public void setReceiver(User receiver) {
-        this.receiver = receiver;
-    }
-
+    // Animations and timers
+    private Timeline recordingAnimation;
+    private Timeline typingTimer;
+    private int recordingDots = 0;
 
     public MessageInputPanel(TriConsumer<User, User, String> sendMessageCallback) {
         this.sendMessageCallback = sendMessageCallback;
         this.voiceRecorder = new VoiceRecorder();
+        this.executorService = Executors.newCachedThreadPool(r -> {
+            Thread t = new Thread(r);
+            t.setDaemon(true);
+            t.setName("MessageInputPanel-" + t.getId());
+            return t;
+        });
 
+        // Initialize UI components
         container = new VBox();
-        setupContainer();
-
         inputRow = new HBox();
         messageField = new MessageTextField();
         emojiPicker = new EmojiPicker(this::appendToInput);
         attachmentButton = new AttachmentButton();
         sendButton = new SendButton();
         microphoneButton = new MicrophoneButton();
+        statusLabel = new Label();
+        uploadProgress = new ProgressBar();
 
-        setupInputRow();
+        initializeUI();
         setupEventHandlers();
-
-        container.getChildren().add(inputRow);
+        setupPropertyBindings();
     }
 
-    private void appendToInput(String iconCode) {
-        messageField.appendText(" :" + iconCode + ": ");
-        messageField.requestFocus();
-    }
+    private void initializeUI() {
+        setupContainer();
+        setupInputRow();
+        setupStatusArea();
 
+        container.getChildren().addAll(inputRow);
+    }
+    public void setConversationReady(boolean ready) {
+        conversationReady.set(ready);
+    }
     private void setupContainer() {
         container.setPadding(new Insets(15, 20, 15, 20));
-        container.setStyle("-fx-background-color: white; " +
-                "-fx-border-color: #e9ecef; " +
-                "-fx-border-width: 1px 0 0 0;");
+        container.setStyle(
+                "-fx-background-color: white; " +
+                        "-fx-border-color: #e9ecef; " +
+                        "-fx-border-width: 1px 0 0 0; " +
+                        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 5, 0, 0, -1);"
+        );
     }
 
     private void setupInputRow() {
         inputRow.setAlignment(Pos.CENTER);
+        inputRow.setSpacing(10);
 
         // Left side buttons
         HBox leftButtons = new HBox(5);
@@ -101,130 +140,268 @@ public class MessageInputPanel {
         rightButtons.setAlignment(Pos.CENTER);
         rightButtons.getChildren().addAll(microphoneButton, sendButton);
 
-        // Set message field to grow
-        HBox.setHgrow(messageField, Priority.ALWAYS);
+        // Enhanced message field
+        messageField.setPromptText("Type a message...");
+        messageField.setStyle(
+                "-fx-background-radius: 20; " +
+                        "-fx-padding: 10 15; " +
+                        "-fx-border-radius: 20; " +
+                        "-fx-border-color: #d1d5db; " +
+                        "-fx-border-width: 1;"
+        );
 
+        HBox.setHgrow(messageField, Priority.ALWAYS);
         inputRow.getChildren().addAll(leftButtons, messageField, rightButtons);
     }
 
+    private void setupStatusArea() {
+        statusLabel.setStyle("-fx-text-fill: #6b7280; -fx-font-size: 12px;");
+        statusLabel.setVisible(false);
+
+        uploadProgress.setVisible(false);
+        uploadProgress.setPrefWidth(200);
+        uploadProgress.setStyle("-fx-accent: #3b82f6;");
+
+        HBox statusBox = new HBox(10);
+        statusBox.setAlignment(Pos.CENTER_LEFT);
+        statusBox.getChildren().addAll(statusLabel, uploadProgress);
+
+        container.getChildren().add(statusBox);
+    }
+
     private void setupEventHandlers() {
-        // Enable/disable send button based on text input
-        messageField.textProperty().addListener((obs, oldText, newText) -> {
-            boolean hasText = !newText.trim().isEmpty();
-            sendButton.setDisable(!hasText);
-
-            // Show/hide microphone button based on text
-            HBox rightButtons = (HBox) inputRow.getChildren().get(2);
-            if (hasText) {
-                rightButtons.getChildren().remove(microphoneButton);
-            } else {
-                if (!rightButtons.getChildren().contains(microphoneButton)) {
-                    rightButtons.getChildren().add(0, microphoneButton);
-                }
-            }
-        });
-
-        // Send on Enter key
+        System.out.println("TRACE: setupEventHandlers()");
+        // Message field events
         messageField.setOnAction(e -> sendMessage());
+
+        // Text change listener for typing indicator
+        messageField.textProperty().addListener((obs, oldText, newText) -> {
+            handleTextChange(newText);
+        });
+        sendButton.disableProperty().bind(
+                busy.or(messageField.textProperty().isEmpty()).or(conversationReady.not())
+        );
+        microphoneButton.disableProperty().bind(
+                busy.or(conversationReady.not())
+        );
+        // Button events
         sendButton.setOnAction(e -> sendMessage());
-
-        // Attachment button action
-        attachmentButton.setOnAction(e -> handleAttachment());
-
-        // Microphone button action
+        attachmentButton.setOnAction(e -> handleAttachmentAsync());
         microphoneButton.setOnAction(e -> handleVoiceInput());
 
-        // Initial state
-        sendButton.setDisable(true);
+        // Character limit enforcement
+        messageField.textProperty().addListener((obs, oldText, newText) -> {
+            if (newText.length() > MAX_MESSAGE_LENGTH) {
+                messageField.setText(oldText);
+                showWarningAlert("Character Limit",
+                        "Message cannot exceed " + MAX_MESSAGE_LENGTH + " characters.");
+            }
+        });
+    }
+
+    private void setupPropertyBindings() {
+        // Disable controls during recording or uploading
+        BooleanProperty busy = new SimpleBooleanProperty();
+        busy.bind(isRecording.or(isUploading));
+
+        attachmentButton.disableProperty().bind(busy);
+        sendButton.disableProperty().bind(busy.or(messageField.textProperty().isEmpty()));
+        emojiPicker.getEmojiButton().disableProperty().bind(busy);
+
+        // Recording state binding
+        isRecording.addListener((obs, oldVal, newVal) -> {
+            if (newVal) {
+                startRecordingAnimation();
+            } else {
+                stopRecordingAnimation();
+            }
+        });
+    }
+
+    private void handleTextChange(String newText) {
+        if (typingCallback != null && !newText.trim().isEmpty()) {
+            if (!isTyping.get()) {
+                isTyping.set(true);
+                typingCallback.accept("typing");
+            }
+
+            // Reset typing timer
+            if (typingTimer != null) {
+                typingTimer.stop();
+            }
+
+            typingTimer = new Timeline(new KeyFrame(Duration.seconds(2), e -> {
+                isTyping.set(false);
+                typingCallback.accept("stopped_typing");
+            }));
+            typingTimer.play();
+        }
+    }
+
+    private void appendToInput(String iconCode) {
+        String currentText = messageField.getText();
+        String newText = currentText + " :" + iconCode + ": ";
+
+        if (newText.length() <= MAX_MESSAGE_LENGTH) {
+            messageField.setText(newText);
+            messageField.positionCaret(newText.length());
+        }
+        messageField.requestFocus();
     }
 
     private void sendMessage() {
         String message = messageField.getText().trim();
-        if (!message.isEmpty() && sender != null && receiver != null) {
-            if (sendMessageCallback != null) {
-                sendMessageCallback.accept(sender, receiver, message);
-            }
-
+        System.out.println("DEBUG: sendMessage() fired — sender=" + sender + ", receiver=" + receiver + ", text=\"" + message + "\"");
+        System.out.println("TRACE: sendMessage() — text=\"" + messageField.getText() + "\"");
+        try {
+            sendMessageCallback.accept(sender, receiver, message);
             messageField.clear();
             messageField.requestFocus();
+
+            // Stop typing indicator
+            if (isTyping.get()) {
+                isTyping.set(false);
+                if (typingCallback != null) {
+                    typingCallback.accept("stopped_typing");
+                }
+            }
+
+            LOGGER.info("Message sent successfully");
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to send message", e);
+            showErrorAlert("Send Error", "Failed to send message: " + e.getMessage());
         }
     }
 
+    private void handleAttachmentAsync() {
+        CompletableFuture.runAsync(() -> {
+            Platform.runLater(() -> {
+                isUploading.set(true);
+                statusLabel.setText("Selecting file...");
+                statusLabel.setVisible(true);
+            });
+
+            try {
+                handleAttachment();
+            } finally {
+                Platform.runLater(() -> {
+                    isUploading.set(false);
+                    statusLabel.setVisible(false);
+                    uploadProgress.setVisible(false);
+                });
+            }
+        }, executorService);
+    }
 
     private void handleAttachment() {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Select File to Send");
+        setupFileFilters(fileChooser);
 
-        // Set up file filters
+        Platform.runLater(() -> {
+            Stage stage = (Stage) container.getScene().getWindow();
+            List<File> selectedFiles = fileChooser.showOpenMultipleDialog(stage);
+
+            if (selectedFiles != null && !selectedFiles.isEmpty()) {
+                processSelectedFiles(selectedFiles);
+            }
+        });
+    }
+
+    private void setupFileFilters(FileChooser fileChooser) {
         FileChooser.ExtensionFilter allFiles = new FileChooser.ExtensionFilter("All Files", "*.*");
-        FileChooser.ExtensionFilter imageFiles = new FileChooser.ExtensionFilter("Images", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp");
-        FileChooser.ExtensionFilter documentFiles = new FileChooser.ExtensionFilter("Documents", "*.pdf", "*.doc", "*.docx", "*.txt", "*.rtf");
-        FileChooser.ExtensionFilter videoFiles = new FileChooser.ExtensionFilter("Videos", "*.mp4", "*.avi", "*.mkv", "*.mov", "*.wmv");
-        FileChooser.ExtensionFilter audioFiles = new FileChooser.ExtensionFilter("Audio", "*.mp3", "*.wav", "*.ogg", "*.m4a");
+        FileChooser.ExtensionFilter imageFiles = new FileChooser.ExtensionFilter("Images",
+                "*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp", "*.svg", "*.webp");
+        FileChooser.ExtensionFilter documentFiles = new FileChooser.ExtensionFilter("Documents",
+                "*.pdf", "*.doc", "*.docx", "*.txt", "*.rtf", "*.odt", "*.xls", "*.xlsx");
+        FileChooser.ExtensionFilter videoFiles = new FileChooser.ExtensionFilter("Videos",
+                "*.mp4", "*.avi", "*.mkv", "*.mov", "*.wmv", "*.flv", "*.webm");
+        FileChooser.ExtensionFilter audioFiles = new FileChooser.ExtensionFilter("Audio",
+                "*.mp3", "*.wav", "*.ogg", "*.m4a", "*.flac", "*.aac");
 
         fileChooser.getExtensionFilters().addAll(imageFiles, documentFiles, videoFiles, audioFiles, allFiles);
+    }
 
-        // Try to get the current stage from the scene
-        Stage stage = (Stage) container.getScene().getWindow();
-        List<File> selectedFiles = fileChooser.showOpenMultipleDialog(stage);
-
-        if (selectedFiles != null && !selectedFiles.isEmpty()) {
-            for (File file : selectedFiles) {
-                handleSelectedFile(file);
-            }
+    private void processSelectedFiles(List<File> selectedFiles) {
+        if (selectedFiles.size() > 10) {
+            showWarningAlert("Too Many Files", "You can only select up to 10 files at once.");
+            return;
         }
+
+        for (File file : selectedFiles) {
+            processFileAsync(file);
+        }
+    }
+
+    private void processFileAsync(File file) {
+        CompletableFuture.runAsync(() -> {
+            Platform.runLater(() -> {
+                statusLabel.setText("Processing " + file.getName() + "...");
+                uploadProgress.setVisible(true);
+                uploadProgress.setProgress(0.0);
+            });
+
+            try {
+                handleSelectedFile(file);
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE, "Failed to process file: " + file.getName(), e);
+                Platform.runLater(() ->
+                        showErrorAlert("File Error", "Failed to process file: " + e.getMessage()));
+            }
+        }, executorService);
     }
 
     private void handleSelectedFile(File file) {
         if (file == null || !file.exists()) {
-            showAlert("Error", "File not found or cannot be accessed.");
+            showErrorAlert("Error", "File not found or cannot be accessed.");
             return;
         }
 
-        // Check file size (limit to 10MB)
-        long maxSize = 10 * 1024 * 1024; // 10MB in bytes
-        if (file.length() > maxSize) {
-            showAlert("File Too Large", "File size exceeds 10MB limit. Please select a smaller file.");
+        if (file.length() > MAX_FILE_SIZE) {
+            showErrorAlert("File Too Large",
+                    String.format("File size exceeds %dMB limit. Please select a smaller file.",
+                            MAX_FILE_SIZE / (1024 * 1024)));
             return;
         }
 
         try {
-            // Create a message with file attachment
+            // Simulate upload progress
+            for (int i = 0; i <= 100; i += 10) {
+                final int progress = i;
+                Platform.runLater(() -> uploadProgress.setProgress(progress / 100.0));
+                Thread.sleep(50); // Simulate processing time
+            }
+
             String fileName = file.getName();
             String fileExtension = getFileExtension(fileName);
             String fileType = getFileType(fileExtension);
 
-            // Format the message to include file info
-            String attachmentMessage = String.format("📎 %s [%s - %s]",
-                    fileName,
-                    fileType,
-                    formatFileSize(file.length())
-            );
+            // Enhanced message format with file info
+            String attachmentMessage = String.format("📎 %s\n📄 Type: %s\n📊 Size: %s",
+                    fileName, fileType, formatFileSize(file.length()));
 
-            // Send the attachment message
-            if (sendMessageCallback != null) {
-                if (sender != null && receiver != null) {
+            Platform.runLater(() -> {
+                if (sendMessageCallback != null && sender != null && receiver != null) {
                     sendMessageCallback.accept(sender, receiver, attachmentMessage);
                 }
-            }
 
-            // If there's a file callback, also send the file
-            if (sendFileCallback != null) {
-                sendFileCallback.accept(file);
-            }
+                if (sendFileCallback != null) {
+                    sendFileCallback.accept(file);
+                }
 
-            // Show success message
-            showInfoAlert("File Sent", "File \"" + fileName + "\" has been sent successfully.");
+                showInfoAlert("File Sent",
+                        String.format("File \"%s\" has been sent successfully.", fileName));
+            });
 
         } catch (Exception e) {
-            showAlert("Error", "Failed to send file: " + e.getMessage());
+            LOGGER.log(Level.SEVERE, "Failed to send file", e);
+            Platform.runLater(() ->
+                    showErrorAlert("Error", "Failed to send file: " + e.getMessage()));
         }
     }
 
-
-
     private void handleVoiceInput() {
-        if (!isRecording) {
+        if (!isRecording.get()) {
             startVoiceRecording();
         } else {
             stopVoiceRecording();
@@ -234,46 +411,31 @@ public class MessageInputPanel {
     private void startVoiceRecording() {
         try {
             voiceRecorder.startRecording();
-            isRecording = true;
+            isRecording.set(true);
 
-            // Update UI to show recording state
-            microphoneButton.setText("🔴 Stop");
-            microphoneButton.setStyle("-fx-background-color: #ff4444; -fx-text-fill: white;");
+            statusLabel.setText("Recording voice message...");
+            statusLabel.setVisible(true);
 
-            // Disable other buttons during recording
-            attachmentButton.setDisable(true);
-            sendButton.setDisable(true);
-            emojiPicker.getEmojiButton().setDisable(true);
-
-            showInfoAlert("Recording", "Voice recording started. Click the microphone button again to stop.");
-
+            LOGGER.info("Voice recording started");
         } catch (Exception e) {
-            showAlert("Recording Error", "Failed to start voice recording: " + e.getMessage());
+            LOGGER.log(Level.SEVERE, "Failed to start voice recording", e);
+            showErrorAlert("Recording Error", "Failed to start voice recording: " + e.getMessage());
         }
     }
 
     private void stopVoiceRecording() {
         try {
             String recordingPath = voiceRecorder.stopRecording();
-            isRecording = false;
+            isRecording.set(false);
 
-            // Reset UI
-            microphoneButton.setText("🎤");
-            microphoneButton.setStyle("");
-
-            // Re-enable buttons
-            attachmentButton.setDisable(false);
-            sendButton.setDisable(false);
-            emojiPicker.getEmojiButton().setDisable(false);
+            statusLabel.setVisible(false);
 
             if (recordingPath != null) {
-                // Send voice message
-                String voiceMessage = "🎤 Voice Message [" + formatDuration(voiceRecorder.getRecordingDuration()) + "]";
+                long duration = voiceRecorder.getRecordingDuration();
+                String voiceMessage = String.format("🎤 Voice Message (%s)", formatDuration(duration));
 
-                if (sendMessageCallback != null) {
-                    if (sender != null && receiver != null) {
-                        sendMessageCallback.accept(sender, receiver, voiceMessage);
-                    }
+                if (sendMessageCallback != null && sender != null && receiver != null) {
+                    sendMessageCallback.accept(sender, receiver, voiceMessage);
                 }
 
                 if (sendVoiceCallback != null) {
@@ -281,17 +443,38 @@ public class MessageInputPanel {
                 }
 
                 showInfoAlert("Voice Message", "Voice message sent successfully.");
+                LOGGER.info("Voice message sent successfully");
             }
-
         } catch (Exception e) {
-            showAlert("Recording Error", "Failed to stop voice recording: " + e.getMessage());
+            LOGGER.log(Level.SEVERE, "Failed to stop voice recording", e);
+            showErrorAlert("Recording Error", "Failed to stop voice recording: " + e.getMessage());
         }
     }
 
+    private void startRecordingAnimation() {
+        recordingAnimation = new Timeline(new KeyFrame(Duration.millis(500), e -> {
+            recordingDots = (recordingDots + 1) % 4;
+            String dots = ".".repeat(recordingDots);
+            microphoneButton.setText(RECORDING_ANIMATION + dots);
+        }));
+        recordingAnimation.setCycleCount(Timeline.INDEFINITE);
+        recordingAnimation.play();
+
+        microphoneButton.setStyle("-fx-background-color: #ef4444; -fx-text-fill: white; -fx-background-radius: 20;");
+    }
+
+    private void stopRecordingAnimation() {
+        if (recordingAnimation != null) {
+            recordingAnimation.stop();
+        }
+        microphoneButton.setText("🎤");
+        microphoneButton.setStyle("");
+    }
+
     private String formatDuration(long milliseconds) {
-        long seconds = milliseconds / 1000;
-        long minutes = seconds / 60;
-        seconds = seconds % 60;
+        long totalSeconds = milliseconds / 1000;
+        long minutes = totalSeconds / 60;
+        long seconds = totalSeconds % 60;
 
         if (minutes > 0) {
             return String.format("%d:%02d", minutes, seconds);
@@ -300,20 +483,26 @@ public class MessageInputPanel {
         }
     }
 
-    private void showAlert(String title, String message) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
+    private void showErrorAlert(String title, String message) {
+        showAlert(Alert.AlertType.ERROR, title, message);
+    }
+
+    private void showWarningAlert(String title, String message) {
+        showAlert(Alert.AlertType.WARNING, title, message);
     }
 
     private void showInfoAlert(String title, String message) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
+        showAlert(Alert.AlertType.INFORMATION, title, message);
+    }
+
+    private void showAlert(Alert.AlertType type, String title, String message) {
+        Platform.runLater(() -> {
+            Alert alert = new Alert(type);
+            alert.setTitle(title);
+            alert.setHeaderText(null);
+            alert.setContentText(message);
+            alert.showAndWait();
+        });
     }
 
     // Public API
@@ -329,33 +518,23 @@ public class MessageInputPanel {
         return sendButton;
     }
 
+    public void setSender(User sender) {
+        this.sender = sender;
+    }
+
+    public void setReceiver(User receiver) {
+        this.receiver = receiver;
+    }
+
+    public User getSender() {
+       return sender;
+    }
+
+    public User getReceiver() {
+        return receiver;
+    }
+
     public void setSendMessageCallback(TriConsumer<User, User, String> callback) {
         this.sendMessageCallback = callback;
-    }
-
-
-    public void setSendFileCallback(Consumer<File> callback) {
-        this.sendFileCallback = callback;
-    }
-
-    public void setSendVoiceCallback(Consumer<String> callback) {
-        this.sendVoiceCallback = callback;
-    }
-
-    public void focusInput() {
-        messageField.requestFocus();
-    }
-
-    public void clearInput() {
-        messageField.clear();
-        messageField.requestFocus();
-    }
-
-    public void setInputEnabled(boolean enabled) {
-        messageField.setDisable(!enabled);
-        sendButton.setDisable(!enabled);
-        attachmentButton.setDisable(!enabled);
-        emojiPicker.getEmojiButton().setDisable(!enabled);
-        microphoneButton.setDisable(!enabled);
     }
 }
