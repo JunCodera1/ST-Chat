@@ -103,8 +103,7 @@ public class ConversationApiClient {
                 });
     }
 
-    // 4. Lấy hoặc tạo hội thoại riêng tư giữa 2 user
-    public CompletableFuture<Conversation> getOrCreatePrivateConversation(int userId1, int userId2) {
+    public CompletableFuture<Conversation> createPrivateConversation(int userId1, int userId2) {
         try {
             String body = objectMapper.writeValueAsString(Map.of(
                     "userId1", userId1,
@@ -119,14 +118,21 @@ public class ConversationApiClient {
 
             return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                     .thenApply(response -> {
-                        try {
-                            if (response.statusCode() == 200) {
-                                return objectMapper.readValue(response.body(), Conversation.class);
-                            } else {
-                                throw new RuntimeException("Failed to get/create private conversation");
+                        int status = response.statusCode();
+                        String responseBody = response.body();
+
+                        if (status == 200) {
+                            try {
+                                return objectMapper.readValue(responseBody, Conversation.class);
+                            } catch (IOException e) {
+                                throw new RuntimeException("❌ Error parsing response JSON: " + responseBody, e);
                             }
-                        } catch (IOException e) {
-                            throw new RuntimeException("Error parsing private conversation", e);
+                        } else {
+                            System.err.println("❌ Failed to create conversation.");
+                            System.err.println("Status code: " + status);
+                            System.err.println("Response body: " + responseBody);
+
+                            throw new RuntimeException("Failed to get/create private conversation: HTTP " + status);
                         }
                     });
 
@@ -135,7 +141,7 @@ public class ConversationApiClient {
         }
     }
 
-    // 5. Thêm thành viên vào hội thoại
+
     public CompletableFuture<Boolean> addMembersToConversation(int conversationId, List<Integer> memberIds) {
         try {
             String json = objectMapper.writeValueAsString(memberIds);
@@ -205,4 +211,32 @@ public class ConversationApiClient {
                     }
                 });
     }
+
+    public CompletableFuture<Conversation> createChannelConversation(String channelName) {
+        try {
+            String body = objectMapper.writeValueAsString(Map.of("channelName", channelName));
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(BASE_URL + "/channel"))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .build();
+
+            return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                    .thenApply(response -> {
+                        if (response.statusCode() == 200) {
+                            try {
+                                return objectMapper.readValue(response.body(), Conversation.class);
+                            } catch (IOException e) {
+                                throw new RuntimeException("Error parsing channel conversation", e);
+                            }
+                        } else {
+                            throw new RuntimeException("Failed to create or get channel conversation: " + response.statusCode());
+                        }
+                    });
+        } catch (IOException e) {
+            return CompletableFuture.failedFuture(e);
+        }
+    }
+
 }

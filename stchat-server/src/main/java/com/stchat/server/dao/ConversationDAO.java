@@ -13,9 +13,21 @@ public class ConversationDAO {
         this.connection = connection;
     }
 
+    public Conversation findChannelByName(String channelName) throws SQLException {
+        String sql = "SELECT * FROM conversation WHERE name = ? AND type = 'CHANNEL'";
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, channelName);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return mapResultSetToConversation(rs);
+            }
+        }
+        return null;
+    }
+
     public List<Conversation> getConversationsByUserId(int userId) throws SQLException {
         List<Conversation> conversations = new ArrayList<>();
-        String sql = "SELECT c.* FROM conversations c " +
+        String sql = "SELECT c.* FROM conversation c " +
                 "JOIN conversation_participants cm ON c.id = cm.conversation_id " +
                 "WHERE cm.user_id = ? AND c.is_archived = false";
 
@@ -32,7 +44,7 @@ public class ConversationDAO {
     }
 
     public Conversation createConversation(Conversation conv) throws SQLException {
-        String sql = "INSERT INTO conversations (name, type, avatar_url, description, is_archived, created_by, created_at, updated_at) " +
+        String sql = "INSERT INTO conversation (name, type, avatar_url, description, is_archived, created_by, created_at, updated_at) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (PreparedStatement stmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -56,17 +68,20 @@ public class ConversationDAO {
     }
 
     public boolean addParticipantToConversation(int convId, int userId) throws SQLException {
-        String sql = "INSERT INTO conversation_participants (conversation_id, user_id) VALUES (?, ?)";
+        String sql = "INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at, is_muted, last_read_message_id) " +
+                "VALUES (?, ?, ?, CURRENT_TIMESTAMP, false, 0)";
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setInt(1, convId);
             stmt.setInt(2, userId);
+            stmt.setString(3, "MEMBER"); // ✅ đảm bảo không null
             return stmt.executeUpdate() > 0;
         }
     }
 
+
     public Conversation getConversationById(int id) throws SQLException {
-        String sql = "SELECT * FROM conversations WHERE id = ?";
+        String sql = "SELECT * FROM conversation WHERE id = ?";
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setInt(1, id);
@@ -105,7 +120,7 @@ public class ConversationDAO {
     }
 
     public boolean createConversationWithCreator(Conversation conv, int creatorId) {
-        String createSql = "INSERT INTO conversations (name, type, avatar_url, description, is_archived, created_by, created_at, updated_at) " +
+        String createSql = "INSERT INTO conversation (name, type, avatar_url, description, is_archived, created_by, created_at, updated_at) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         String memberSql = "INSERT INTO conversation_members (conversation_id, user_id) VALUES (?, ?)";
 
@@ -162,19 +177,23 @@ public class ConversationDAO {
     public Conversation findPrivateConversationBetween(int userId1, int userId2) throws SQLException {
         String sql = """
         SELECT c.*
-        FROM conversations c
+        FROM conversation c
         JOIN conversation_participants cp1 ON c.id = cp1.conversation_id
         JOIN conversation_participants cp2 ON c.id = cp2.conversation_id
         WHERE c.type = 'PRIVATE'
-          AND cp1.user_id = ?
-          AND cp2.user_id = ?
-        GROUP BY c.id
-        HAVING COUNT(*) = 2
+          AND (
+            (cp1.user_id = ? AND cp2.user_id = ?)
+            OR
+            (cp1.user_id = ? AND cp2.user_id = ?)
+          )
+        LIMIT 1
         """;
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setInt(1, userId1);
             stmt.setInt(2, userId2);
+            stmt.setInt(3, userId2);
+            stmt.setInt(4, userId1);
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
@@ -184,12 +203,16 @@ public class ConversationDAO {
         return null;
     }
 
+
     public boolean addMembers(int conversationId, List<Integer> memberIds) throws SQLException {
-        String sql = "INSERT INTO conversation_participants (conversation_id, user_id) VALUES (?, ?)";
+        String sql = "INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at, is_muted, last_read_message_id) " +
+                "VALUES (?, ?, ?, CURRENT_TIMESTAMP, false, ?)";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             for (int userId : memberIds) {
                 stmt.setInt(1, conversationId);
                 stmt.setInt(2, userId);
+                stmt.setString(3, "MEMBER");
+                stmt.setNull(4, java.sql.Types.INTEGER); // <-- dùng NULL thay vì 0
                 stmt.addBatch();
             }
             stmt.executeBatch();
@@ -197,9 +220,11 @@ public class ConversationDAO {
         }
     }
 
+
+
     public void updateConversation(Conversation conv) throws SQLException {
         String sql = """
-        UPDATE conversations
+        UPDATE conversation
         SET name = ?, avatar_url = ?, description = ?, updated_at = ?
         WHERE id = ?
         """;
