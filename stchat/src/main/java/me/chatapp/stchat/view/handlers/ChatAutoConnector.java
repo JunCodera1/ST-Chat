@@ -16,14 +16,14 @@ public class ChatAutoConnector {
 
         new Thread(() -> {
             try {
-                Thread.sleep(1000); // Giả lập độ trễ
+                Thread.sleep(1000);
                 Platform.runLater(() -> {
                     stateManager.addMessage(new Message("System",
-                            "🔄 Connecting to chat server...",
+                            "Connecting to chat server...",
                             Message.MessageType.SYSTEM));
                     updateConnectionStatus.run();
                     stateManager.addMessage(new Message("System",
-                            "✅ Connected successfully! You can now start chatting.",
+                            "Connected successfully! You can now start chatting.",
                             Message.MessageType.SYSTEM));
                     LOGGER.info("Auto-connected user: " + user.getUsername());
                 });

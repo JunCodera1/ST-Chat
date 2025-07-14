@@ -11,6 +11,7 @@ import me.chatapp.stchat.util.MessageActions;
 import me.chatapp.stchat.util.MessageRenderer;
 
 import java.io.File;
+import java.util.function.Consumer;
 
 import static me.chatapp.stchat.util.CSSUtil.*;
 
@@ -23,6 +24,8 @@ public class ChatPanel {
     private final MessageRenderer messageRenderer;
     private final MessageActions messageActions;
     private final ChatUtils chatUtils;
+    private final MessageInputPanel messageInputPanel;
+    private Consumer<String> sendMessageCallback;
 
     public ChatPanel(User currentUser) {
         this.currentUser = currentUser;
@@ -35,6 +38,11 @@ public class ChatPanel {
         messageRenderer = new MessageRenderer(currentUser);
         messageActions = new MessageActions(this, messageRenderer);
         chatUtils = new ChatUtils();
+        messageInputPanel = new MessageInputPanel((sender, receiver, content) -> {
+            if (sendMessageCallback != null) {
+                sendMessageCallback.accept(content);
+            }
+        });
         // Create message container
         messageContainer = new VBox();
         messageContainer.setSpacing(2);
@@ -68,6 +76,9 @@ public class ChatPanel {
     public void addMessage(String message) {
         Message msgObj = new Message("System", message, Message.MessageType.SYSTEM);
         addMessage(msgObj);
+    }
+    public void setOnSendMessage(Consumer<String> callback) {
+        this.sendMessageCallback = callback;
     }
 
     public void addMessage(Message message) {

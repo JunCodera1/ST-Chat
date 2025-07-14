@@ -8,8 +8,10 @@ import javafx.scene.control.TextInputDialog;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import me.chatapp.stchat.api.ConversationApiClient;
 import me.chatapp.stchat.api.FavouriteApiClient;
 import me.chatapp.stchat.api.UserApiClient;
+import me.chatapp.stchat.controller.ConversationController;
 import me.chatapp.stchat.controller.MessageController;
 import me.chatapp.stchat.model.User;
 import me.chatapp.stchat.view.components.organisms.Bar.NavigationSidebar;
@@ -20,6 +22,7 @@ import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.feather.Feather;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 
@@ -31,6 +34,7 @@ public class NavigationSidebarHandlerBinder {
         ChatHeader chatHeader = chatView.getChatHeader();
         MessageController messageController = chatView.getMessageController();
         User currentUser = chatView.getCurrentUser();
+        ConversationController conversationController = new ConversationController(new ConversationApiClient());
 
         navigationSidebar.setOnAddFavoriteClicked(() -> {
             UserApiClient userApiClient = new UserApiClient();
@@ -226,33 +230,67 @@ public class NavigationSidebarHandlerBinder {
             }
         });
 
-        // Channel selected
-        navigationSidebar.setOnChannelSelected(channelName -> {
-            chatView.setCurrentContactName(channelName);
-            int convId = chatView.getOrCreateConversationId(channelName);
-            chatView.setCurrentConversationId(convId);
-            chatHeader.setActiveConversation(channelName);
-            chatPanel.setCurrentContact(channelName, "channel");
-            chatPanel.clearMessages();
 
-            if (messageController != null) {
-                messageController.loadMessagesForConversation(convId, chatPanel);
-            }
+        navigationSidebar.setOnChannelSelected(channelName -> {
+            conversationController.createChannelConversation(channelName)
+                    .thenAccept(convId -> {
+                        chatView.setCurrentConversationId(convId);
+                        Platform.runLater(() -> {
+                            chatView.setCurrentContactName(channelName);
+                            chatHeader.setActiveConversation(channelName);
+                            chatPanel.setCurrentContact(channelName, "channel");
+                            chatPanel.clearMessages();
+
+                            if (messageController != null) {
+                                messageController.loadMessagesForConversation(convId, chatPanel);
+                            }
+                        });
+                    })
+                    .exceptionally(ex -> {
+                        ex.printStackTrace();
+                        Platform.runLater(() -> chatView.showError("❌ Failed to create or fetch conversation for channel: " + channelName));
+                        return null;
+                    });
         });
+
 
         // Direct message selected
         navigationSidebar.setOnDirectMessageSelected(userName -> {
             chatView.setCurrentContactName(userName);
-            int convId = chatView.getOrCreateConversationId(userName);
-            chatView.setCurrentConversationId(convId);
-            chatHeader.setActiveConversation(userName);
-            chatPanel.setCurrentContact(userName, "user");
-            chatPanel.clearMessages();
+            UserApiClient userApiClient = new UserApiClient();
 
-            if (messageController != null) {
-                messageController.loadMessagesForConversation(convId, chatPanel);
-            }
+            // Tìm user theo username
+            userApiClient.findUserByUsername(userName).ifPresentOrElse(targetUser -> {
+                int currentUserId = currentUser.getId();
+                int targetUserId = targetUser.getId();
+
+                // Tạo (hoặc lấy) conversation qua API
+                conversationController.createConversationId(currentUserId, targetUserId)
+                        .thenAccept(convId -> {
+                            chatView.setCurrentConversationId(convId);
+                            Platform.runLater(() -> {
+                                chatHeader.setActiveConversation(userName);
+                                chatPanel.setCurrentContact(userName, "user");
+                                chatPanel.clearMessages();
+
+                                if (messageController != null) {
+                                    messageController.loadMessagesForConversation(convId, chatPanel);
+                                }
+                            });
+                        })
+                        .exceptionally(ex -> {
+                            ex.printStackTrace();
+                            Platform.runLater(() ->
+                                    chatView.showError("❌ Failed to create or fetch conversation"));
+                            return null;
+                        });
+
+            }, () -> {
+                Platform.runLater(() ->
+                        chatView.showError("❌ Cannot find user: " + userName));
+            });
         });
+
 
         // Settings
         navigationSidebar.setOnSettingsClicked(() ->
@@ -261,17 +299,18 @@ public class NavigationSidebarHandlerBinder {
 
     public static void fetchFavoritesForUser(User user, NavigationSidebar navigationSidebar, ChatView chatView) {
         FavouriteApiClient favouriteApiClient = new FavouriteApiClient();
-        UserApiClient userApiClient = new UserApiClient(); // 👈 bạn cần có class này
+        UserApiClient userApiClient = new UserApiClient();
 
         favouriteApiClient.getFavouritesByUserId(user.getId()).thenCompose(favouriteList -> {
-            List<CompletableFuture<User>> userFutures = favouriteList.stream()
+            List<CompletableFuture<Optional<User>>> userFutures = favouriteList.stream()
                     .map(fav -> userApiClient.getUserById(fav.getFavoriteUserId()))
                     .toList();
 
-            // Gộp tất cả futures lại
             return CompletableFuture.allOf(userFutures.toArray(new CompletableFuture[0]))
                     .thenApply(v -> userFutures.stream()
                             .map(CompletableFuture::join)
+                            .filter(Optional::isPresent)
+                            .map(Optional::get)
                             .toList());
         }).thenAccept(favoriteUsers -> {
             Platform.runLater(() -> {
@@ -286,5 +325,6 @@ public class NavigationSidebarHandlerBinder {
             return null;
         });
     }
+
 
 }
