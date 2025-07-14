@@ -1,11 +1,13 @@
 package com.stchat.server.web.controller;
 
 import com.stchat.server.model.Message;
+import com.stchat.server.service.ConversationService;
 import com.stchat.server.service.MessageService;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 
 import java.sql.Timestamp;
+import java.util.Map;
 import java.util.Objects;
 
 public class MessageController {
@@ -21,6 +23,7 @@ public class MessageController {
         app.get("/api/messages/media", MessageController::getMediaMessages);
         app.get("/api/messages/pinned", MessageController::getPinnedMessages);
         app.get("/api/messages/time-range", MessageController::getMessagesByTimeRange);
+        app.post("/api/messages/direct", MessageController::sendDirectMessage);
     }
 
     private static void getMessagesByConversation(Context ctx) {
@@ -102,5 +105,32 @@ public class MessageController {
         Timestamp from = Timestamp.valueOf(Objects.requireNonNull(ctx.queryParam("from"))); // Format: yyyy-[m]m-[d]d hh:mm:ss
         Timestamp to = Timestamp.valueOf(Objects.requireNonNull(ctx.queryParam("to")));
         ctx.json(messageService.getMessagesByTimeRange(conversationId, from, to));
+    }
+
+    private static void sendDirectMessage(Context ctx) {
+        Map<String, Object> body = ctx.bodyAsClass(Map.class);
+
+        int senderId = Integer.parseInt(body.get("senderId").toString());
+        int receiverId = Integer.parseInt(body.get("receiverId").toString());
+        String content = body.get("content").toString();
+
+        // 📩 Lấy hoặc tạo conversation giữa 2 người
+        var conversation = ConversationService.createPrivateConversation(senderId, receiverId);
+
+        // 📝 Tạo message
+        Message message = new Message();
+        message.setConversationId(conversation.getId());
+        message.setSenderId(senderId);
+        message.setContent(content);
+        message.setMessageType(Message.MessageType.TEXT);
+        message.setCreatedAt(new Timestamp(System.currentTimeMillis()));
+
+        boolean success = messageService.sendMessage(message); // 👈 Dùng instance
+
+        if (success) {
+            ctx.status(201).result("Message sent successfully");
+        } else {
+            ctx.status(500).result("Failed to send message");
+        }
     }
 }

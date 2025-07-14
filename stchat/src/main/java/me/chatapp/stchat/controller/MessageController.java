@@ -107,6 +107,43 @@ public class MessageController {
                 });
     }
 
+    public void sendDirectMessage(User sender, User receiver, String content, ChatPanel chatPanel) {
+        System.out.println("Sending direct message from " + sender.getUsername() + " to " + receiver.getUsername());
+
+        messageApiClient.sendDirectMessage(sender.getId(), receiver.getId(), content)
+                .thenAccept(success -> {
+                    if (success) {
+                        Message message = new Message(sender.getUsername(), content, Message.MessageType.TEXT);
+                        message.setSenderId(sender.getId());
+                        message.setCreatedAt(LocalDateTime.now());
+
+                        if (isJavaFXApplicationActive()) {
+                            Platform.runLater(() -> {
+                                if (chatPanel != null) {
+                                    chatPanel.addMessage(message);
+                                }
+                                System.out.println("Direct message sent successfully (UI updated)");
+                            });
+                        } else {
+                            System.out.println("Direct message sent successfully");
+                        }
+
+                        if (socketClient != null && socketClient.isConnected()) {
+                            socketClient.sendMessage(message);
+                            System.out.println("Message sent via socket");
+                        }
+
+                    } else {
+                        System.err.println("Failed to send direct message");
+                    }
+                })
+                .exceptionally(ex -> {
+                    ex.printStackTrace();
+                    return null;
+                });
+    }
+
+
     private boolean isJavaFXApplicationActive() {
         try {
             return Platform.isFxApplicationThread() || Platform.isImplicitExit();

@@ -57,11 +57,10 @@ public class NavigationSidebar {
         this.scrollPane = new ScrollPane();
 
         this.footer = new SidebarFooter(currentUser, socketClient, currentStage, onSettingsClicked);
-
-        initializeComponent();
         setupDefaultItems();
-
         this.originalContent = createMainContent();
+        initializeComponent();
+
         this.currentMainContent = this.originalContent;
     }
 
@@ -70,7 +69,7 @@ public class NavigationSidebar {
 
         switch (contentType.toLowerCase()) {
             case "chats":
-                newContent = originalContent; // Quay về nội dung gốc
+                newContent = originalContent;
                 break;
             case "profile":
                 newContent = createProfileContent();

@@ -2,7 +2,9 @@ package me.chatapp.stchat.view.init;
 
 import javafx.scene.Scene;
 import me.chatapp.stchat.AppContext;
+import me.chatapp.stchat.api.ConversationApiClient;
 import me.chatapp.stchat.api.SocketClient;
+import me.chatapp.stchat.controller.ConversationController;
 import me.chatapp.stchat.controller.MessageController;
 import me.chatapp.stchat.model.User;
 import me.chatapp.stchat.view.components.organisms.Bar.NavigationSidebar;
@@ -23,11 +25,13 @@ public class ChatInitializer {
 
     public record ChatInitResult(
             SocketClient socketClient,
+            ConversationController conversationController,
             MessageController messageController,
             ChatViewStateManager stateManager,
             ChatViewEventHandler eventHandler,
             NavigationSidebar navigationSidebar
     ) {}
+
 
     public static ChatInitResult initialize(
             ChatViewConfig config,
@@ -47,6 +51,10 @@ public class ChatInitializer {
         // Khởi tạo SocketClient
         SocketClient socketClient = new SocketClient("localhost", config.getPort());
         AppContext.getInstance().setSocketClient(socketClient);
+
+        ConversationApiClient conversationApiClient = new ConversationApiClient(); // bạn có thể truyền base URL nếu cần
+        ConversationController conversationController = new ConversationController(conversationApiClient);
+
 
         // Khởi tạo MessageController
         MessageController messageController = new MessageController();
@@ -93,7 +101,13 @@ public class ChatInitializer {
         });
 
         return new ChatInitResult(
-                socketClient, messageController, stateManager, eventHandler, navigationSidebar
+                socketClient,
+                conversationController,
+                messageController,
+                stateManager,
+                eventHandler,
+                navigationSidebar
         );
+
     }
 }

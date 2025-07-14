@@ -1,5 +1,6 @@
 package com.stchat.server.web.server;
 
+import com.stchat.server.web.controller.ConversationController;
 import com.stchat.server.web.controller.MessageController;
 import io.javalin.Javalin;
 
@@ -15,7 +16,7 @@ public class ConversationServer {
                     ctx.status(200);
                 })
                 .start(7071);
-
+        ConversationController.registerRoutes(app);
         MessageController.registerRoutes(app);
 
         System.out.println("Conversation server is running at http://localhost:7071/api/conversations");

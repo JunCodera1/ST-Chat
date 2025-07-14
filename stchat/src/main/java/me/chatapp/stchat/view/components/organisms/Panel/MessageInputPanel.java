@@ -8,6 +8,8 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import me.chatapp.stchat.funtional.TriConsumer;
+import me.chatapp.stchat.model.User;
 import me.chatapp.stchat.util.VoiceRecorder;
 import me.chatapp.stchat.view.components.atoms.Button.AttachmentButton;
 import me.chatapp.stchat.view.components.atoms.Button.MicrophoneButton;
@@ -29,9 +31,13 @@ public class MessageInputPanel {
     private final AttachmentButton attachmentButton;
     private final SendButton sendButton;
     private final MicrophoneButton microphoneButton;
+    private User sender;
+    private User receiver;
+
 
     // Callback để gửi tin nhắn
-    private Consumer<String> sendMessageCallback;
+    private TriConsumer<User, User, String> sendMessageCallback;
+
     // Callback để gửi file/attachment
     private Consumer<File> sendFileCallback;
     // Callback để gửi voice message
@@ -41,7 +47,16 @@ public class MessageInputPanel {
     private boolean isRecording = false;
     private final VoiceRecorder voiceRecorder;
 
-    public MessageInputPanel(Consumer<String> sendMessageCallback) {
+    public void setSender(User sender) {
+        this.sender = sender;
+    }
+
+    public void setReceiver(User receiver) {
+        this.receiver = receiver;
+    }
+
+
+    public MessageInputPanel(TriConsumer<User, User, String> sendMessageCallback) {
         this.sendMessageCallback = sendMessageCallback;
         this.voiceRecorder = new VoiceRecorder();
 
@@ -125,17 +140,16 @@ public class MessageInputPanel {
 
     private void sendMessage() {
         String message = messageField.getText().trim();
-        if (!message.isEmpty()) {
-            // Gọi callback để gửi tin nhắn
+        if (!message.isEmpty() && sender != null && receiver != null) {
             if (sendMessageCallback != null) {
-                sendMessageCallback.accept(message);
+                sendMessageCallback.accept(sender, receiver, message);
             }
 
-            // Clear input và focus
             messageField.clear();
             messageField.requestFocus();
         }
     }
+
 
     private void handleAttachment() {
         FileChooser fileChooser = new FileChooser();
@@ -189,7 +203,9 @@ public class MessageInputPanel {
 
             // Send the attachment message
             if (sendMessageCallback != null) {
-                sendMessageCallback.accept(attachmentMessage);
+                if (sender != null && receiver != null) {
+                    sendMessageCallback.accept(sender, receiver, attachmentMessage);
+                }
             }
 
             // If there's a file callback, also send the file
@@ -255,7 +271,9 @@ public class MessageInputPanel {
                 String voiceMessage = "🎤 Voice Message [" + formatDuration(voiceRecorder.getRecordingDuration()) + "]";
 
                 if (sendMessageCallback != null) {
-                    sendMessageCallback.accept(voiceMessage);
+                    if (sender != null && receiver != null) {
+                        sendMessageCallback.accept(sender, receiver, voiceMessage);
+                    }
                 }
 
                 if (sendVoiceCallback != null) {
@@ -311,9 +329,10 @@ public class MessageInputPanel {
         return sendButton;
     }
 
-    public void setSendMessageCallback(Consumer<String> callback) {
+    public void setSendMessageCallback(TriConsumer<User, User, String> callback) {
         this.sendMessageCallback = callback;
     }
+
 
     public void setSendFileCallback(Consumer<File> callback) {
         this.sendFileCallback = callback;

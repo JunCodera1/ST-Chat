@@ -61,7 +61,7 @@ public class UserApiClient {
         }
     }
 
-    public CompletableFuture<User> getUserById(int id) {
+    public CompletableFuture<Optional<User>> getUserById(int id) {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("http://localhost:6060/api/users/id/" + id))
                 .GET()
@@ -69,18 +69,43 @@ public class UserApiClient {
 
         return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
-                    if (response.statusCode() != 200) {
-                        throw new RuntimeException("User not found. Status: " + response.statusCode());
-                    }
-
-                    try {
-                        return objectMapper.readValue(response.body(), User.class);
-                    } catch (IOException e) {
-                        throw new RuntimeException("Error parsing user from JSON", e);
+                    if (response.statusCode() == 200) {
+                        try {
+                            User user = objectMapper.readValue(response.body(), User.class);
+                            return Optional.of(user);
+                        } catch (IOException e) {
+                            System.err.println("❌ Error parsing user from JSON: " + e.getMessage());
+                            return Optional.empty();
+                        }
+                    } else if (response.statusCode() == 404) {
+                        System.out.println("🔎 User with ID " + id + " not found (404)");
+                        return Optional.empty();
+                    } else {
+                        throw new RuntimeException("Unexpected error. Status: " + response.statusCode());
                     }
                 });
     }
 
+
+    public CompletableFuture<User> getUserByUsername(String username) {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:6060/api/users/" + username))
+                .GET()
+                .build();
+
+        return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                .thenApply(response -> {
+                    if (response.statusCode() == 200) {
+                        try {
+                            return objectMapper.readValue(response.body(), User.class);
+                        } catch (IOException e) {
+                            throw new RuntimeException("Error parsing user from JSON", e);
+                        }
+                    } else {
+                        throw new RuntimeException("User not found: " + response.statusCode());
+                    }
+                });
+    }
 
 
     public void close() {

@@ -10,6 +10,12 @@ import java.sql.Timestamp;
 import java.util.List;
 
 public class ConversationService {
+    private static ConversationDAO conversationDAO;
+
+    public ConversationService() throws SQLException {
+        Connection conn = DatabaseConnection.getConnection();
+        this.conversationDAO = new ConversationDAO(conn);
+    }
 
     public static List<Conversation> getConversationsForUser(int userId) {
         try (Connection conn = DatabaseConnection.getConnection()) {
@@ -29,6 +35,20 @@ public class ConversationService {
         }
     }
 
+    public static Conversation createOrGetChannelConversation(String channelName) throws SQLException {
+        Conversation existing = conversationDAO.findChannelByName(channelName);
+        if (existing != null) return existing;
+
+        Conversation newChannel = new Conversation();
+        newChannel.setName(channelName);
+        newChannel.setType(Conversation.ConversationType.CHANNEL);
+        newChannel.setArchived(false);
+        newChannel.setCreatedAt(new Timestamp(System.currentTimeMillis()));
+        newChannel.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
+        newChannel.setCreatedBy(0); // hoặc setUserId nếu có
+
+        return conversationDAO.createConversation(newChannel);
+    }
 
     public static Conversation createConversation(Conversation conv) {
         try (Connection conn = DatabaseConnection.getConnection()) {
@@ -43,7 +63,7 @@ public class ConversationService {
         }
     }
 
-    public static Conversation getOrCreatePrivateConversation(int user1, int user2) {
+    public static Conversation createPrivateConversation(int user1, int user2) {
         try (Connection conn = DatabaseConnection.getConnection()) {
             ConversationDAO dao = new ConversationDAO(conn);
 
@@ -54,7 +74,7 @@ public class ConversationService {
 
             Conversation conv = new Conversation();
             conv.setType(Conversation.ConversationType.PRIVATE);
-            conv.setCreatedBy(user1); // hoặc user2, tùy bạn
+            conv.setCreatedBy(user1);
             conv.setCreatedAt(now);
             conv.setUpdatedAt(now);
 

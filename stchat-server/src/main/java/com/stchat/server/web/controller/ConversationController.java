@@ -13,12 +13,13 @@ public class ConversationController {
     public static void registerRoutes(Javalin app) {
         app.get("/api/conversations", ConversationController::getConversationsByUserId);
         app.post("/api/conversations", ConversationController::createConversation);
-        app.get("/api/conversations/:id", ConversationController::getConversationById);
+        app.get("/api/conversations/{id}", ConversationController::getConversationById);
 
-        app.post("/api/conversations/private", ConversationController::getOrCreatePrivateConversation);
-        app.post("/api/conversations/:id/members", ConversationController::addMembersToConversation);
-        app.patch("/api/conversations/:id", ConversationController::updateConversationInfo);
-        app.get("/api/conversations/:id/media", ConversationController::getMediaInConversation);
+        app.post("/api/conversations/private", ConversationController::createPrivateConversation);
+        app.post("/api/conversations/{id}/members", ConversationController::addMembersToConversation);
+        app.patch("/api/conversations/{id}", ConversationController::updateConversationInfo);
+        app.get("/api/conversations/{id}/media", ConversationController::getMediaInConversation);
+        app.post("/api/conversations/channel", ConversationController::createOrGetChannelConversation);
     }
 
     private static void getConversationsByUserId(Context ctx) {
@@ -65,13 +66,25 @@ public class ConversationController {
         }
     }
 
-    private static void getOrCreatePrivateConversation(Context ctx) {
+    private static void createOrGetChannelConversation(Context ctx) {
+        try {
+            Map<String, String> body = ctx.bodyAsClass(Map.class);
+            String channelName = body.get("channelName");
+
+            Conversation convo = ConversationService.createOrGetChannelConversation(channelName);
+            ctx.status(200).json(convo);
+        } catch (Exception e) {
+            ctx.status(500).result("Error handling channel conversation: " + e.getMessage());
+        }
+    }
+
+    private static void createPrivateConversation(Context ctx) {
         try {
             Map body = ctx.bodyAsClass(Map.class);
             int user1 = (int) body.get("userId1");
             int user2 = (int) body.get("userId2");
 
-            Conversation convo = ConversationService.getOrCreatePrivateConversation(user1, user2);
+            Conversation convo = ConversationService.createPrivateConversation(user1, user2);
             ctx.status(200).json(convo);
         } catch (Exception e) {
             ctx.status(500).result("Error handling private conversation: " + e.getMessage());
