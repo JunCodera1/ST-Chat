@@ -6,6 +6,7 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
+import me.chatapp.stchat.controller.ConversationController;
 import me.chatapp.stchat.controller.MessageController;
 import me.chatapp.stchat.model.Message;
 import me.chatapp.stchat.model.User;
@@ -15,7 +16,6 @@ import me.chatapp.stchat.view.components.organisms.Bar.NavigationSidebar;
 import me.chatapp.stchat.view.components.organisms.Bar.StatusBar;
 import me.chatapp.stchat.view.components.organisms.Header.ChatHeader;
 import me.chatapp.stchat.view.components.organisms.Panel.ChatPanel;
-import me.chatapp.stchat.view.components.organisms.Panel.ConnectionPanel;
 import me.chatapp.stchat.view.components.organisms.Panel.MessageInputPanel;
 import me.chatapp.stchat.view.config.ChatViewConfig;
 import me.chatapp.stchat.view.handlers.*;
@@ -30,20 +30,18 @@ public class ChatView extends Application {
 
     private static final Logger LOGGER = Logger.getLogger(ChatView.class.getName());
 
+    private ConversationController conversationController;
     private User currentUser;
     private int currentConversationId = -1;
     private String currentContactName = null;
 
-    // Configuration
     private final ChatViewConfig config;
 
-    // Core JavaFX components
     private final BorderPane root;
     private final Scene scene;
 
     private NavigationSidebar navigationSidebar;
     private IconSidebar iconSidebar;
-    private ConnectionPanel connectionPanel;
     private ChatPanel chatPanel;
     private MessageInputPanel messageInputPanel;
     private StatusBar statusBar;
@@ -51,17 +49,13 @@ public class ChatView extends Application {
     private ChatHeader chatHeader;
     private VBox chatAreaContainer;
 
-    // Managers
     private ChatViewStateManager stateManager;
     private ChatViewEventHandler eventHandler;
 
-    // Controllers
     private MessageController messageController;
 
-    // API
     private SocketClient socketClient;
 
-    // Stage reference
     private Stage currentStage;
 
     public ChatView() {
@@ -83,17 +77,14 @@ public class ChatView extends Application {
         this.currentStage = stage;
 
         initializeUI();
+        NavigationSidebarHandlerBinder.fetchFavoritesForUser(user, navigationSidebar, this);
 
-        if (user != null) {
-            Platform.runLater(() -> {
-                navigationSidebar.setUser(user);
-                if (currentStage != null) {
-                    currentStage.setTitle(config.getTitle() + " - " + user.getUsername());
-                }
-                autoConnectToChat();
-                NavigationSidebarHandlerBinder.fetchFavoritesForUser(user, navigationSidebar, this);
-            });
-        }
+        Platform.runLater(() -> {
+            navigationSidebar.setUser(user);
+            if (currentStage != null) {
+                currentStage.setTitle(config.getTitle() + " - " + user.getUsername());
+            }
+        });
     }
 
     private void initializeUI() {
@@ -117,12 +108,9 @@ public class ChatView extends Application {
     }
 
     private void initializeComponents() {
-        connectionPanel = new ConnectionPanel();
         iconSidebar = new IconSidebar();
-        // Khởi tạo ChatPanel và MessageInputPanel với callback
-        chatPanel = new ChatPanel(currentUser);
         messageInputPanel = new MessageInputPanel(this::handleSendMessage);
-
+        chatPanel = new ChatPanel(currentUser, messageInputPanel);
         statusBar = new StatusBar();
         chatHeader = new ChatHeader();
     }
@@ -132,7 +120,6 @@ public class ChatView extends Application {
         chatAreaContainer.getChildren().add(chatHeader.getComponent());
         VBox.setVgrow(chatPanel.getComponent(), Priority.ALWAYS);
         chatAreaContainer.getChildren().add(chatPanel.getComponent());
-        chatAreaContainer.getChildren().add(messageInputPanel.getComponent());
     }
 
 
@@ -206,7 +193,6 @@ public class ChatView extends Application {
                     currentUser,
                     currentStage,
                     scene,
-                    connectionPanel,
                     chatPanel,
                     messageInputPanel,
                     statusBar,
@@ -216,10 +202,10 @@ public class ChatView extends Application {
                     this::showError
             );
 
+            this.conversationController = result.conversationController();
             this.socketClient = result.socketClient();
             this.messageController = result.messageController();
             this.stateManager = result.stateManager();
-            this.eventHandler = result.eventHandler();
             this.navigationSidebar = result.navigationSidebar();
             this.navigationSidebar.setOnContentChange(this::updateChatAreaContent);
 
@@ -247,37 +233,26 @@ public class ChatView extends Application {
         }
     }
 
-    private void handleSendMessage(String content) {
-        MessageSender.sendMessage(
-                currentUser,
-                content,
-                currentConversationId,
-                currentContactName,
-                messageController,
-                chatPanel,
-                this::showError
-        );
-    }
-
-
-    public int getOrCreateConversationId(String contactName) {
-        // For now, return a simple hash-based ID
-        return Math.abs(contactName.hashCode()) % 1000 + 1;
+    private void handleSendMessage(User sender, User receiver, String content) {
+        System.out.println("DEBUG: handleSendMessage(...) — sender=" + sender + ", receiver=" + receiver +
+                ", convId=" + currentConversationId + ", content=\"" + content + "\"");
+        if (receiver == null || currentConversationId == -1) {
+            System.out.println("⚠️ Không thể gửi: thiếu thông tin receiver hoặc conversationId");
+            return;
+        }
+        messageController.sendDirectMessage(sender, receiver, content,currentConversationId, chatPanel);
     }
 
     private void setupSystemMessage() {
-        if (currentUser == null) {
-            stateManager.addMessage("Welcome to ST Chat! Please login to start chatting.");
-        } else {
-            stateManager.addMessage(new Message("System",
-                    "Welcome back, " + currentUser.getUsername() + "! 🎉",
-                    Message.MessageType.SYSTEM));
-        }
+        stateManager.addMessage(new Message("System",
+                "Welcome back, " + currentUser.getUsername() + "! 🎉",
+                Message.MessageType.SYSTEM));
+        stateManager.addMessage(new Message("System",
+                "Welcome back, " + currentUser.getUsername() + "! 🎉",
+                Message.MessageType.SYSTEM));
     }
 
-    private void autoConnectToChat() {
-        ChatAutoConnector.connect(currentUser, stateManager, () -> updateConnectionStatus(true));
-    }
+
 
     @Override
     public void start(Stage primaryStage) {
@@ -331,14 +306,8 @@ public class ChatView extends Application {
             currentUser = null;
             currentConversationId = -1;
             currentContactName = null;
-
-            if (connectionPanel != null) {
-                connectionPanel.getUsernameField().setText("");
-                connectionPanel.getUsernameField().setEditable(true);
-            }
             updateConnectionStatus(false);
 
-            // Close current stage and show login
             if (currentStage != null) {
                 currentStage.close();
             }
@@ -388,7 +357,6 @@ public class ChatView extends Application {
     }
 
 
-    // Getters
     public NavigationSidebar getNavigationSidebar() {
         return navigationSidebar;
     }
@@ -412,4 +380,8 @@ public class ChatView extends Application {
     }
 
     public Scene getScene() { return scene; }
+
+    public MessageInputPanel getMessageInputPanel() {
+        return messageInputPanel;
+    }
 }
