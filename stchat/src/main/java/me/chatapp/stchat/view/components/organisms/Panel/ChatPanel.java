@@ -5,7 +5,6 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import me.chatapp.stchat.controller.MessageController;
-import me.chatapp.stchat.funtional.TriConsumer;
 import me.chatapp.stchat.model.Message;
 import me.chatapp.stchat.model.User;
 import me.chatapp.stchat.util.ChatUtils;
@@ -61,7 +60,6 @@ public class ChatPanel {
         scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         scrollPane.setStyle(STYLE_SCROLL_PANE);
 
-        // Assemble layout
         chatContainer.getChildren().addAll(
                 chatHeader.getHeaderBox(),
                 chatUtils.createSeparator(),
@@ -74,11 +72,6 @@ public class ChatPanel {
 
     public void setCurrentContact(String name, String type) {
         chatHeader.setCurrentContact(name, type);
-    }
-
-    public void addMessage(String message) {
-        Message msgObj = new Message("System", message, Message.MessageType.SYSTEM);
-        addMessage(msgObj);
     }
 
     public void addMessage(Message message) {
@@ -147,21 +140,6 @@ public class ChatPanel {
     public void setChatTitle(String title) {
         chatHeader.setChatTitle(title);
     }
-    public void loadMockMessages() {
-        for (int i = 1; i <= 5; i++) {
-            Message mockMessage = new Message("MockUser", "Đây là tin nhắn giả #" + i, Message.MessageType.TEXT);
-            mockMessage.setSenderId(999);
-            mockMessage.setConversationId(1);
-            mockMessage.setCreatedAt(LocalDateTime.now().minusMinutes(5 - i));
-            addMessage(mockMessage);
-        }
-
-        // Thêm tin nhắn hệ thống thử nghiệm
-        Message systemMessage = new Message("System", "📢 Đây là thông báo hệ thống", Message.MessageType.SYSTEM);
-        systemMessage.setCreatedAt(LocalDateTime.now());
-        addMessage(systemMessage);
-    }
-
 
     public ChatHeader getChatHeader() {
         return chatHeader;
