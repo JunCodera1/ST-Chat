@@ -1,21 +1,29 @@
 package me.chatapp.stchat.util;
 
-import javax.sound.sampled.AudioInputStream;
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.Clip;
-import java.io.File;
+
+import javazoom.jl.player.Player;
+
+import java.io.FileInputStream;
 
 public class AudioPlayer {
-    public static void play(String fileUrl) {
+    private static Player player;
+
+    public static void play(String filePath) {
         try {
-            File soundFile = new File(fileUrl);
-            AudioInputStream audioStream = AudioSystem.getAudioInputStream(soundFile);
-            Clip clip = AudioSystem.getClip();
-            clip.open(audioStream);
-            clip.start();
+            if (player != null) {
+                player.close();
+            }
+            FileInputStream fis = new FileInputStream(filePath);
+            player = new Player(fis);
+            new Thread(() -> {
+                try {
+                    player.play();
+                } catch (Exception e) {
+                    System.err.println("Lỗi khi phát MP3: " + e.getMessage());
+                }
+            }).start();
         } catch (Exception e) {
-            System.err.println("Failed to play audio: " + e.getMessage());
+            System.err.println("Không thể phát MP3: " + e.getMessage());
         }
     }
 }
-

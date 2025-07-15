@@ -1,11 +1,16 @@
 package me.chatapp.stchat.util;
 
 import javafx.geometry.Pos;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.TextFlow;
 import javafx.stage.FileChooser;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 import me.chatapp.stchat.model.AttachmentMessage;
 import me.chatapp.stchat.model.Message;
@@ -151,15 +156,33 @@ public class MessageActions {
 
 
     public void showFullSizeImage(AttachmentMessage attachment) {
-        try {
-            File imageFile = new File(attachment.getFilePath());
-            if (imageFile.exists() && Desktop.isDesktopSupported()) {
-                Desktop.getDesktop().open(imageFile);
-            }
-        } catch (IOException e) {
-            showAlert("Error", "Cannot open image: " + e.getMessage());
+        File imageFile = new File(attachment.getFilePath());
+        if (!imageFile.exists()) {
+            showAlert("Error", "File does not exist.");
+            return;
         }
+
+        Image image = new Image(imageFile.toURI().toString());
+        ImageView imageView = new ImageView(image);
+        imageView.setPreserveRatio(true);
+        imageView.setSmooth(true);
+        imageView.setFitWidth(1000); // Tùy chỉnh nếu muốn full screen
+
+        StackPane root = new StackPane(imageView);
+        root.setStyle("-fx-background-color: black;");
+
+        Scene scene = new Scene(root, 1000, 800); // kích thước có thể thay đổi
+
+        Stage imageStage = new Stage();
+        imageStage.setTitle(attachment.getFileName());
+        imageStage.setScene(scene);
+        imageStage.initModality(Modality.APPLICATION_MODAL); // chặn thao tác với cửa sổ khác
+        imageStage.show();
+
+        // Đóng khi click vào nền
+        root.setOnMouseClicked(e -> imageStage.close());
     }
+
 
     private void showAlert(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
