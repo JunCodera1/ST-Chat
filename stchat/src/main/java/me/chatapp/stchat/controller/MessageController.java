@@ -23,16 +23,15 @@ public class MessageController {
         System.out.println("Loading messages for conversation: " + conversationId);
 
         messageApiClient.getMessages(conversationId)
+                .thenApply(messageApiClient::enrichMessagesWithAttachment) // enrich here
                 .thenAccept(messages -> {
-                    System.out.println("Loaded " + messages.size() + " messages");
+                    System.out.println("Loaded " + messages.size() + " enriched messages");
+
                     if (chatPanel != null) {
-                        // Only use Platform.runLater if we're in a JavaFX application
                         if (isJavaFXApplicationActive()) {
-                            Platform.runLater(() -> {
-                                chatPanel.clearMessages();
-                                messages.forEach(chatPanel::addMessage);
-                            });
+                            Platform.runLater(() -> messages.forEach(chatPanel::addMessage));
                         } else {
+                            messages.forEach(chatPanel::addMessage);
                             System.out.println("Messages loaded (console mode)");
                         }
                     }
@@ -47,6 +46,7 @@ public class MessageController {
                     return null;
                 });
     }
+
 
     public void sendMessage(User sender, String content, int conversationId, ChatPanel chatPanel) {
         System.out.println("Attempting to send message:");
@@ -138,10 +138,6 @@ public class MessageController {
                 });
     }
 
-
-
-
-
     private boolean isJavaFXApplicationActive() {
         try {
             return Platform.isFxApplicationThread() || Platform.isImplicitExit();
@@ -153,4 +149,47 @@ public class MessageController {
     public void close() {
         messageApiClient.close();
     }
+
+    public void sendAttachmentMessage(Message message, ChatPanel chatPanel) {
+        System.out.println("Sending attachment message: " + message);
+
+        if (message.getType() == Message.MessageType.TEXT) {
+            System.err.println("MessageType TEXT is not considered an attachment.");
+            return;
+        }
+
+        message.setCreatedAt(LocalDateTime.now());
+
+        messageApiClient.sendMessage(message)
+                .thenAccept(success -> {
+                    if (success) {
+                        System.out.println("Attachment message sent successfully via API");
+                        handleSuccessfulSend(message, chatPanel);
+                    } else {
+                        System.err.println("Failed to send attachment message via API");
+                    }
+                })
+                .exceptionally(ex -> {
+                    ex.printStackTrace();
+                    System.err.println("Error sending attachment message: " + ex.getMessage());
+                    return null;
+                });
+    }
+
+    private void handleSuccessfulSend(Message message, ChatPanel chatPanel) {
+        Platform.runLater(() -> {
+            if (chatPanel != null) {
+                chatPanel.addMessage(message);
+            }
+        });
+
+        if (socketClient != null && socketClient.isConnected()) {
+            socketClient.sendMessage(message);
+            System.out.println("Attachment message sent via socket");
+        } else {
+            System.err.println("Socket client not connected");
+        }
+    }
+
+
 }

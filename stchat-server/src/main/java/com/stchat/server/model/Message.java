@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.stchat.server.util.FlexibleTimestampDeserializer;
 
 import java.sql.Timestamp;
 
@@ -22,8 +24,9 @@ public class Message {
     private boolean isDeleted;
     @JsonProperty("isPinned")
     private boolean isPinned;
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @JsonDeserialize(using = FlexibleTimestampDeserializer.class)
     private Timestamp createdAt;
+
     private Timestamp updatedAt;
 
     public enum MessageType {

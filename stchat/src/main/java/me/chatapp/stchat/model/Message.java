@@ -40,6 +40,16 @@ public class Message {
     @JsonDeserialize(using = LocalDateTimeFlexibleDeserializer.class)
     private LocalDateTime createdAt;
 
+    @JsonProperty("fileUrl")
+    private String fileUrl;
+
+    @JsonProperty("fileName")
+    private String fileName;
+
+    @JsonProperty("fileSize")
+    private int fileSize;
+
+
     // Additional properties for ChatPanel compatibility
     @JsonIgnore
     private AttachmentMessage attachment;
@@ -85,7 +95,6 @@ public class Message {
         this.createdAt = LocalDateTime.now();
     }
 
-    // Existing getters and setters
     public int getId() {
         return id;
     }
@@ -180,10 +189,22 @@ public class Message {
     public void setAttachment(AttachmentMessage attachment) {
         this.attachment = attachment;
         this.hasAttachment = (attachment != null);
-        if (hasAttachment && (type == MessageType.TEXT || type == MessageType.USER)) {
-            this.type = MessageType.FILE;
+
+        if (attachment != null) {
+            this.fileName = attachment.getFileName();
+            this.fileSize = (int) attachment.getFileSize(); // cast nếu cần
+            this.fileUrl = attachment.getFilePath(); // dùng làm URL file
+
+            // Nếu chưa có type cụ thể
+            if (this.type == MessageType.TEXT || this.type == MessageType.USER) {
+                if (attachment.isAudio()) this.type = MessageType.AUDIO;
+                else if (attachment.isImage()) this.type = MessageType.IMAGE;
+                else if (attachment.isVideo()) this.type = MessageType.VIDEO;
+                else this.type = MessageType.FILE;
+            }
         }
     }
+
 
     public boolean hasAttachment() {
         return hasAttachment || attachment != null;
@@ -246,6 +267,8 @@ public class Message {
                 ? createdAt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
                 : "Unknown";
     }
+
+
 
     // NEW: Message type checking methods
     public boolean isSystemMessage() {
@@ -320,6 +343,30 @@ public class Message {
         cloned.editedAt = this.editedAt;
         cloned.originalContent = this.originalContent;
         return cloned;
+    }
+
+    public String getFileUrl() {
+        return fileUrl;
+    }
+
+    public void setFileUrl(String fileUrl) {
+        this.fileUrl = fileUrl;
+    }
+
+    public int getFileSize() {
+        return fileSize;
+    }
+
+    public void setFileSize(int fileSize) {
+        this.fileSize = fileSize;
+    }
+
+    public String getFileName() {
+        return fileName;
+    }
+
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
     }
 
     public enum MessageType {
