@@ -18,6 +18,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import me.chatapp.stchat.api.MessageApiClient;
 import me.chatapp.stchat.funtional.TriConsumer;
 import me.chatapp.stchat.model.AttachmentMessage;
 import me.chatapp.stchat.model.User;
@@ -39,6 +40,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static me.chatapp.stchat.util.FileUtil.*;
+import static me.chatapp.stchat.util.FileUtil.setupFileFilters;
+
 
 public class MessageInputPanel {
     private static final Logger LOGGER = Logger.getLogger(MessageInputPanel.class.getName());
@@ -313,20 +316,6 @@ public class MessageInputPanel {
         });
     }
 
-    private void setupFileFilters(FileChooser fileChooser) {
-        FileChooser.ExtensionFilter allFiles = new FileChooser.ExtensionFilter("All Files", "*.*");
-        FileChooser.ExtensionFilter imageFiles = new FileChooser.ExtensionFilter("Images",
-                "*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp", "*.svg", "*.webp");
-        FileChooser.ExtensionFilter documentFiles = new FileChooser.ExtensionFilter("Documents",
-                "*.pdf", "*.doc", "*.docx", "*.txt", "*.rtf", "*.odt", "*.xls", "*.xlsx");
-        FileChooser.ExtensionFilter videoFiles = new FileChooser.ExtensionFilter("Videos",
-                "*.mp4", "*.avi", "*.mkv", "*.mov", "*.wmv", "*.flv", "*.webm");
-        FileChooser.ExtensionFilter audioFiles = new FileChooser.ExtensionFilter("Audio",
-                "*.mp3", "*.wav", "*.ogg", "*.m4a", "*.flac", "*.aac");
-
-        fileChooser.getExtensionFilters().addAll(imageFiles, documentFiles, videoFiles, audioFiles, allFiles);
-    }
-
     private void processSelectedFiles(List<File> selectedFiles) {
         if (selectedFiles.size() > 10) {
             showWarningAlert("Too Many Files", "You can only select up to 10 files at once.");
@@ -369,51 +358,44 @@ public class MessageInputPanel {
             return;
         }
 
-        try {
-            // Simulate upload progress
-            for (int i = 0; i <= 100; i += 10) {
-                final int progress = i;
-                Platform.runLater(() -> uploadProgress.setProgress(progress / 100.0));
-                Thread.sleep(50); // Simulate processing time
-            }
+        // 1. Gọi uploadFile
+        MessageApiClient apiClient = new MessageApiClient(); // hoặc inject từ ngoài nếu đã có sẵn
 
+        apiClient.uploadFile(file).thenAccept(fileUrl -> {
             String fileName = file.getName();
             String fileExtension = getFileExtension(fileName);
             String fileType = getFileType(fileExtension);
 
-            // Enhanced message format with file info
-            String attachmentMessage = String.format("📎 %s\n📄 Type: %s\n📊 Size: %s",
-                    fileName, fileType, formatFileSize(file.length()));
+            AttachmentMessage attachment = new AttachmentMessage(
+                    fileName,
+                    fileType,
+                    file.length(),
+                    fileUrl,
+                    fileExtension
+            );
 
             Platform.runLater(() -> {
                 if (sendAttachmentCallback != null && sender != null && receiver != null) {
-                    AttachmentMessage attachment = new AttachmentMessage(
-                            fileName,
-                            fileType,
-                            file.length(),
-                            file.getAbsolutePath(),
-                            fileExtension
-                    );
                     sendAttachmentCallback.accept(sender, receiver, attachment);
                 }
 
+                // Tùy chọn: gửi mô tả text
                 if (sendMessageCallback != null && sender != null && receiver != null) {
+                    String attachmentMessage = String.format("📎 %s\n📄 Type: %s\n📊 Size: %s",
+                            fileName, fileType, formatFileSize(file.length()));
                     sendMessageCallback.accept(sender, receiver, attachmentMessage);
                 }
 
-                if (sendFileCallback != null) {
-                    sendFileCallback.accept(file);
-                }
-
-                showInfoAlert("File Sent",
-                        String.format("File \"%s\" has been sent successfully.", fileName));
+                showInfoAlert("File Sent", String.format("File \"%s\" has been sent successfully.", fileName));
             });
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Failed to send file", e);
-            Platform.runLater(() ->
-                    showErrorAlert("Error", "Failed to send file: " + e.getMessage()));
-        }
+
+        }).exceptionally(ex -> {
+            ex.printStackTrace();
+            Platform.runLater(() -> showErrorAlert("Upload Failed", "Could not upload file: " + ex.getMessage()));
+            return null;
+        });
     }
+
 
     private void handleVoiceInput() {
         if (!isRecording.get()) {
@@ -529,10 +511,6 @@ public class MessageInputPanel {
         return messageField;
     }
 
-    public SendButton getSendButton() {
-        return sendButton;
-    }
-
     public void setSender(User sender) {
         this.sender = sender;
     }
@@ -541,15 +519,4 @@ public class MessageInputPanel {
         this.receiver = receiver;
     }
 
-    public User getSender() {
-       return sender;
-    }
-
-    public User getReceiver() {
-        return receiver;
-    }
-
-    public void setSendMessageCallback(TriConsumer<User, User, String> callback) {
-        this.sendMessageCallback = callback;
-    }
 }

@@ -10,14 +10,14 @@ import java.util.Map;
 import java.util.UUID;
 
 public class FileController {
-    private static final String UPLOAD_DIR = "uploads"; // bạn nên cấu hình
+    private static final String UPLOAD_DIR = "/home/jun/IdeaProjects/ST-Chat/stchat-server/uploads/";
+
 
     public static void registerRoutes(Javalin app) {
         app.post("/api/files/upload", FileController::handleFileUpload);
     }
 
     private static void handleFileUpload(Context ctx) {
-        // Lấy tất cả file field tên "file"
         var uploadedFiles = ctx.uploadedFiles("file");
 
         if (uploadedFiles.isEmpty()) {
@@ -26,31 +26,61 @@ public class FileController {
         }
 
         var uploadedFile = uploadedFiles.get(0);
-        var fileName = uploadedFile.filename(); // ✅ đúng API mới
-        var fileContent = uploadedFile.content(); // ✅ trả về InputStream
+        var fileName = uploadedFile.filename();
+        var fileContent = uploadedFile.content();
 
         try {
-            String extension = getFileExtension(fileName);
-            String generatedName = UUID.randomUUID() + "." + extension;
+            String extension = getFileExtension(fileName).toLowerCase();
+            String originalName = UUID.randomUUID().toString();
+            String inputFileName = originalName + "." + extension;
+            String outputFileName = originalName + ".wav";
 
-            Path uploadPath = Path.of("uploads", generatedName);
-            Files.createDirectories(uploadPath.getParent());
+            Path inputPath = Path.of(UPLOAD_DIR, inputFileName);
+            Path outputPath = Path.of(UPLOAD_DIR, outputFileName);
 
-            Files.copy(fileContent, uploadPath, StandardCopyOption.REPLACE_EXISTING);
+            // Lưu file gốc (mp3)
+            Files.createDirectories(inputPath.getParent());
+            Files.copy(fileContent, inputPath, StandardCopyOption.REPLACE_EXISTING);
 
-            String fileUrl = "/static/" + generatedName;
+            // Nếu là file .mp3, convert sang .wav bằng ffmpeg
+            if (extension.equals("mp3")) {
+                Process process = new ProcessBuilder(
+                        "ffmpeg", "-y", // overwrite if exists
+                        "-i", inputPath.toString(),
+                        outputPath.toString()
+                ).inheritIO().start();
 
-            ctx.status(201).json(Map.of(
-                    "status", "success",
-                    "url", fileUrl,
-                    "fileName", fileName,
-                    "fileSize", uploadedFile.size()
-            ));
+                int exitCode = process.waitFor();
+                if (exitCode != 0) {
+                    throw new RuntimeException("FFmpeg failed to convert file.");
+                }
+
+                // Xóa file gốc mp3 nếu muốn
+                Files.deleteIfExists(inputPath);
+
+                ctx.status(201).json(Map.of(
+                        "status", "success",
+                        "url", outputPath.toString(),
+                        "fileName", outputFileName,
+                        "filePath", outputPath.toString(),
+                        "fileSize", Files.size(outputPath)
+                ));
+            } else {
+                ctx.status(201).json(Map.of(
+                        "status", "success",
+                        "url", inputPath.toString(),
+                        "fileName", inputFileName,
+                        "filePath", inputPath.toString(),
+                        "fileSize", Files.size(inputPath)
+                ));
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
-            ctx.status(500).result("Upload failed");
+            ctx.status(500).result("Upload failed: " + e.getMessage());
         }
     }
+
 
 
     private static String getFileExtension(String fileName) {
