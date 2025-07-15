@@ -54,13 +54,11 @@ public class MessageRenderer {
         bubble.setPadding(new Insets(12, 16, 12, 16));
         bubble.setMaxWidth(450);
 
+        boolean isCurrentUser = message.getSenderId() == currentUser.getId();
+
+        // Header: tên + thời gian (ẩn avatar nếu là current user)
         HBox headerBox = new HBox();
         headerBox.setSpacing(8);
-        headerBox.setAlignment(Pos.CENTER_LEFT);
-
-        Circle avatar = createAvatar(message);
-        VBox senderTimeBox = new VBox();
-        senderTimeBox.setSpacing(2);
 
         Label senderLabel = new Label(message.getSender());
         senderLabel.setStyle(STYLE_SENDER_LABEL);
@@ -72,10 +70,21 @@ public class MessageRenderer {
         );
         timeLabel.setStyle(STYLE_TIME_LABEL);
 
-        senderTimeBox.getChildren().addAll(senderLabel, timeLabel);
-        headerBox.getChildren().addAll(avatar, senderTimeBox);
+        VBox senderTimeBox = new VBox(senderLabel, timeLabel);
+        senderTimeBox.setSpacing(2);
+
+        if (isCurrentUser) {
+            headerBox.setAlignment(Pos.CENTER_RIGHT);
+            headerBox.getChildren().add(senderTimeBox); // Chỉ hiện tên và giờ
+        } else {
+            headerBox.setAlignment(Pos.CENTER_LEFT);
+            Circle avatar = createAvatar(message);
+            headerBox.getChildren().addAll(avatar, senderTimeBox);
+        }
+
         bubble.getChildren().add(headerBox);
 
+        // Nội dung tin nhắn hoặc file
         if (message.hasAttachment()) {
             VBox attachmentBox = new AttachmentRenderer().createAttachmentBox(message.getAttachment(), messageActions);
             bubble.getChildren().add(attachmentBox);
@@ -86,11 +95,15 @@ public class MessageRenderer {
             bubble.getChildren().add(contentFlow);
         }
 
+        // Style bong bóng
         styleMessageBubble(bubble, senderLabel, message);
+
+        // Action bar (sửa, trả lời, xóa)
         HBox actionBar = messageActions.createActionBar(message);
         bubble.getChildren().add(actionBar);
 
-        if (message.getType() == Message.MessageType.USER) {
+        // Đặt vị trí tổng thể bên trái/phải
+        if (isCurrentUser) {
             bubbleContainer.setAlignment(Pos.CENTER_RIGHT);
             HBox.setMargin(bubble, new Insets(0, 0, 0, 50));
         } else {
@@ -104,6 +117,7 @@ public class MessageRenderer {
 
         return messageBox;
     }
+
 
     public String processMessageContent(Message message) {
         String content = message.getContent();
@@ -136,24 +150,27 @@ public class MessageRenderer {
 
     public void styleMessageBubble(VBox bubble, Label senderLabel, Message message) {
         String baseStyle = "-fx-background-radius: 12px; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 4, 0, 0, 1);";
-        switch (message.getType()) {
-            case USER:
-                bubble.setStyle(baseStyle + "-fx-background-color: #2196F3;");
-                senderLabel.setStyle(STYLE_SENDER_LABEL + "-fx-text-fill: white;");
-                break;
-            case BOT:
-                bubble.setStyle(baseStyle + "-fx-background-color: #f8f9fa; -fx-border-color: #dee2e6; -fx-border-width: 1px; -fx-border-radius: 12px;");
-                senderLabel.setStyle(STYLE_SENDER_LABEL + "-fx-text-fill: #495057;");
-                break;
-            case SYSTEM:
-                bubble.setStyle(baseStyle + "-fx-background-color: #fff3cd; -fx-border-color: #ffeaa7; -fx-border-width: 1px; -fx-border-radius: 12px;");
-                senderLabel.setStyle(STYLE_SENDER_LABEL + "-fx-text-fill: #856404;");
-                break;
-            default:
-                bubble.setStyle(baseStyle + "-fx-background-color: #e9ecef;");
-                senderLabel.setStyle(STYLE_SENDER_LABEL + "-fx-text-fill: #495057;");
+
+        boolean isCurrentUser = message.getSenderId() == currentUser.getId();
+
+        if (isCurrentUser) {
+            bubble.setStyle(baseStyle + "-fx-background-color: #2196F3;"); // Màu xanh
+            senderLabel.setStyle(STYLE_SENDER_LABEL + "-fx-text-fill: white;");
+        } else if (message.getType() == Message.MessageType.USER) {
+            bubble.setStyle(baseStyle + "-fx-background-color: #f1f1f1;");
+            senderLabel.setStyle(STYLE_SENDER_LABEL + "-fx-text-fill: #333;");
+        } else if (message.getType() == Message.MessageType.BOT) {
+            bubble.setStyle(baseStyle + "-fx-background-color: #f8f9fa; -fx-border-color: #dee2e6; -fx-border-width: 1px; -fx-border-radius: 12px;");
+            senderLabel.setStyle(STYLE_SENDER_LABEL + "-fx-text-fill: #495057;");
+        } else if (message.getType() == Message.MessageType.SYSTEM) {
+            bubble.setStyle(baseStyle + "-fx-background-color: #fff3cd; -fx-border-color: #ffeaa7; -fx-border-width: 1px; -fx-border-radius: 12px;");
+            senderLabel.setStyle(STYLE_SENDER_LABEL + "-fx-text-fill: #856404;");
+        } else {
+            bubble.setStyle(baseStyle + "-fx-background-color: #e9ecef;");
+            senderLabel.setStyle(STYLE_SENDER_LABEL + "-fx-text-fill: #495057;");
         }
     }
+
 
     public TextFlow parseMessageToTextFlow(String content) {
         TextFlow textFlow = new TextFlow();

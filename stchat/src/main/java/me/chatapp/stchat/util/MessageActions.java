@@ -16,6 +16,7 @@ import org.kordamp.ikonli.javafx.FontIcon;
 import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 
 import static me.chatapp.stchat.util.CSSUtil.STYLE_CONTENT_LABEL;
 
@@ -124,7 +125,7 @@ public class MessageActions {
         if (saveFile != null) {
             try {
                 File sourceFile = new File(attachment.getFilePath());
-                java.nio.file.Files.copy(sourceFile.toPath(), saveFile.toPath(),
+                Files.copy(sourceFile.toPath(), saveFile.toPath(),
                         java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 showInfoAlert("Download Complete", "File saved to: " + saveFile.getAbsolutePath());
             } catch (IOException e) {
@@ -134,17 +135,20 @@ public class MessageActions {
     }
 
     public void handleOpenFile(AttachmentMessage attachment) {
-        try {
-            File file = new File(attachment.getFilePath());
-            if (file.exists() && Desktop.isDesktopSupported()) {
-                Desktop.getDesktop().open(file);
-            } else {
-                showAlert("Error", "Cannot open file or file not found.");
+        new Thread(() -> {
+            try {
+                File file = new File(attachment.getFilePath());
+                if (file.exists()) {
+                    Desktop.getDesktop().open(file);
+                } else {
+                    System.err.println("File không tồn tại: " + file.getAbsolutePath());
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        } catch (IOException e) {
-            showAlert("Error", "Cannot open file: " + e.getMessage());
-        }
+        }).start();
     }
+
 
     public void showFullSizeImage(AttachmentMessage attachment) {
         try {

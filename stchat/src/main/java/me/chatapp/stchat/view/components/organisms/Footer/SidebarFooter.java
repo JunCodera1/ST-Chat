@@ -7,7 +7,6 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
-import me.chatapp.stchat.controller.ChatController;
 import me.chatapp.stchat.model.User;
 import me.chatapp.stchat.api.SocketClient;
 import me.chatapp.stchat.view.components.atoms.Button.SidebarIconButton;
@@ -99,7 +98,6 @@ public class SidebarFooter extends VBox {
                             try {
                                 ChatViewConfig config = new ChatViewConfig();
                                 ChatView view = new ChatView(config, user, stage);
-                                ChatController controller = new ChatController(user, stage);
 
                                 Stage mainStage = new Stage();
                                 mainStage.setTitle("ST Chat - " + user.getUsername());
@@ -108,15 +106,12 @@ public class SidebarFooter extends VBox {
                                 mainStage.setMinHeight(650);
                                 mainStage.show();
 
-                                controller.initialize();
                             } catch (Exception e) {
                                 e.printStackTrace();
                             }
                         }
                 ).show();
             });
-
-
 
 
             content.getChildren().addAll(profileSettings, changeStatus, logout);

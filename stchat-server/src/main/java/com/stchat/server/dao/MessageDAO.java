@@ -146,6 +146,8 @@ public class MessageDAO {
         msg.setCreatedAt(rs.getTimestamp("created_at"));
         msg.setUpdatedAt(rs.getTimestamp("updated_at"));
 
+
+
         return msg;
     }
 

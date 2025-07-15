@@ -13,7 +13,6 @@ import me.chatapp.stchat.view.components.organisms.Panel.ChatPanel;
 import me.chatapp.stchat.view.components.organisms.Panel.MessageInputPanel;
 import me.chatapp.stchat.view.components.organisms.Bar.StatusBar;
 import me.chatapp.stchat.view.config.ChatViewConfig;
-import me.chatapp.stchat.view.handlers.ChatViewEventHandler;
 import me.chatapp.stchat.view.state.ChatViewStateManager;
 
 import javafx.stage.Stage;

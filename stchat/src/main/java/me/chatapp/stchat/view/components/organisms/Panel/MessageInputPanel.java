@@ -19,6 +19,7 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import me.chatapp.stchat.funtional.TriConsumer;
+import me.chatapp.stchat.model.AttachmentMessage;
 import me.chatapp.stchat.model.User;
 import me.chatapp.stchat.util.VoiceRecorder;
 import me.chatapp.stchat.view.components.atoms.Button.AttachmentButton;
@@ -28,6 +29,7 @@ import me.chatapp.stchat.view.components.atoms.TextField.MessageTextField;
 import me.chatapp.stchat.view.components.molecules.Picker.EmojiPicker;
 
 import java.io.File;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -48,6 +50,7 @@ public class MessageInputPanel {
     private final VBox container;
     private final HBox inputRow;
     private final MessageTextField messageField;
+    private TriConsumer<User, User, AttachmentMessage> sendAttachmentCallback;
     private final EmojiPicker emojiPicker;
     private final AttachmentButton attachmentButton;
     private final SendButton sendButton;
@@ -80,7 +83,11 @@ public class MessageInputPanel {
     private Timeline typingTimer;
     private int recordingDots = 0;
 
-    public MessageInputPanel(TriConsumer<User, User, String> sendMessageCallback) {
+    public MessageInputPanel(
+            TriConsumer<User, User, AttachmentMessage> sendAttachmentCallback,
+            TriConsumer<User, User, String> sendMessageCallback
+    ) {
+        this.sendAttachmentCallback = sendAttachmentCallback;
         this.sendMessageCallback = sendMessageCallback;
         this.voiceRecorder = new VoiceRecorder();
         this.executorService = Executors.newCachedThreadPool(r -> {
@@ -181,9 +188,6 @@ public class MessageInputPanel {
         sendButton.disableProperty().bind(
                 busy.or(messageField.textProperty().isEmpty()).or(conversationReady.not())
         );
-        microphoneButton.disableProperty().bind(
-                busy.or(conversationReady.not())
-        );
         // Button events
         sendButton.setOnAction(e -> sendMessage());
         attachmentButton.setOnAction(e -> handleAttachmentAsync());
@@ -237,6 +241,7 @@ public class MessageInputPanel {
             typingTimer.play();
         }
     }
+
 
     private void appendToInput(String iconCode) {
         String currentText = messageField.getText();
@@ -381,6 +386,17 @@ public class MessageInputPanel {
                     fileName, fileType, formatFileSize(file.length()));
 
             Platform.runLater(() -> {
+                if (sendAttachmentCallback != null && sender != null && receiver != null) {
+                    AttachmentMessage attachment = new AttachmentMessage(
+                            fileName,
+                            fileType,
+                            file.length(),
+                            file.getAbsolutePath(),
+                            fileExtension
+                    );
+                    sendAttachmentCallback.accept(sender, receiver, attachment);
+                }
+
                 if (sendMessageCallback != null && sender != null && receiver != null) {
                     sendMessageCallback.accept(sender, receiver, attachmentMessage);
                 }
@@ -392,7 +408,6 @@ public class MessageInputPanel {
                 showInfoAlert("File Sent",
                         String.format("File \"%s\" has been sent successfully.", fileName));
             });
-
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to send file", e);
             Platform.runLater(() ->

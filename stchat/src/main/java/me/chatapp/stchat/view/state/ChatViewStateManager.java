@@ -8,8 +8,6 @@ import me.chatapp.stchat.view.components.organisms.Panel.ChatPanel;
 import me.chatapp.stchat.view.components.organisms.Panel.MessageInputPanel;
 import me.chatapp.stchat.view.components.organisms.Bar.StatusBar;
 
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 
 public class ChatViewStateManager {
 
@@ -65,13 +63,5 @@ public class ChatViewStateManager {
             alert.getDialogPane().getStylesheets().add(scene.getStylesheets().get(0));
             alert.showAndWait();
         });
-    }
-
-    public void clearMessageInput() {
-        messageInputPanel.getMessageField().clear();
-    }
-
-    public String getCurrentMessage() {
-        return messageInputPanel.getMessageField().getText().trim();
     }
 }

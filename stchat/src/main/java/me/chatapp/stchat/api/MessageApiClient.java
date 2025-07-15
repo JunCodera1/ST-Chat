@@ -3,16 +3,20 @@ package me.chatapp.stchat.api;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import me.chatapp.stchat.model.AttachmentMessage;
 import me.chatapp.stchat.model.Message;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.file.Files;
 import java.sql.Timestamp;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -265,7 +269,83 @@ public class MessageApiClient {
                     }
                 });
     }
+    public CompletableFuture<String> uploadFile(File file) {
+        String boundary = "Boundary-" + System.currentTimeMillis();
+        String url = BASE_URL + "/files/upload";
 
+        HttpRequest.BodyPublisher body = createMultipartBody(file, boundary);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                .POST(body)
+                .build();
+
+        return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                .thenApply(response -> {
+                    if (response.statusCode() == 200 || response.statusCode() == 201) {
+                        try {
+                            var json = objectMapper.readTree(response.body());
+                            return json.get("url").asText();
+                        } catch (IOException e) {
+                            throw new RuntimeException("Lỗi đọc URL từ response", e);
+                        }
+                    } else {
+                        throw new RuntimeException("Upload thất bại: " + response.statusCode());
+                    }
+                });
+    }
+
+    private HttpRequest.BodyPublisher createMultipartBody(File file, String boundary) {
+        var byteArrays = new ArrayList<byte[]>();
+        String CRLF = "\r\n";
+
+        String partHeader = "--" + boundary + CRLF +
+                "Content-Disposition: form-data; name=\"file\"; filename=\"" + file.getName() + "\"" + CRLF +
+                "Content-Type: application/octet-stream" + CRLF + CRLF;
+
+        String partFooter = CRLF + "--" + boundary + "--" + CRLF;
+
+        try {
+            byteArrays.add(partHeader.getBytes());
+            byteArrays.add(Files.readAllBytes(file.toPath()));
+            byteArrays.add(partFooter.getBytes());
+        } catch (IOException e) {
+            throw new RuntimeException("Lỗi khi đọc file", e);
+        }
+
+        return HttpRequest.BodyPublishers.ofByteArrays(byteArrays);
+    }
+
+    public List<Message> enrichMessagesWithAttachment(List<Message> messages) {
+        for (Message msg : messages) {
+            if (msg.getFileUrl() != null && msg.getFileName() != null) {
+                String fileType = inferFileType(msg.getFileName());
+                String fileExtension = msg.getFileName().substring(msg.getFileName().lastIndexOf('.') + 1);
+                var attachment = new AttachmentMessage(
+                        msg.getFileName(),
+                        fileType,
+                        msg.getFileSize(),
+                        msg.getFileUrl(),
+                        fileExtension
+                );
+                msg.setAttachment(attachment);
+            }
+        }
+        return messages;
+    }
+
+
+    private String inferFileType(String fileName) {
+        if (fileName == null) return "file";
+        String lower = fileName.toLowerCase();
+        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png") || lower.endsWith(".gif")) return "image";
+        if (lower.endsWith(".mp4") || lower.endsWith(".mov") || lower.endsWith(".avi")) return "video";
+        if (lower.endsWith(".mp3") || lower.endsWith(".wav") || lower.endsWith(".ogg")) return "audio";
+        if (lower.endsWith(".pdf")) return "pdf";
+        if (lower.endsWith(".doc") || lower.endsWith(".docx") || lower.endsWith(".txt")) return "document";
+        return "file";
+    }
 
 
     public void close() {

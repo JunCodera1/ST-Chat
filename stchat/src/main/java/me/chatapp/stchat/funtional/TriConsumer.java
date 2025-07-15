@@ -1,4 +1,7 @@
 package me.chatapp.stchat.funtional;
 
-public interface TriConsumer {
+@FunctionalInterface
+public interface TriConsumer<A, B, C> {
+    void accept(A a, B b, C c);
 }
+

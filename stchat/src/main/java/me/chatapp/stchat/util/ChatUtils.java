@@ -54,18 +54,19 @@ public class ChatUtils {
     public void showTypingIndicator(VBox messageContainer, String senderName, ScrollPane scrollPane) {
         Platform.runLater(() -> {
             removeTypingIndicator(messageContainer);
+
             HBox typingBox = new HBox();
             typingBox.setAlignment(Pos.CENTER_LEFT);
-            typingBox.setSpacing(8);
-            typingBox.setPadding(new Insets(8, 16, 8, 16));
-            typingBox.setStyle("-fx-background-color: #f8f9fa; -fx-background-radius: 12px; " +
-                    "-fx-border-color: #dee2e6; -fx-border-width: 1px; -fx-border-radius: 12px;");
+            typingBox.setSpacing(4); // giảm spacing
+            typingBox.setPadding(new Insets(4, 8, 4, 8)); // giảm padding
+            typingBox.setStyle("-fx-background-color: #f8f9fa; -fx-background-radius: 8px; " +
+                    "-fx-border-color: #dee2e6; -fx-border-width: 1px; -fx-border-radius: 8px;");
 
             Label typingLabel = new Label(senderName + " is typing...");
-            typingLabel.setStyle("-fx-text-fill: #6c757d; -fx-font-style: italic;");
+            typingLabel.setStyle("-fx-text-fill: #6c757d; -fx-font-style: italic; -fx-font-size: 11px;");
 
             Label dots = new Label("●●●");
-            dots.setStyle("-fx-text-fill: #6c757d;");
+            dots.setStyle("-fx-text-fill: #6c757d; -fx-font-size: 12px;");
 
             Timeline animation = new Timeline(
                     new KeyFrame(Duration.millis(500),
@@ -80,6 +81,7 @@ public class ChatUtils {
             scrollToBottom(scrollPane, messageContainer);
         });
     }
+
 
     public void hideTypingIndicator(VBox messageContainer) {
         Platform.runLater(() -> removeTypingIndicator(messageContainer));

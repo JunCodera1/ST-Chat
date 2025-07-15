@@ -14,7 +14,7 @@ public class CSSUtil {
     public static final String STYLE_MESSAGE_COUNT = "-fx-text-fill: #7f8c8d; -fx-font-size: 12px; -fx-font-weight: 500;";
     public static final String STYLE_SEPARATOR = "-fx-background-color: #ecf0f1;";
     public static final String STYLE_SENDER_LABEL = "-fx-font-weight: bold; -fx-font-size: 13px;";
-    public static final String STYLE_TIME_LABEL = "-fx-text-fill: #95a5a6; -fx-font-size: 11px;";
+    public static final String STYLE_TIME_LABEL = "-fx-text-fill: #000000; -fx-font-size: 11px;";
     public static final String STYLE_CONTENT_LABEL = "-fx-font-size: 14px; -fx-line-spacing: 2px;";
     public static final String STYLE_TYPING_LABEL = "-fx-text-fill: #7f8c8d; -fx-font-style: italic; -fx-font-size: 12px;";
     public static final String STYLE_TYPING_BOX = "-fx-background-color: #f8f9fa; -fx-background-radius: 18; -fx-opacity: 0.8;";
