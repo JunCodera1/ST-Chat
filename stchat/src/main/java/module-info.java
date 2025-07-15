@@ -26,6 +26,9 @@ module me.chatapp.stchat {
     requires org.kordamp.ikonli.core;
     requires org.kordamp.ikonli.feather;
     requires org.kordamp.ikonli.material2;
+    requires javafx.media;
+    requires jlayer;
+    requires uk.co.caprica.vlcj;
 
     opens me.chatapp.stchat to javafx.fxml;
     exports me.chatapp.stchat;
