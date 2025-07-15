@@ -8,6 +8,7 @@ import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import me.chatapp.stchat.controller.ConversationController;
 import me.chatapp.stchat.controller.MessageController;
+import me.chatapp.stchat.model.AttachmentMessage;
 import me.chatapp.stchat.model.Message;
 import me.chatapp.stchat.model.User;
 import me.chatapp.stchat.api.SocketClient;
@@ -109,7 +110,7 @@ public class ChatView extends Application {
 
     private void initializeComponents() {
         iconSidebar = new IconSidebar();
-        messageInputPanel = new MessageInputPanel(this::handleSendMessage);
+        messageInputPanel = new MessageInputPanel(this::handleSendAttachment,this::handleSendMessage);
         chatPanel = new ChatPanel(currentUser, messageInputPanel);
         statusBar = new StatusBar();
         chatHeader = new ChatHeader();
@@ -117,10 +118,15 @@ public class ChatView extends Application {
 
     private void restoreMainChatLayout() {
         chatAreaContainer.getChildren().clear();
+
         chatAreaContainer.getChildren().add(chatHeader.getComponent());
+
         VBox.setVgrow(chatPanel.getComponent(), Priority.ALWAYS);
         chatAreaContainer.getChildren().add(chatPanel.getComponent());
+
+        chatAreaContainer.getChildren().add(messageInputPanel.getComponent());
     }
+
 
 
     private void setupSidebarIconActions() {
@@ -186,6 +192,8 @@ public class ChatView extends Application {
         chatAreaContainer.getChildren().add(newContent);
     }
 
+
+
     private void initializeManagers() {
         try {
             var result = ChatInitializer.initialize(
@@ -207,7 +215,6 @@ public class ChatView extends Application {
             this.messageController = result.messageController();
             this.stateManager = result.stateManager();
             this.navigationSidebar = result.navigationSidebar();
-            this.navigationSidebar.setOnContentChange(this::updateChatAreaContent);
 
             NavigationSidebarHandlerBinder.bindHandlers(this);
 
@@ -231,6 +238,21 @@ public class ChatView extends Application {
                 });
             });
         }
+    }
+    private void handleSendAttachment(User sender, User receiver, AttachmentMessage attachment) {
+        if (receiver == null || currentConversationId == -1) {
+            System.out.println("⚠️ Không thể gửi file: thiếu thông tin receiver hoặc conversationId");
+            return;
+        }
+        Message message = new Message();
+        message.setSenderId(currentUser.getId());
+        message.setReceiverId(receiver.getId());
+        message.setConversationId(currentConversationId);
+        message.setType(Message.MessageType.FILE);
+        message.setAttachment(attachment);
+        message.setContent("📎 " + attachment.getFileName());
+
+        messageController.sendAttachmentMessage(message, chatPanel);
     }
 
     private void handleSendMessage(User sender, User receiver, String content) {

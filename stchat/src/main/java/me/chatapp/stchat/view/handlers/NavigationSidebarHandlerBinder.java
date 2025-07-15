@@ -256,7 +256,6 @@ public class NavigationSidebarHandlerBinder {
             chatView.setCurrentContactName(userName);
             UserApiClient userApiClient = new UserApiClient();
 
-            // Tìm user theo username
             userApiClient.findUserByUsername(userName).ifPresentOrElse(targetUser -> {
                 int currentUserId = currentUser.getId();
                 int targetUserId = targetUser.getId();
@@ -264,35 +263,26 @@ public class NavigationSidebarHandlerBinder {
                 conversationController.createConversationId(currentUserId, targetUserId)
                         .thenAccept(convId -> {
                             chatView.setCurrentConversationId(convId);
-
                             Platform.runLater(() -> {
+                                chatView.showMainChat();
                                 chatHeader.setActiveConversation(userName);
                                 chatPanel.setCurrentContact(userName, "user");
                                 chatPanel.clearMessages();
 
-                                // ✅ GÁN sender/receiver cho MessageInputPanel
                                 chatView.getMessageInputPanel().setSender(currentUser);
-                                System.out.println(currentUser);
                                 chatView.getMessageInputPanel().setReceiver(targetUser);
-                                System.out.println(targetUser);
 
                                 if (messageController != null) {
                                     messageController.loadMessagesForConversation(convId, chatPanel);
                                 }
                             });
-                        })
-                        .exceptionally(ex -> {
-                            ex.printStackTrace();
-                            Platform.runLater(() ->
-                                    chatView.showError("❌ Failed to create or fetch conversation"));
-                            return null;
                         });
-
             }, () -> {
                 Platform.runLater(() ->
                         chatView.showError("❌ Cannot find user: " + userName));
             });
         });
+
 
 
 
