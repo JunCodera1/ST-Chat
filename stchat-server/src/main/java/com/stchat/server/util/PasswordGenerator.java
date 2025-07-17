@@ -8,7 +8,7 @@ public class PasswordGenerator {
     private static final SecureRandom RANDOM = new SecureRandom();
 
     public static String generate(int length) {
-        if (length < 6) throw new IllegalArgumentException("Mật khẩu nên có ít nhất 6 ký tự");
+        if (length < 6) throw new IllegalArgumentException("Password should be has 6 characters");
 
         StringBuilder password = new StringBuilder(length);
         for (int i = 0; i < length; i++) {

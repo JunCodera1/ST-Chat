@@ -17,7 +17,6 @@ import java.util.function.Consumer;
 import java.util.logging.Logger;
 
 public class Login {
-    private static final Logger LOGGER = Logger.getLogger(Login.class.getName());
     private final Stage stage;
     private final Runnable onSwitchToSignUp;
     private final Consumer<User> onLoginSuccess;
@@ -48,10 +47,8 @@ public class Login {
     private void setupEventHandlers() {
         var loginForm = loginTemplate.getLoginForm();
 
-        // Login button com.stchat.server.handler
         loginForm.getLoginButton().setOnAction(event -> handleLogin());
 
-        // Forgot password button com.stchat.server.handler
         loginForm.getForgotPasswordButton().setOnAction(event -> {
             stage.close();
             ForgotPassword forgotPassword = new ForgotPassword(() -> {
@@ -111,14 +108,11 @@ public class Login {
 
                     if ("success".equalsIgnoreCase(json.optString("status"))) {
                         try {
-                            // Lấy object "user" từ phản hồi JSON
                             JSONObject userJson = json.getJSONObject("user");
 
-                            // Dùng Jackson để map JSON thành Java object
                             ObjectMapper mapper = new ObjectMapper();
-                            mapper.registerModule(new JavaTimeModule()); // hỗ trợ Timestamp
+                            mapper.registerModule(new JavaTimeModule());
 
-                            // Parse từ chuỗi JSON sang đối tượng User
                             User user = mapper.readValue(userJson.toString(), User.class);
 
                             this.currentUser = user;
@@ -176,13 +170,5 @@ public class Login {
 
     public void close() {
         stage.close();
-    }
-
-    public User getCurrentUser() {
-        return currentUser;
-    }
-
-    public boolean isUserLoggedIn() {
-        return currentUser != null;
     }
 }

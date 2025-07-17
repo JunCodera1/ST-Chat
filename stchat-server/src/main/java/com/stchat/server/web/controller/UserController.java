@@ -54,7 +54,7 @@ public class UserController {
         String username = ctx.pathParam("username");
         Optional<User> userOpt = userService.getUserByUsername(username);
         userOpt.ifPresentOrElse(
-                user -> ctx.json(user),
+                ctx::json,
                 () -> ctx.status(404).result("User not found")
         );
     }
@@ -118,7 +118,7 @@ public class UserController {
         int id = Integer.parseInt(ctx.pathParam("id"));
         Optional<User> userOpt = userService.getUserById(id);
         userOpt.ifPresentOrElse(
-                user -> ctx.json(user),
+                ctx::json,
                 () -> ctx.status(404).result("User not found")
         );
     }

@@ -1,6 +1,5 @@
 package com.stchat.server.service;
 
-import com.stchat.server.dao.UserDAO;
 import com.stchat.server.database.DatabaseConnection;
 import com.stchat.server.util.PasswordUtil;
 
@@ -8,6 +7,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
+import static com.stchat.server.dao.UserDAO.LOGGER;
 
 public class AuthService {
     public static boolean authenticateUser(String identifier, String password) {
@@ -25,17 +26,17 @@ public class AuthService {
                 String storedHash = rs.getString("password_hash");
 
                 if (PasswordUtil.matchPassword(password, storedHash)) {
-                    UserDAO.LOGGER.info("Login success: " + identifier);
+                    LOGGER.info("Login success: " + identifier);
                     return true;
                 } else {
-                    UserDAO.LOGGER.warning("Password is not correct: " + identifier);
+                    LOGGER.warning("Password is not correct: " + identifier);
                 }
             } else {
-                UserDAO.LOGGER.warning("Not found user: " + identifier);
+                LOGGER.warning("Not found user: " + identifier);
             }
 
         } catch (SQLException e) {
-            UserDAO.LOGGER.severe("Error when authenticating: " + e.getMessage());
+            LOGGER.severe("Error when authenticating: " + e.getMessage());
         }
 
         return false;

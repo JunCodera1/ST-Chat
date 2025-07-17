@@ -9,8 +9,11 @@ import java.net.Socket;
 
 import com.stchat.server.Main;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ClientHandler implements Runnable {
+    private static final Logger log = LoggerFactory.getLogger(ClientHandler.class);
     private final Socket clientSocket;
     private final Main server;
     private BufferedReader reader;
@@ -53,36 +56,13 @@ public class ClientHandler implements Runnable {
             server.addClient(username, this);
             sendMessage("System: Welcome " + username + " to ST Chat!");
 
-            // ✅ Chỉ dùng 1 lần đọc duy nhất
-            listenForMessages();
-
         } catch (IOException e) {
             if (connected) {
-                System.err.println("Lỗi khi xử lý client " + username + ": " + e.getMessage());
+                log.error("Lỗi khi xử lý client {}: {}", username, e.getMessage());
             }
         } finally {
             disconnect();
         }
-    }
-
-
-    private void listenForMessages() throws IOException {
-        String message;
-        while (connected && (message = reader.readLine()) != null) {
-            if (message.trim().isEmpty()) {
-                continue;
-            }
-
-            if (message.startsWith("/")) {
-                handleCommand(message);
-            } else {
-                server.broadcastMessage(username, message, this);
-            }
-        }
-    }
-
-    private void handleCommand(String command) {
-        CommandHandler.handle(command, this, server);
     }
 
     public boolean sendMessage(String message) {
@@ -115,15 +95,7 @@ public class ClientHandler implements Runnable {
                 clientSocket.close();
             }
         } catch (IOException e) {
-            System.err.println("Lỗi khi đóng kết nối: " + e.getMessage());
+            log.error("Lỗi khi đóng kết nối: {}", e.getMessage());
         }
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public boolean isConnected() {
-        return connected;
     }
 }

@@ -12,13 +12,13 @@ public class AuthProcessor {
 
     public static JSONObject handle(JSONObject request) {
         String type = request.optString("type");
-        switch (type.toUpperCase()) {
-            case "LOGIN": return handleLogin(request);
-            case "REGISTER": return handleRegister(request);
-            case "FORGOT_PASSWORD": return handleForgotPassword(request);
-            case "CHANGE_PASSWORD": return handleChangePassword(request);
-            default: return JsonResponseUtil.error("Unknown auth type.");
-        }
+        return switch (type.toUpperCase()) {
+            case "LOGIN" -> handleLogin(request);
+            case "REGISTER" -> handleRegister(request);
+            case "FORGOT_PASSWORD" -> handleForgotPassword(request);
+            case "CHANGE_PASSWORD" -> handleChangePassword(request);
+            default -> JsonResponseUtil.error("Unknown auth type.");
+        };
     }
 
     private static JSONObject handleLogin(JSONObject request) {
@@ -37,7 +37,6 @@ public class AuthProcessor {
                 return JsonResponseUtil.error("User not found.");
             }
 
-            // Convert Java object to JSONObject
             JSONObject userJson = new JSONObject();
             userJson.put("id", user.getId());
             userJson.put("username", user.getUsername());
@@ -122,8 +121,7 @@ public class AuthProcessor {
         }
 
         UserDAO userDAO = new UserDAO();
-        PendingPasswordChangeDAO pendingDAO = new PendingPasswordChangeDAO();
-        PasswordService passwordService = new PasswordService(userDAO, pendingDAO);
+        PasswordService passwordService = new PasswordService(userDAO);
 
         boolean requestSent = passwordService.requestPasswordChange(email, currentPassword, newPassword);
 
@@ -133,6 +131,5 @@ public class AuthProcessor {
             return JsonResponseUtil.error("Invalid current password or user not found.");
         }
     }
-
 }
 

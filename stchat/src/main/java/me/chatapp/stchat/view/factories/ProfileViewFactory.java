@@ -24,14 +24,9 @@ public class ProfileViewFactory {
         VBox mainContainer = new VBox();
         mainContainer.setStyle("-fx-background-color: #36393f;");
 
-        // Header với background gradient
         VBox header = createHeader(onBackClicked);
 
-        // Profile content
         VBox content = createProfileContent(currentUser);
-
-
-
 
         mainContainer.getChildren().addAll(header, content);
         VBox.setVgrow(content, javafx.scene.layout.Priority.ALWAYS);
@@ -45,7 +40,6 @@ public class ProfileViewFactory {
         header.setStyle("-fx-background-color: linear-gradient(to bottom, #7c4dff, #5e35b1); -fx-min-height: 120;");
         header.setPadding(new Insets(15));
 
-        // Top bar với back button và menu
         HBox topBar = new HBox();
         topBar.setAlignment(Pos.CENTER_LEFT);
         topBar.setSpacing(10);
@@ -61,7 +55,6 @@ public class ProfileViewFactory {
         Label title = new Label("My Profile");
         title.setStyle("-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;");
 
-        // Menu button
         Button menuButton = new Button();
         FontIcon menuIcon = new FontIcon(MaterialDesignM.MENU);
         menuIcon.setIconColor(Color.WHITE);
@@ -83,19 +76,14 @@ public class ProfileViewFactory {
         content.setStyle("-fx-background-color: #36393f;");
         content.setPadding(new Insets(0, 20, 20, 20));
 
-        // Profile image và info
         VBox profileSection = createProfileSection(currentUser);
 
-        // Quote section
         VBox quoteSection = createQuoteSection();
 
-        // Contact info
         VBox contactSection = createContactSection(currentUser);
 
-        // Media section
         VBox mediaSection = createMediaSection();
 
-        // Attached files
         VBox filesSection = createAttachedFilesSection();
 
         content.getChildren().addAll(profileSection, quoteSection, contactSection, mediaSection, filesSection);
@@ -115,7 +103,6 @@ public class ProfileViewFactory {
         profileImage.setStroke(Color.WHITE);
         profileImage.setStrokeWidth(3);
 
-        // Nếu có avatar thì set image
         if (currentUser != null && currentUser.getAvatarUrl() != null) {
             ImageView imageView = new ImageView(new Image(currentUser.getAvatarUrl()));
             imageView.setFitWidth(100);
@@ -123,14 +110,11 @@ public class ProfileViewFactory {
             imageView.setPreserveRatio(true);
             Circle clip = new Circle(50);
             imageView.setClip(clip);
-            // Thay thế circle bằng imageView
         }
 
-        // Name
         Label nameLabel = new Label(currentUser != null ? currentUser.getUsername() : "Adam Zampa");
         nameLabel.setStyle("-fx-text-fill: white; -fx-font-size: 22px; -fx-font-weight: bold;");
 
-        // Title
         Label titleLabel = new Label("Front end Developer");
         titleLabel.setStyle("-fx-text-fill: #b9bbbe; -fx-font-size: 14px;");
 
@@ -242,15 +226,12 @@ public class ProfileViewFactory {
         section.setSpacing(15);
         section.setPadding(new Insets(0, 0, 20, 0));
 
-        // Header
         Label filesTitle = new Label("ATTACHED FILES");
         filesTitle.setStyle("-fx-text-fill: #b9bbbe; -fx-font-size: 12px; -fx-font-weight: bold;");
 
-        // File items
         VBox filesList = new VBox();
         filesList.setSpacing(10);
 
-        // Sample files
         String[] files = {
                 "design-phase-1.zip|12.5 MB",
                 "image-1.jpg|4.2 MB",

@@ -30,11 +30,10 @@ public class MessageService {
     }
 
     public boolean replyToMessage(Message replyMsg) {
-        return messageDAO.addMessage(replyMsg); // replyMsg có set replyToMessageId
+        return messageDAO.addMessage(replyMsg);
     }
 
     public boolean sendFileMessage(Message msg) {
-        // set messageType = FILE, IMAGE, LINK
         return messageDAO.addMessage(msg);
     }
 
@@ -55,10 +54,8 @@ public class MessageService {
     }
 
     public boolean sendMessage(int senderId, int receiverId, String content) {
-        // 1. Lấy hoặc tạo cuộc trò chuyện riêng tư giữa sender và receiver
         var conversation = ConversationService.createPrivateConversation(senderId, receiverId);
 
-        // 2. Tạo message mới
         Message msg = new Message();
         msg.setConversationId(conversation.getId());
         msg.setSenderId(senderId);
@@ -66,7 +63,6 @@ public class MessageService {
         msg.setMessageType(Message.MessageType.TEXT);
         msg.setCreatedAt(new Timestamp(System.currentTimeMillis()));
 
-        // 3. Gửi tin nhắn
         return messageDAO.addMessage(msg);
     }
 
