@@ -9,8 +9,8 @@ import java.util.Optional;
 public class UserService {
     private final UserDAO userDAO = new UserDAO();
 
-    public boolean registerUser(String username, String email, String password, String firstName, String lastName) {
-        return userDAO.registerUser(username, email, password, firstName, lastName);
+    public boolean registerUser(String username, String email, String password, String firstName, String lastName, String avatarUrl) {
+        return userDAO.registerUser(username, email, password, firstName, lastName, avatarUrl);
     }
 
     public Optional<User> getUserByUsername(String username) {

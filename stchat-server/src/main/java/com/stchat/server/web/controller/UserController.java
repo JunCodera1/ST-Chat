@@ -6,15 +6,18 @@ import com.stchat.server.util.PasswordUtil;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 public class UserController {
     private static final UserService userService = new UserService();
 
     public static void registerRoutes(Javalin app) {
-        app.post("/api/users/register", UserController::registerUser);
         app.get("/api/users", UserController::getAllUsers);
         app.get("/api/users/{username}", UserController::getUserByUsername);
         app.delete("/api/users/{id}", UserController::deleteUser);
@@ -24,25 +27,46 @@ public class UserController {
         app.get("/api/users-count", UserController::getUserCount);
         app.put("/api/users/{id}/avatar", UserController::updateAvatar);
         app.get("/api/users/id/{id}", UserController::getUserById);
+        app.post("/api/users/upload-avatar", UserController::uploadAvatar);
     }
 
-    private static void registerUser(Context ctx) {
-        try {
-            Map<String, String> body = ctx.bodyAsClass(Map.class);
-            String username = body.get("username");
-            String email = body.get("email");
-            String password = body.get("password");
-            String firstName = body.get("firstName");
-            String lastName = body.get("lastName");
+    private static void uploadAvatar(Context ctx) {
+        var uploadedFiles = ctx.uploadedFiles("avatar");
 
-            boolean success = userService.registerUser(username, email, password, firstName, lastName);
-
-            if (success) ctx.status(201).result("User registered successfully");
-            else ctx.status(400).result("Username or email already exists");
-
-        } catch (Exception e) {
-            ctx.status(500).result("Registration error: " + e.getMessage());
+        if (uploadedFiles.isEmpty()) {
+            ctx.status(400).result("No avatar uploaded");
+            return;
         }
+
+        var uploadedFile = uploadedFiles.get(0);
+        var fileName = uploadedFile.filename();
+        var fileContent = uploadedFile.content();
+
+        try {
+            String extension = getFileExtension(fileName).toLowerCase();
+            String uniqueName = UUID.randomUUID().toString();
+            String outputFileName = uniqueName + "." + extension;
+
+            Path uploadDir = Path.of("/home/jun/IdeaProjects/ST-Chat/stchat-server/upload/avatars/");
+            Path outputPath = uploadDir.resolve(outputFileName);
+
+            Files.createDirectories(uploadDir);
+            Files.copy(fileContent, outputPath, StandardCopyOption.REPLACE_EXISTING);
+
+            ctx.status(201).json(Map.of(
+                    "status", "success",
+                    "url", "/uploads/avatars/" + outputFileName, // frontend dùng để hiển thị
+                    "fileName", outputFileName,
+                    "filePath", outputPath.toString()
+            ));
+        } catch (Exception e) {
+            ctx.status(500).result("Upload avatar failed: " + e.getMessage());
+        }
+    }
+
+    private static String getFileExtension(String fileName) {
+        int dot = fileName.lastIndexOf(".");
+        return (dot == -1) ? "" : fileName.substring(dot + 1);
     }
 
     private static void getAllUsers(Context ctx) {

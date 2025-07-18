@@ -8,6 +8,12 @@ import com.stchat.server.service.PasswordService;
 import org.json.JSONObject;
 import com.stchat.server.util.JsonResponseUtil;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.Base64;
+import java.util.UUID;
+
 public class AuthProcessor {
 
     public static JSONObject handle(JSONObject request) {
@@ -79,13 +85,35 @@ public class AuthProcessor {
         String firstName = request.optString("firstname");
         String lastName = request.optString("lastname");
 
+        String avatarBase64 = request.optString("avatar", null);
+        String avatarFileName = request.optString("avatarFileName", null);
 
         if (username.isEmpty() || email.isEmpty() || password.isEmpty()) {
             return JsonResponseUtil.error("Please fill all fields.");
         }
 
+        String avatarUrl = null;
+        if (avatarBase64 != null && avatarFileName != null) {
+            try {
+                byte[] imageBytes = Base64.getDecoder().decode(avatarBase64);
+                String extension = avatarFileName.substring(avatarFileName.lastIndexOf('.') + 1);
+
+                String uniqueFilename = UUID.randomUUID() + "." + extension;
+                File outputFile = new File("/home/jun/IdeaProjects/ST-Chat/stchat-server/uploads/avatars/" + uniqueFilename);
+                try (FileOutputStream fos = new FileOutputStream(outputFile)) {
+                    fos.write(imageBytes);
+                }
+                avatarUrl = "http://localhost:8081/uploads/avatars/" + uniqueFilename;
+
+            } catch (IOException e) {
+                return JsonResponseUtil.error("Failed to save avatar image.");
+            } catch (IllegalArgumentException e) {
+                return JsonResponseUtil.error("Invalid avatar image data.");
+            }
+        }
+
         UserDAO userDAO = new UserDAO();
-        boolean registered = userDAO.registerUser(username, email, password, firstName, lastName);
+        boolean registered = userDAO.registerUser(username, email, password, firstName, lastName, avatarUrl);
 
         if (registered) {
             return JsonResponseUtil.success("Account created successfully.");
@@ -93,6 +121,7 @@ public class AuthProcessor {
             return JsonResponseUtil.error("Username or email already exists.");
         }
     }
+
 
     private static JSONObject handleForgotPassword(JSONObject request) {
         String email = request.optString("email");
