@@ -12,8 +12,6 @@ import me.chatapp.stchat.util.MessageActions;
 import me.chatapp.stchat.util.MessageRenderer;
 
 import java.io.File;
-import java.time.LocalDateTime;
-import java.util.function.Consumer;
 
 import static me.chatapp.stchat.util.CSSUtil.*;
 
@@ -26,9 +24,10 @@ public class ChatPanel {
     private final MessageRenderer messageRenderer;
     private final MessageActions messageActions;
     private final ChatUtils chatUtils;
-    private final MessageInputPanel messageInputPanel;
-    private Consumer<String> sendMessageCallback;
-    private final MessageController messageController = new MessageController();
+
+    static {
+        new MessageController();
+    }
 
 
     public ChatPanel(User currentUser, MessageInputPanel messageInputPanel) {
@@ -41,8 +40,6 @@ public class ChatPanel {
         messageRenderer = new MessageRenderer(currentUser);
         messageActions = new MessageActions(this, messageRenderer);
         chatUtils = new ChatUtils();
-
-        this.messageInputPanel = messageInputPanel;
 
         // Create message container
         messageContainer = new VBox();

@@ -38,7 +38,7 @@ public class UserApiClient {
 
     public Optional<User> findUserByUsername(String username) {
         try {
-            URL url = new URL("http://localhost:6060/api/users/" + username); // server dùng `{username}`
+            URL url = new URL("http://localhost:6060/api/users/" + username);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
 

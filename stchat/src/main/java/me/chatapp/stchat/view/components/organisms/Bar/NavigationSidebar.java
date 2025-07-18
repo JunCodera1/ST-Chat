@@ -1,5 +1,6 @@
 package me.chatapp.stchat.view.components.organisms.Bar;
 
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -12,7 +13,9 @@ import me.chatapp.stchat.api.SocketClient;
 import me.chatapp.stchat.view.components.molecules.Item.ChannelItem;
 import me.chatapp.stchat.view.components.molecules.Item.DirectMessageItem;
 import me.chatapp.stchat.view.components.organisms.Footer.SidebarFooter;
+import me.chatapp.stchat.view.components.pages.ChatView;
 import me.chatapp.stchat.view.factories.*;
+import me.chatapp.stchat.view.handlers.NavigationSidebarHandlerBinder;
 import me.chatapp.stchat.view.init.SceneManager;
 import org.jetbrains.annotations.NotNull;
 
@@ -25,6 +28,7 @@ public class NavigationSidebar {
     private final VBox favoritesContainer;
     private final VBox directMessagesContainer;
     private final VBox channelsContainer;
+    private final VBox friendsContainer;
     private final ScrollPane scrollPane;
     private User currentUser;
     private SidebarFooter footer;
@@ -32,13 +36,14 @@ public class NavigationSidebar {
     private Runnable onAddFavoriteClicked;
     private Runnable onAddDirectMessageClicked;
     private Runnable onAddChannelClicked;
+    private Runnable onAddFriendClicked;
 
-    private VBox currentMainContent; // Lưu trữ nội dung chính hiện tại
+    private VBox currentMainContent;
     private VBox originalContent;
 
+    private ChatView chatView;
 
-    // Event handlers
-    private Consumer<String> onNavigationItemSelected;
+
     private Consumer<String> onChannelSelected;
     private Consumer<String> onDirectMessageSelected;
     private Runnable onSettingsClicked;
@@ -53,6 +58,7 @@ public class NavigationSidebar {
         this.root = new VBox();
         this.favoritesContainer = new VBox();
         this.directMessagesContainer = new VBox();
+        this.friendsContainer = new VBox();
         this.channelsContainer = new VBox();
         this.scrollPane = new ScrollPane();
 
@@ -69,7 +75,10 @@ public class NavigationSidebar {
 
         switch (contentType.toLowerCase()) {
             case "chats":
-                newContent = originalContent;
+            case "default":
+                // Tạo lại originalContent với dữ liệu mới nhất
+                newContent = createMainContent();
+                originalContent = newContent;
                 break;
             case "profile":
                 newContent = createProfileContent();
@@ -93,9 +102,20 @@ public class NavigationSidebar {
         if (newContent != null) {
             currentMainContent = newContent;
             updateScrollContent();
+
+            // Nếu switch về chats, reload favorites
+            if ("chats".equalsIgnoreCase(contentType) && currentUser != null) {
+                Platform.runLater(() -> {
+                    NavigationSidebarHandlerBinder.fetchFavoritesForUser(currentUser, this, chatView);
+                });
+            }
         }
     }
-
+    public void refreshFavorites(ChatView chatView) {
+        if (currentUser != null) {
+            NavigationSidebarHandlerBinder.fetchFavoritesForUser(currentUser, this, chatView);
+        }
+    }
     private void updateScrollContent() {
         scrollPane.setContent(currentMainContent);
     }
@@ -123,7 +143,11 @@ public class NavigationSidebar {
     private VBox createSettingsContent() {
         return SettingsViewFactory.create(() -> switchContent("chats"));
     }
-
+    public void clearFavorites() {
+        System.out.println("🧹 Clearing favorites. Current count: " + favoritesContainer.getChildren().size());
+        favoritesContainer.getChildren().clear();
+        System.out.println("✅ Favorites cleared. New count: " + favoritesContainer.getChildren().size());
+    }
 
     private void initializeComponent() {
         root.setPrefWidth(280);
@@ -160,7 +184,6 @@ public class NavigationSidebar {
         }
     }
 
-
     private VBox createHeader() {
         VBox header = new VBox();
         header.setSpacing(10);
@@ -187,12 +210,6 @@ public class NavigationSidebar {
         return header;
     }
 
-    public void updateUser(User newUser) {
-        if (footer != null) {
-            footer.updateUser(newUser);
-        }
-    }
-
     private VBox createMainContent() {
         VBox content = new VBox();
         content.setSpacing(5);
@@ -207,6 +224,9 @@ public class NavigationSidebar {
         // Direct Messages section
         VBox directMessagesSection = createSection("DIRECT MESSAGES", directMessagesContainer);
 
+        VBox friendsSection = createSection("FRIENDS", friendsContainer);
+
+
         // Channels section
         VBox channelsSection = createSection("CHANNELS", channelsContainer);
 
@@ -215,6 +235,8 @@ public class NavigationSidebar {
                 favoritesSection,
                 createSeparator(),
                 directMessagesSection,
+                createSeparator(),
+                friendsSection,
                 createSeparator(),
                 channelsSection
         );
@@ -263,6 +285,11 @@ public class NavigationSidebar {
             case "CHANNELS" -> addButton.setOnAction(e -> {
                 if (onAddChannelClicked != null) onAddChannelClicked.run();
             });
+
+            case "FRIENDS" -> addButton.setOnAction(e -> {
+                if (onAddFriendClicked != null) onAddFriendClicked.run();
+            });
+
         }
         return addButton;
     }
@@ -289,6 +316,7 @@ public class NavigationSidebar {
     }
 
     public void addFavorite(String name, String icon, boolean isOnline) {
+        System.out.println("🟢 Adding favorite: " + name + " to container with " + favoritesContainer.getChildren().size() + " items");
         DirectMessageItem item = new DirectMessageItem(name, icon, isOnline, null);
         item.setOnAction(() -> {
             if (onDirectMessageSelected != null) {
@@ -296,7 +324,9 @@ public class NavigationSidebar {
             }
         });
         favoritesContainer.getChildren().add(item.getComponent());
+        System.out.println("✅ Favorite added. New count: " + favoritesContainer.getChildren().size());
     }
+
 
     public void addDirectMessage(String name, String icon, boolean isOnline, String unreadCount) {
         DirectMessageItem item = new DirectMessageItem(name, icon, isOnline, unreadCount);
@@ -322,24 +352,16 @@ public class NavigationSidebar {
         channelsContainer.getChildren().add(item.getComponent());
     }
 
-    public void clearDirectMessages() {
-        directMessagesContainer.getChildren().clear();
-    }
-    public void clearChannels() {
-        channelsContainer.getChildren().clear();
-    }
-
-    // Event handlers setters
-    public void setOnNavigationItemSelected(Consumer<String> handler) {
-        this.onNavigationItemSelected = handler;
-    }
-
     public void setOnChannelSelected(Consumer<String> handler) {
         this.onChannelSelected = handler;
     }
 
     public void setOnDirectMessageSelected(Consumer<String> handler) {
         this.onDirectMessageSelected = handler;
+    }
+
+    public void setOnAddFriendClicked(Runnable handler) {
+        this.onAddFriendClicked = handler;
     }
 
     public void setOnSettingsClicked(Runnable handler) {
@@ -359,74 +381,4 @@ public class NavigationSidebar {
     public void setOnAddChannelClicked(Runnable handler) {
         this.onAddChannelClicked = handler;
     }
-
-    // Giả sử bạn có một callback để truyền ra ngoài
-    private Consumer<Node> onContentChange;
-
-    public void setOnContentChange(Consumer<Node> handler) {
-        this.onContentChange = handler;
-    }
-
-    public void showUserProfile(User user) {
-        VBox profileView = new VBox();
-        profileView.setSpacing(10);
-        profileView.setPadding(new Insets(20));
-        profileView.setStyle("-fx-background-color: white;");
-
-        Label titleLabel = new Label("👤 User Profile");
-        titleLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
-
-        Label usernameLabel = new Label("Username: " + user.getUsername());
-        usernameLabel.setStyle("-fx-font-size: 14px;");
-
-        // Thêm button quay lại chat
-        Button backButton = new Button("← Back to Chat");
-        backButton.setOnAction(e -> {
-            // Gọi callback để quay lại chat chính
-            if (onContentChange != null) {
-                // Tạo lại layout chat chính
-                VBox chatLayout = createMainChatLayout();
-                onContentChange.accept(chatLayout);
-            }
-        });
-
-        profileView.getChildren().addAll(titleLabel, usernameLabel, backButton);
-
-        if (onContentChange != null) {
-            onContentChange.accept(profileView);
-        }
-    }
-
-    private VBox createMainChatLayout() {
-        // Recreate the main chat layout structure
-        // You'll need to access chatHeader, chatPanel, messageInputPanel from ChatView
-        // This might require passing references or using a different approach
-        return new VBox();
-    }
-
-    public void showDirectMessages() {
-        VBox messagesView = new VBox(new Label("📨 Direct Messages List"));
-        if (onContentChange != null) onContentChange.accept(messagesView);
-    }
-
-    public void showChannels() {
-        VBox channelView = new VBox(new Label("📢 Channels List"));
-        if (onContentChange != null) onContentChange.accept(channelView);
-    }
-
-    public void showCallsPanel() {
-        VBox callsView = new VBox(new Label("📞 Call History"));
-        if (onContentChange != null) onContentChange.accept(callsView);
-    }
-
-    public void showBookmarks() {
-        VBox bookmarkView = new VBox(new Label("🔖 Your Bookmarks"));
-        if (onContentChange != null) onContentChange.accept(bookmarkView);
-    }
-
-    public void showSettings() {
-        VBox settingsView = new VBox(new Label("⚙️ Settings"));
-        if (onContentChange != null) onContentChange.accept(settingsView);
-    }
-
 }

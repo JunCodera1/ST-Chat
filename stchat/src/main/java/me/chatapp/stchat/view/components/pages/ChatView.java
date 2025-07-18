@@ -78,13 +78,14 @@ public class ChatView extends Application {
         this.currentStage = stage;
 
         initializeUI();
-        NavigationSidebarHandlerBinder.fetchFavoritesForUser(user, navigationSidebar, this);
 
         Platform.runLater(() -> {
             navigationSidebar.setUser(user);
             if (currentStage != null) {
                 currentStage.setTitle(config.getTitle() + " - " + user.getUsername());
             }
+            // Gọi fetch favorites SAU khi UI đã sẵn sàng
+            NavigationSidebarHandlerBinder.fetchFavoritesForUser(user, navigationSidebar, this);
         });
     }
 
@@ -116,7 +117,7 @@ public class ChatView extends Application {
         chatHeader = new ChatHeader();
     }
 
-    private void restoreMainChatLayout() {
+    private void restoreMainChatLayout(User user) {
         chatAreaContainer.getChildren().clear();
 
         chatAreaContainer.getChildren().add(chatHeader.getComponent());
@@ -128,10 +129,11 @@ public class ChatView extends Application {
     }
 
 
-
     private void setupSidebarIconActions() {
         iconSidebar.setIconAction("Chats", () -> {
             navigationSidebar.switchContent("chats");
+            restoreMainChatLayout(currentUser);
+            navigationSidebar.refreshFavorites(this);
         });
 
         iconSidebar.setIconAction("Profile", () -> {
@@ -313,10 +315,6 @@ public class ChatView extends Application {
 
     public void showInfo(String title, String message) {
         stateManager.showInfo(title, message);
-    }
-
-    public void showMainChat() {
-        restoreMainChatLayout();
     }
 
     public void logout() {

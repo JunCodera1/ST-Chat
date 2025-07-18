@@ -19,7 +19,6 @@ public class FlexibleTimestampDeserializer extends JsonDeserializer<Timestamp> {
 
         try {
             if (value.matches("\\d{2}:\\d{2}")) {
-                // Chỉ giờ:phút → dùng ngày hôm nay
                 LocalTime time = LocalTime.parse(value, DateTimeFormatter.ofPattern("HH:mm"));
                 LocalDateTime now = LocalDateTime.now().withHour(time.getHour()).withMinute(time.getMinute());
                 return Timestamp.valueOf(now);

@@ -24,13 +24,10 @@ public class ContactViewFactory {
         content.setPadding(new Insets(15));
         content.setStyle("-fx-background-color: #1a1d21;");
 
-        // Header
         HBox header = createHeader(onBackClicked);
 
-        // Search bar
         HBox searchContainer = createSearchBar();
 
-        // Contacts list container
         VBox contactsContainer = createContactsContainer();
 
         content.getChildren().addAll(header, searchContainer, contactsContainer);
@@ -82,7 +79,6 @@ public class ContactViewFactory {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        // Add contact button
         Button addButton = new Button();
         FontIcon addIcon = new FontIcon(Feather.PLUS);
         addIcon.setIconColor(Color.WHITE);
@@ -151,7 +147,6 @@ public class ContactViewFactory {
         VBox container = new VBox(8);
         container.setPadding(new Insets(10, 0, 0, 0));
 
-        // Create scroll pane for contacts
         ScrollPane scrollPane = new ScrollPane();
         scrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
         scrollPane.setFitToWidth(true);
@@ -161,7 +156,6 @@ public class ContactViewFactory {
         VBox contactsList = new VBox(5);
         contactsList.setPadding(new Insets(5));
 
-        // Sample contacts data
         ContactItem[] contacts = {
                 new ContactItem("A", "AL", "Alvarez Luna", "#7289DA"),
                 new ContactItem("C", "CS", "Carla Serrano", "#43B581"),
@@ -179,7 +173,6 @@ public class ContactViewFactory {
 
         String currentSection = "";
         for (ContactItem contact : contacts) {
-            // Add section header if needed
             if (!contact.section.equals(currentSection)) {
                 if (!currentSection.isEmpty()) {
                     contactsList.getChildren().add(createSeparator());
@@ -238,11 +231,9 @@ public class ContactViewFactory {
                         "-fx-font-weight: normal;"
         );
 
-        // Spacer
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        // More options button
         Button moreButton = new Button();
         FontIcon moreIcon = new FontIcon(Feather.MORE_VERTICAL);
         moreIcon.setIconColor(Color.web("#72767d"));

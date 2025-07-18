@@ -8,8 +8,8 @@ import java.util.Properties;
 
 public class EmailSender {
 
-    private static final String FROM_EMAIL = "minhtien0601200@gmail.com"; // Thay bằng email thật
-    private static final String APP_PASSWORD = "lvht jlfj dgqk kwcm"; // Mật khẩu ứng dụng
+    private static final String FROM_EMAIL = "minhtien0601200@gmail.com";
+    private static final String APP_PASSWORD = "lvht jlfj dgqk kwcm";
 
     public static boolean send(String toEmail, String subject, String content) {
         Properties props = new Properties();
@@ -29,7 +29,6 @@ public class EmailSender {
         });
 
         try {
-            // Tạo email
             Message message = new MimeMessage(session);
             message.setFrom(new InternetAddress(FROM_EMAIL));
             message.setRecipients(
@@ -37,7 +36,6 @@ public class EmailSender {
             message.setSubject(subject);
             message.setText(content);
 
-            // Gửi email
             Transport.send(message);
             System.out.println("Email sent to " + toEmail);
             return true;

@@ -1,6 +1,7 @@
 package me.chatapp.stchat.view.components.pages;
 
 import javafx.animation.ScaleTransition;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -8,19 +9,29 @@ import javafx.scene.control.Button;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.effect.DropShadow;
+import javafx.scene.image.Image;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.ImagePattern;
 import javafx.scene.shape.Circle;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import me.chatapp.stchat.api.SocketClient;
 import me.chatapp.stchat.util.ValidateUtil;
 import org.jetbrains.annotations.NotNull;
+import org.json.JSONObject;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.Base64;
 import java.util.logging.Logger;
 
 import static me.chatapp.stchat.util.AnimationUtil.*;
@@ -33,6 +44,7 @@ public class SignUp {
     private static final Logger LOGGER = Logger.getLogger(SignUp.class.getName());
     private final Stage stage;
     private final Runnable onSwitchToLogin;
+    private File selectedAvatarFile;
 
     public SignUp(Runnable onSwitchToLogin) {
         this.stage = new Stage();
@@ -94,6 +106,11 @@ public class SignUp {
         VBox lastNameContainer = createFieldContainer("Last Name", "Enter your last name");
         TextField lastNameField = (TextField) lastNameContainer.getChildren().get(1);
 
+        // Avatar selection section
+        VBox avatarContainer = createAvatarSelectionContainer();
+        Circle avatarPreview = (Circle) ((StackPane) ((HBox) avatarContainer.getChildren().get(1)).getChildren().get(0)).getChildren().get(0);
+        Text avatarLabel = (Text) ((StackPane) ((HBox) avatarContainer.getChildren().get(1)).getChildren().get(0)).getChildren().get(1);
+        Button selectAvatarButton = (Button) ((HBox) avatarContainer.getChildren().get(1)).getChildren().get(1);
 
         // Email field
         VBox emailContainer = createFieldContainer("Email", "Enter your email address");
@@ -108,6 +125,7 @@ public class SignUp {
         PasswordField confirmPasswordField = (PasswordField) confirmPasswordContainer.getChildren().get(1);
 
         formContainer.getChildren().addAll(
+                avatarContainer,
                 firstNameContainer,
                 lastNameContainer,
                 usernameContainer,
@@ -132,8 +150,6 @@ public class SignUp {
                         "-fx-cursor: hand;" +
                         "-fx-effect: dropshadow(gaussian, rgba(102,126,234,0.4), 15, 0, 0, 5);"
         );
-
-
 
         // Sign in link
         VBox signInContainer = new VBox(5);
@@ -178,6 +194,9 @@ public class SignUp {
         addButtonSignUpHoverEffects(registerButton, signInButton);
         addPasswordStrengthIndicator(passwordField, passwordStrength);
 
+        // Avatar selection handler
+        selectAvatarButton.setOnAction(event -> handleAvatarSelection(avatarPreview, avatarLabel));
+
         registerButton.setOnAction(event ->
                 handleRegistration(
                         userTextField,
@@ -199,7 +218,7 @@ public class SignUp {
         confirmPasswordField.setOnAction(event -> registerButton.fire());
 
         // Create scene
-        Scene scene = new Scene(root, 520, 800);
+        Scene scene = new Scene(root, 520, 1000);
         stage.setTitle("ST Chat - Create Account");
         stage.setScene(scene);
         stage.setResizable(false);
@@ -208,8 +227,127 @@ public class SignUp {
         addEntranceAnimation(card);
     }
 
+    private VBox createAvatarSelectionContainer() {
+        VBox container = new VBox(8);
+        container.setAlignment(Pos.CENTER);
+
+        // Label
+        Text label = new Text("Avatar (Optional)");
+        label.setFont(Font.font("System", FontWeight.MEDIUM, 13));
+        label.setFill(Color.web("#2d3748"));
+
+        // Content container
+        HBox contentContainer = new HBox(15);
+        contentContainer.setAlignment(Pos.CENTER);
+
+        // Avatar preview container
+        StackPane avatarContainer = new StackPane();
+
+        // Avatar circle
+        Circle avatarCircle = new Circle(40);
+        avatarCircle.setFill(Color.web("#f7fafc"));
+        avatarCircle.setStroke(Color.web("#e2e8f0"));
+        avatarCircle.setStrokeWidth(2);
+        avatarCircle.setEffect(new DropShadow(5, Color.web("#000000", 0.1)));
+
+        // Default avatar icon
+        Text avatarIcon = new Text("👤");
+        avatarIcon.setFont(Font.font(35));
+        avatarIcon.setFill(Color.web("#a0aec0"));
+
+        avatarContainer.getChildren().addAll(avatarCircle, avatarIcon);
+
+        // Select button
+        Button selectButton = new Button("Choose Image");
+        selectButton.setPrefWidth(120);
+        selectButton.setPrefHeight(35);
+        selectButton.setFont(Font.font("System", FontWeight.MEDIUM, 12));
+        selectButton.setStyle(
+                "-fx-background-color: #667eea;" +
+                        "-fx-text-fill: white;" +
+                        "-fx-background-radius: 18;" +
+                        "-fx-cursor: hand;" +
+                        "-fx-effect: dropshadow(gaussian, rgba(102,126,234,0.3), 10, 0, 0, 3);"
+        );
+
+        // Hover effect for select button
+        selectButton.setOnMouseEntered(e -> selectButton.setStyle(
+                "-fx-background-color: #5a67d8;" +
+                        "-fx-text-fill: white;" +
+                        "-fx-background-radius: 18;" +
+                        "-fx-cursor: hand;" +
+                        "-fx-effect: dropshadow(gaussian, rgba(102,126,234,0.4), 12, 0, 0, 4);"
+        ));
+
+        selectButton.setOnMouseExited(e -> selectButton.setStyle(
+                "-fx-background-color: #667eea;" +
+                        "-fx-text-fill: white;" +
+                        "-fx-background-radius: 18;" +
+                        "-fx-cursor: hand;" +
+                        "-fx-effect: dropshadow(gaussian, rgba(102,126,234,0.3), 10, 0, 0, 3);"
+        ));
+
+        contentContainer.getChildren().addAll(avatarContainer, selectButton);
+
+        container.getChildren().addAll(label, contentContainer);
+        return container;
+    }
+
+    private void handleAvatarSelection(Circle avatarPreview, Text avatarLabel) {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Select Avatar Image");
+
+        // Set extension filters
+        FileChooser.ExtensionFilter imageFilter = new FileChooser.ExtensionFilter(
+                "Image Files", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp"
+        );
+        fileChooser.getExtensionFilters().add(imageFilter);
+
+        // Show open dialog
+        File selectedFile = fileChooser.showOpenDialog(stage);
+
+        if (selectedFile != null) {
+            try {
+                // Load and display image
+                Image image = new Image(new FileInputStream(selectedFile));
+
+                // Create circular image pattern
+                ImagePattern imagePattern = new ImagePattern(image);
+                avatarPreview.setFill(imagePattern);
+
+                // Store selected file
+                selectedAvatarFile = selectedFile;
+
+                // Update label (hide the icon)
+                avatarLabel.setVisible(false);
+
+                LOGGER.info("Avatar selected: " + selectedFile.getName());
+
+            } catch (IOException e) {
+                LOGGER.severe("Error loading avatar image: " + e.getMessage());
+                // Show error message to user
+                showRegisterMessage(
+                        (Text) stage.getScene().getRoot().lookup(".status-message"),
+                        "Error loading image. Please try another file.",
+                        Color.web("#e53e3e")
+                );
+            }
+        }
+    }
+
+    private String encodeImageToBase64(File imageFile) {
+        try {
+            byte[] fileContent = Files.readAllBytes(imageFile.toPath());
+            return Base64.getEncoder().encodeToString(fileContent);
+        } catch (IOException e) {
+            LOGGER.severe("Error encoding image to base64: " + e.getMessage());
+            return null;
+        }
+    }
+
     private void handleRegistration(TextField userField, TextField emailField,
-                                    PasswordField passField, PasswordField confirmField, TextField firstnameField, TextField lastnameField,
+                                    PasswordField passField, PasswordField confirmField,
+                                    TextField firstnameField, TextField lastnameField,
                                     Text statusMessage) {
         String username = userField.getText().trim();
         String firstname = firstnameField.getText().trim();
@@ -227,21 +365,31 @@ public class SignUp {
         new Thread(() -> {
             try {
                 SocketClient client = new SocketClient("localhost", 8080);
-                String request = new org.json.JSONObject()
+                JSONObject requestJson = new JSONObject()
                         .put("type", "REGISTER")
                         .put("username", username)
                         .put("email", email)
                         .put("password", password)
                         .put("lastname", lastname)
-                        .put("firstname", firstname)
-                        .toString();
+                        .put("firstname", firstname);
+
+                // Add avatar if selected
+                if (selectedAvatarFile != null) {
+                    String base64Image = encodeImageToBase64(selectedAvatarFile);
+                    if (base64Image != null) {
+                        requestJson.put("avatar", base64Image);
+                        requestJson.put("avatarFileName", selectedAvatarFile.getName());
+                    }
+                }
+
+                String request = requestJson.toString();
 
                 client.send(request);
                 String response = client.receive();
 
-                org.json.JSONObject resJson = new org.json.JSONObject(response);
+                JSONObject resJson = new JSONObject(response);
 
-                javafx.application.Platform.runLater(() -> {
+                Platform.runLater(() -> {
                     if ("success".equalsIgnoreCase(resJson.optString("status"))) {
                         showRegisterMessage(statusMessage, "Account created successfully! Please sign in.", Color.web("#38a169"));
                         getScaleTransition().play();
@@ -254,14 +402,13 @@ public class SignUp {
                 client.close();
 
             } catch (Exception e) {
-                javafx.application.Platform.runLater(() ->
+                Platform.runLater(() ->
                         showRegisterMessage(statusMessage, "Unable to connect to server.", Color.web("#e53e3e"))
                 );
                 LOGGER.severe("Registration socket error: " + e.getMessage());
             }
         }).start();
     }
-
 
     @NotNull
     private ScaleTransition getScaleTransition() {
@@ -273,7 +420,7 @@ public class SignUp {
             new Thread(() -> {
                 try {
                     Thread.sleep(2000);
-                    javafx.application.Platform.runLater(() -> {
+                    Platform.runLater(() -> {
                         stage.close();
                         onSwitchToLogin.run();
                     });

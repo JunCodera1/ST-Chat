@@ -17,16 +17,12 @@ public class SettingsViewFactory {
         VBox content = new VBox();
         content.setStyle("-fx-background-color: #f8f9fa;");
 
-        // Header with a gradient background
         VBox header = createHeader(onBackClicked);
 
-        // Profile section
         VBox profileSection = createProfileSection();
 
-        // Settings sections
         VBox settingsSections = createSettingsSections();
 
-        // ScrollPane for content
         ScrollPane scrollPane = new ScrollPane();
         scrollPane.setContent(settingsSections);
         scrollPane.setFitToWidth(true);
@@ -49,7 +45,6 @@ public class SettingsViewFactory {
         headerContent.setAlignment(Pos.CENTER_LEFT);
         headerContent.setPadding(new Insets(15, 20, 15, 20));
 
-        // Back button
         Button backButton = new Button();
         FontIcon backIcon = new FontIcon(Feather.EDIT_3);
         backIcon.setIconColor(Color.WHITE);
@@ -58,7 +53,6 @@ public class SettingsViewFactory {
         backButton.setStyle("-fx-background-color: rgba(255,255,255,0.2); -fx-background-radius: 50; -fx-border-radius: 50; -fx-padding: 8;");
         backButton.setOnAction(e -> onBackClicked.run());
 
-        // Title
         Label titleLabel = new Label("Settings");
         titleLabel.setStyle("-fx-text-fill: white; -fx-font-size: 24px; -fx-font-weight: bold;");
         HBox.setMargin(titleLabel, new Insets(0, 0, 0, 20));
@@ -75,11 +69,9 @@ public class SettingsViewFactory {
         profileSection.setPadding(new Insets(20));
         profileSection.setStyle("-fx-background-color: white;");
 
-        // Profile picture
         Circle profilePicture = new Circle(40);
         profilePicture.setStyle("-fx-fill: #e9ecef;");
 
-        // Camera icon overlay
         Button cameraButton = new Button();
         FontIcon cameraIcon = new FontIcon(Feather.CAMERA);
         cameraIcon.setIconColor(Color.GRAY);
@@ -91,7 +83,6 @@ public class SettingsViewFactory {
         profileStack.getChildren().addAll(profilePicture, cameraButton);
         StackPane.setAlignment(cameraButton, Pos.BOTTOM_RIGHT);
 
-        // Name and status
         Label nameLabel = new Label("Kathryn Swarey");
         nameLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #212529;");
 
@@ -116,7 +107,6 @@ public class SettingsViewFactory {
         sections.setSpacing(0);
         sections.setPadding(new Insets(10, 0, 0, 0));
 
-        // Personal info section
         VBox personalInfoSection = createCollapsibleSection("Personal info", Material2MZ.PERSON, true);
         VBox personalInfoContent = new VBox();
         personalInfoContent.getChildren().addAll(
@@ -126,22 +116,18 @@ public class SettingsViewFactory {
         );
         personalInfoSection.getChildren().add(personalInfoContent);
 
-        // Themes section
         VBox themesSection = createCollapsibleSection("Themes", Material2MZ.PALETTE, false);
         VBox themesContent = createThemesContent();
         themesSection.getChildren().add(themesContent);
 
-        // Privacy section
         VBox privacySection = createCollapsibleSection("Privacy", Material2MZ.QR_CODE, false);
         VBox privacyContent = createPrivacyContent();
         privacySection.getChildren().add(privacyContent);
 
-        // Security section
         VBox securitySection = createCollapsibleSection("Security", Material2MZ.SECURITY, false);
         VBox securityContent = createSecurityContent();
         securitySection.getChildren().add(securityContent);
 
-        // Help section
         VBox helpSection = createCollapsibleSection("Help", Material2MZ.PERM_CONTACT_CALENDAR, false);
         VBox helpContent = createHelpContent();
         helpSection.getChildren().add(helpContent);
@@ -228,7 +214,6 @@ public class SettingsViewFactory {
         VBox content = new VBox(15);
         content.setPadding(new Insets(20));
 
-        // Theme colors
         Label colorLabel = new Label("CHOOSE THEME COLOR:");
         colorLabel.setStyle("-fx-text-fill: #6c757d; -fx-font-size: 12px; -fx-font-weight: bold;");
 
@@ -327,7 +312,6 @@ public class SettingsViewFactory {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        // Toggle switch
         Button toggleButton = new Button();
         toggleButton.setPrefSize(50, 25);
         if (isEnabled) {

@@ -1,6 +1,5 @@
 package me.chatapp.stchat.util;
 
-import javafx.animation.FadeTransition;
 import javafx.animation.ScaleTransition;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -11,15 +10,11 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.Slider;
 import javafx.scene.control.Tooltip;
-import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
-import javafx.scene.media.Media;
-import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
 import javafx.util.Duration;
 import me.chatapp.stchat.model.AttachmentMessage;
@@ -146,7 +141,7 @@ public class AttachmentRenderer {
     }
 
     public void cleanup(VBox attachmentBox) {
-        if (attachmentBox != null && attachmentBox.getUserData() instanceof VLCJPlayer player) {
+        if (attachmentBox != null && attachmentBox.getUserData() instanceof AudioPlayer player) {
             player.cleanup();
         }
     }
@@ -198,7 +193,7 @@ public class AttachmentRenderer {
         HBox.setHgrow(progressBar, Priority.ALWAYS);
 
         // Initialize VLCJPlayer
-        final VLCJPlayer player = new VLCJPlayer();
+        final AudioPlayer player = new AudioPlayer();
 
         // Make progress bar clickable for seeking
         progressBar.setOnMouseClicked(e -> {

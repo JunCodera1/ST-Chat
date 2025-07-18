@@ -8,6 +8,7 @@ import io.javalin.http.Context;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class FavouriteController {
@@ -71,15 +72,15 @@ public class FavouriteController {
 
             ctx.json(dtoList);
         } catch (Exception e) {
-            e.printStackTrace(); // 👈 ghi log rõ ràng
+            e.printStackTrace();
             ctx.status(500).result("Server error: " + e.getMessage());
         }
     }
 
 
     private static void checkFavoriteExists(Context ctx) {
-        int userId = Integer.parseInt(ctx.queryParam("userId"));
-        int favoriteUserId = Integer.parseInt(ctx.queryParam("favoriteUserId"));
+        int userId = Integer.parseInt(Objects.requireNonNull(ctx.queryParam("userId")));
+        int favoriteUserId = Integer.parseInt(Objects.requireNonNull(ctx.queryParam("favoriteUserId")));
 
         boolean exists = favouriteService.isFavoriteExists(userId, favoriteUserId);
         ctx.json(Map.of("exists", exists));

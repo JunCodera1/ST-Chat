@@ -216,18 +216,6 @@ public class NavigationSidebarHandlerBinder {
             });
         });
 
-
-        // Điều hướng
-        navigationSidebar.setOnNavigationItemSelected(item -> {
-            switch (item) {
-                case "chats" -> chatView.showInfo("Navigation", "Switched to Chats view");
-                case "threads" -> chatView.showInfo("Navigation", "Switched to Threads view");
-                case "calls" -> chatView.showInfo("Navigation", "Switched to Calls view");
-                case "bookmarks" -> chatView.showInfo("Navigation", "Switched to Bookmarks view");
-            }
-        });
-
-
         navigationSidebar.setOnChannelSelected(channelName -> {
             conversationController.createChannelConversation(channelName)
                     .thenAccept(convId -> {
@@ -264,7 +252,6 @@ public class NavigationSidebarHandlerBinder {
                         .thenAccept(convId -> {
                             chatView.setCurrentConversationId(convId);
                             Platform.runLater(() -> {
-                                chatView.showMainChat();
                                 chatHeader.setActiveConversation(userName);
                                 chatPanel.setCurrentContact(userName, "user");
                                 chatPanel.clearMessages();
@@ -308,11 +295,13 @@ public class NavigationSidebarHandlerBinder {
                             .toList());
         }).thenAccept(favoriteUsers -> {
             Platform.runLater(() -> {
+                navigationSidebar.clearFavorites(); // 🧹 clear trước khi add mới
                 for (User favUser : favoriteUsers) {
                     navigationSidebar.addFavorite(favUser.getUsername(), "😊", true);
                 }
                 System.out.println("✅ Loaded " + favoriteUsers.size() + " favorites for user: " + user.getUsername());
             });
+
         }).exceptionally(ex -> {
             ex.printStackTrace();
             Platform.runLater(() -> chatView.showError("❌ Failed to load favorite users"));
