@@ -55,13 +55,24 @@ public class SidebarFooter extends VBox {
         avatarImageView.setClip(new Circle(15, 15, 15)); // Cắt thành hình tròn
 
         String avatarUrl = user.getAvatarUrl();
-        if (avatarUrl != null && !avatarUrl.isEmpty()) {
-            Image avatarImage = new Image(avatarUrl, true);
-            avatarImageView.setImage(avatarImage);
-        } else {
-            Image image = new Image(Objects.requireNonNull(getClass().getResource("/image/default_avatar.png")).toExternalForm());
-            avatarImageView.setImage(image);
+        Image avatarImage;
+
+        try {
+            if (avatarUrl != null && !avatarUrl.isEmpty()) {
+                avatarImage = new Image(avatarUrl, true);
+                if (avatarImage.isError()) {
+                    throw new IllegalArgumentException("Invalid avatar URL");
+                }
+            } else {
+                throw new IllegalArgumentException("Empty avatar URL");
+            }
+        } catch (Exception e) {
+            avatarImage = new Image(Objects.requireNonNull(
+                    getClass().getResource("/image/default_avatar.png")).toExternalForm());
         }
+
+        avatarImageView.setImage(avatarImage);
+
 
 
         VBox userInfo = new VBox();

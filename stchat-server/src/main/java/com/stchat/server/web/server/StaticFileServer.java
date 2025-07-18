@@ -67,7 +67,7 @@ public class StaticFileServer {
                 Files.copy(is, newPath, StandardCopyOption.REPLACE_EXISTING);
             }
 
-            String newAvatarUrl = "/uploads/avatars/" + newFileName;
+            String newAvatarUrl = "http://localhost:8081/uploads/avatars/" + newFileName;
             boolean success = userService.updateAvatar(userId, newAvatarUrl);
 
             if (success) {

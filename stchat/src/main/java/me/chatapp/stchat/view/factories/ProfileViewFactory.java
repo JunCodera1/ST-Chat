@@ -119,13 +119,27 @@ public class ProfileViewFactory {
         section.setStyle("-fx-padding: 20 0 20 0;");
 
         // Load avatar image
+        String avatarUrl = currentUser.getAvatarUrl();
         Image image;
-        try {
-            image = new Image(currentUser.getAvatarUrl(), 100, 100, false, true);
-        } catch (Exception e) {
-            System.err.println("⚠ Failed to load avatar: " + e.getMessage());
-            image = new Image("/default-avatar.png"); // fallback
+
+        if (avatarUrl == null || avatarUrl.isBlank()) {
+            image = new Image(Objects.requireNonNull(
+                    ProfileViewFactory.class.getResource("/image/default_avatar.png")
+            ).toExternalForm());
+        } else {
+            try {
+                image = new Image(avatarUrl, 100, 100, false, true);
+                if (image.isError()) {
+                    throw new IllegalArgumentException("Avatar image failed to load.");
+                }
+            } catch (Exception e) {
+                image = new Image(Objects.requireNonNull(
+                        ProfileViewFactory.class.getResource("/image/default_avatar.png")
+                ).toExternalForm());
+            }
         }
+
+
 
         // Prepare ImageView
         ImageView avatarView = new ImageView(image);
@@ -217,7 +231,7 @@ public class ProfileViewFactory {
                     try (BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
                         String responseLine = in.readLine();
 
-                        String fullUrl = "http://localhost:8081" + responseLine;
+                        String fullUrl = responseLine;
 
                         System.out.println("✅ New avatar URL: " + fullUrl);
 
