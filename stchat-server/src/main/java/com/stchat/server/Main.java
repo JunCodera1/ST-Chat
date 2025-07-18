@@ -142,25 +142,13 @@ public class Main {
         }
     }
 
-    public int getClientCount() {
-        synchronized (clientsLock) {
-            return clients.size();
-        }
-    }
-
-    public Set<String> getClientUsernames() {
-        synchronized (clientsLock) {
-            return new HashSet<>(clients.keySet());
-        }
-    }
-
     private String getCurrentTime() {
         return LocalDateTime.now().format(TIME_FORMATTER);
     }
 
     public static void main(String[] args) {
         Main server = new Main();
-
+        StaticFileServer.start(8081, "/home/jun/IdeaProjects/ST-Chat/stchat-server/uploads");
         PasswordChangeServer.start();
         MessageServer.start();
         ConversationServer.start();
