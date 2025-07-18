@@ -1,21 +1,32 @@
 package me.chatapp.stchat.view.factories;
 
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.SnapshotParameters;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.image.WritableImage;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
+import javafx.stage.FileChooser;
+import javafx.stage.Window;
 import me.chatapp.stchat.model.User;
 import org.kordamp.ikonli.Ikon;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.materialdesign2.*;
 
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.file.Files;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 
 public class ProfileViewFactory {
@@ -26,14 +37,24 @@ public class ProfileViewFactory {
 
         VBox header = createHeader(onBackClicked);
 
-        VBox content = createProfileContent(currentUser);
+        // Placeholder để gắn sau khi có window
+        VBox contentPlaceholder = new VBox();
+        VBox.setVgrow(contentPlaceholder, javafx.scene.layout.Priority.ALWAYS);
+        mainContainer.getChildren().addAll(header, contentPlaceholder);
 
-        mainContainer.getChildren().addAll(header, content);
-        VBox.setVgrow(content, javafx.scene.layout.Priority.ALWAYS);
+        mainContainer.sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene != null) {
+                Window window = newScene.getWindow();
+                VBox content = createProfileContent(currentUser, window);
 
+                mainContainer.getChildren().set(1, content); // Replace placeholder
+                VBox.setVgrow(content, javafx.scene.layout.Priority.ALWAYS);
+            }
+        });
 
         return mainContainer;
     }
+
 
     private static VBox createHeader(Runnable onBackClicked) {
         VBox header = new VBox();
@@ -71,57 +92,146 @@ public class ProfileViewFactory {
         return header;
     }
 
-    private static VBox createProfileContent(User currentUser) {
+    private static VBox createProfileContent(User currentUser, Window window) {
         VBox content = new VBox();
         content.setStyle("-fx-background-color: #36393f;");
         content.setPadding(new Insets(0, 20, 20, 20));
 
-        VBox profileSection = createProfileSection(currentUser);
+        VBox profileSection = createProfileSection(currentUser, window, newAvatarUrl -> {
+            currentUser.setAvatarUrl(newAvatarUrl);
+            System.out.println("✅ Avatar URL updated to: " + newAvatarUrl);
+        });
 
         VBox quoteSection = createQuoteSection();
-
         VBox contactSection = createContactSection(currentUser);
-
         VBox mediaSection = createMediaSection();
-
         VBox filesSection = createAttachedFilesSection();
 
         content.getChildren().addAll(profileSection, quoteSection, contactSection, mediaSection, filesSection);
-
         return content;
     }
 
-    private static VBox createProfileSection(User currentUser) {
+
+    private static VBox createProfileSection(User currentUser, Window window, Consumer<String> onAvatarUpdated) {
         VBox section = new VBox();
         section.setAlignment(Pos.CENTER);
         section.setSpacing(15);
         section.setStyle("-fx-padding: 20 0 20 0;");
 
-        // Profile image
-        Circle profileImage = new Circle(50);
-        profileImage.setFill(Color.LIGHTGRAY);
-        profileImage.setStroke(Color.WHITE);
-        profileImage.setStrokeWidth(3);
-
-        if (currentUser != null && currentUser.getAvatarUrl() != null) {
-            ImageView imageView = new ImageView(new Image(currentUser.getAvatarUrl()));
-            imageView.setFitWidth(100);
-            imageView.setFitHeight(100);
-            imageView.setPreserveRatio(true);
-            Circle clip = new Circle(50);
-            imageView.setClip(clip);
+        // Load avatar image
+        Image image;
+        try {
+            image = new Image(currentUser.getAvatarUrl(), 100, 100, false, true);
+        } catch (Exception e) {
+            System.err.println("⚠ Failed to load avatar: " + e.getMessage());
+            image = new Image("/default-avatar.png"); // fallback
         }
 
-        Label nameLabel = new Label(currentUser != null ? currentUser.getUsername() : "Adam Zampa");
+        // Prepare ImageView
+        ImageView avatarView = new ImageView(image);
+        avatarView.setFitWidth(100);
+        avatarView.setFitHeight(100);
+
+        // Clip to circle
+        Circle clip = new Circle(50, 50, 50);
+        avatarView.setClip(clip);
+
+        // Snapshot to get circular cropped avatar
+        SnapshotParameters params = new SnapshotParameters();
+        params.setFill(Color.TRANSPARENT);
+        WritableImage roundedAvatar = avatarView.snapshot(params, null);
+
+        ImageView finalAvatarView = new ImageView(roundedAvatar);
+        finalAvatarView.setFitWidth(100);
+        finalAvatarView.setFitHeight(100);
+
+        Button cameraButton = new Button();
+        FontIcon cameraIcon = new FontIcon("fas-camera");
+        cameraIcon.setIconSize(16);
+        cameraButton.setGraphic(cameraIcon);
+        cameraButton.setStyle("-fx-background-color: white; -fx-background-radius: 50%; -fx-padding: 6;");
+        cameraButton.setPrefSize(24, 24);
+        cameraButton.setOnAction(e -> {
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Choose new avatar");
+            fileChooser.getExtensionFilters().addAll(
+                    new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg")
+            );
+
+            File selectedFile = fileChooser.showOpenDialog(window);
+            if (selectedFile != null) {
+                uploadAvatarToServer(currentUser.getId(), selectedFile, newAvatarUrl -> {
+                    Platform.runLater(() -> {
+                        // Reload avatar
+                        Image newImage = new Image(newAvatarUrl, 100, 100, false, true);
+                        avatarView.setImage(newImage);
+
+                        WritableImage newSnapshot = avatarView.snapshot(params, null);
+                        finalAvatarView.setImage(newSnapshot);
+
+                        // Update callback
+                        onAvatarUpdated.accept(newAvatarUrl);
+                    });
+                });
+            }
+        });
+
+        // Place avatar and camera icon in a StackPane
+        StackPane avatarStack = new StackPane(finalAvatarView, cameraButton);
+        StackPane.setAlignment(cameraButton, Pos.BOTTOM_RIGHT);
+        StackPane.setMargin(cameraButton, new Insets(0, 4, 4, 0));
+
+        // Username label
+        Label nameLabel = new Label(currentUser.getUsername());
         nameLabel.setStyle("-fx-text-fill: white; -fx-font-size: 22px; -fx-font-weight: bold;");
 
+        // Role label
         Label titleLabel = new Label("Front end Developer");
         titleLabel.setStyle("-fx-text-fill: #b9bbbe; -fx-font-size: 14px;");
 
-        section.getChildren().addAll(profileImage, nameLabel, titleLabel);
-
+        section.getChildren().addAll(avatarStack, nameLabel, titleLabel);
         return section;
     }
+
+    private static void uploadAvatarToServer(int userId, File file, Consumer<String> onSuccess) {
+        new Thread(() -> {
+            try {
+                String boundary = "===" + System.currentTimeMillis() + "===";
+                URL url = new URL("http://localhost:8081/api/users/" + userId + "/avatar");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setDoOutput(true);
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
+
+                try (DataOutputStream request = new DataOutputStream(conn.getOutputStream())) {
+                    request.writeBytes("--" + boundary + "\r\n");
+                    request.writeBytes("Content-Disposition: form-data; name=\"file\"; filename=\"" + file.getName() + "\"\r\n");
+                    request.writeBytes("Content-Type: " + Files.probeContentType(file.toPath()) + "\r\n\r\n");
+                    Files.copy(file.toPath(), request);
+                    request.writeBytes("\r\n--" + boundary + "--\r\n");
+                    request.flush();
+                }
+
+                int responseCode = conn.getResponseCode();
+                if (responseCode == 200) {
+                    try (BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+                        String responseLine = in.readLine();
+
+                        String fullUrl = "http://localhost:8081" + responseLine;
+
+                        System.out.println("✅ New avatar URL: " + fullUrl);
+
+                        onSuccess.accept(fullUrl);
+                    }
+                } else {
+                    System.err.println("❌ Upload failed with response code: " + responseCode);
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }).start();
+    }
+
 
     private static VBox createQuoteSection() {
         VBox section = new VBox();

@@ -3,8 +3,9 @@ package me.chatapp.stchat.view.components.organisms.Footer;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
 import me.chatapp.stchat.model.User;
@@ -19,13 +20,14 @@ import me.chatapp.stchat.view.components.pages.Login;
 import me.chatapp.stchat.view.config.ChatViewConfig;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
+
 import static me.chatapp.stchat.util.CSSUtil.baseButtonStyle;
 import static me.chatapp.stchat.util.CSSUtil.hoverButtonStyle;
 
 public class SidebarFooter extends VBox {
 
-    private Label userNameLabel;
-    private StatusLabel statusLabel;
+    private final Label userNameLabel;
     private final SocketClient client;
     private final Stage stage;
     private final Runnable onSettingsClicked;
@@ -47,8 +49,20 @@ public class SidebarFooter extends VBox {
         userProfile.setSpacing(10);
         userProfile.setPadding(new Insets(10, 0, 0, 0));
 
-        Circle avatar = new Circle(15);
-        avatar.setFill(Color.web("#7289da"));
+        ImageView avatarImageView = new ImageView();
+        avatarImageView.setFitWidth(30);
+        avatarImageView.setFitHeight(30);
+        avatarImageView.setClip(new Circle(15, 15, 15)); // Cắt thành hình tròn
+
+        String avatarUrl = user.getAvatarUrl();
+        if (avatarUrl != null && !avatarUrl.isEmpty()) {
+            Image avatarImage = new Image(avatarUrl, true);
+            avatarImageView.setImage(avatarImage);
+        } else {
+            Image image = new Image(Objects.requireNonNull(getClass().getResource("/image/default_avatar.png")).toExternalForm());
+            avatarImageView.setImage(image);
+        }
+
 
         VBox userInfo = new VBox();
         userInfo.setSpacing(2);
@@ -56,7 +70,7 @@ public class SidebarFooter extends VBox {
         userNameLabel = new Label(user.getUsername());
         userNameLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
 
-        statusLabel = new StatusLabel("🟢 Online");
+        StatusLabel statusLabel = new StatusLabel("🟢 Online");
 
         userInfo.getChildren().addAll(userNameLabel, statusLabel.getComponent());
 
@@ -65,7 +79,7 @@ public class SidebarFooter extends VBox {
 
         SidebarIconButton settingsButton = getSidebarIconButton();
 
-        userProfile.getChildren().addAll(avatar, userInfo, spacer, settingsButton.getComponent());
+        userProfile.getChildren().addAll(avatarImageView, userInfo, spacer, settingsButton.getComponent());
         getChildren().addAll(archivedLabel, userProfile);
     }
 
