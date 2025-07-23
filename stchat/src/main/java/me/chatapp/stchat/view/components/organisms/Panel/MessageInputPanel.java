@@ -19,6 +19,7 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import me.chatapp.stchat.api.MessageApiClient;
+import me.chatapp.stchat.api.SocketClient;
 import me.chatapp.stchat.funtional.TriConsumer;
 import me.chatapp.stchat.model.AttachmentMessage;
 import me.chatapp.stchat.model.User;
@@ -60,6 +61,10 @@ public class MessageInputPanel {
     private final MicrophoneButton microphoneButton;
     private final Label statusLabel;
     private final ProgressBar uploadProgress;
+    private SocketClient socketClient;
+    private Integer currentUserId;
+    private Integer receiverId;
+
 
     // Data
     private User sender;
@@ -123,6 +128,13 @@ public class MessageInputPanel {
 
         container.getChildren().addAll(inputRow);
     }
+
+    public void setSocketClient(SocketClient socketClient, Integer currentUserId, Integer receiverId) {
+        this.socketClient = socketClient;
+        this.currentUserId = currentUserId;
+        this.receiverId = receiverId;
+    }
+
     public void setConversationReady(boolean ready) {
         conversationReady.set(ready);
     }
@@ -230,20 +242,28 @@ public class MessageInputPanel {
             if (!isTyping.get()) {
                 isTyping.set(true);
                 typingCallback.accept("typing");
+                // Gửi trạng thái typing
+                if (socketClient != null && sender != null && receiver != null) {
+                    socketClient.sendTypingStatus(sender.getId(), receiver.getId(), true);
+                }
             }
-
             // Reset typing timer
             if (typingTimer != null) {
                 typingTimer.stop();
             }
-
             typingTimer = new Timeline(new KeyFrame(Duration.seconds(2), e -> {
                 isTyping.set(false);
                 typingCallback.accept("stopped_typing");
+                // Gửi trạng thái dừng typing
+                if (socketClient != null && sender != null && receiver != null) {
+                    socketClient.sendTypingStatus(sender.getId(), receiver.getId(), false);
+                }
             }));
             typingTimer.play();
         }
     }
+
+
 
 
     private void appendToInput(String iconCode) {
@@ -379,13 +399,6 @@ public class MessageInputPanel {
                     sendAttachmentCallback.accept(sender, receiver, attachment);
                 }
 
-                // Tùy chọn: gửi mô tả text
-                if (sendMessageCallback != null && sender != null && receiver != null) {
-                    String attachmentMessage = String.format("📎 %s\n📄 Type: %s\n📊 Size: %s",
-                            fileName, fileType, formatFileSize(file.length()));
-                    sendMessageCallback.accept(sender, receiver, attachmentMessage);
-                }
-
                 showInfoAlert("File Sent", String.format("File \"%s\" has been sent successfully.", fileName));
             });
 
@@ -428,24 +441,101 @@ public class MessageInputPanel {
             statusLabel.setVisible(false);
 
             if (recordingPath != null) {
-                long duration = voiceRecorder.getRecordingDuration();
-                String voiceMessage = String.format("🎤 Voice Message (%s)", formatDuration(duration));
+                File audioFile = new File(recordingPath);
 
-                if (sendMessageCallback != null && sender != null && receiver != null) {
-                    sendMessageCallback.accept(sender, receiver, voiceMessage);
+                if (audioFile.exists() && audioFile.length() > 0) {
+                    // Gửi file audio như một attachment thay vì chỉ text
+                    processAudioFileAsync(audioFile);
+
+                    LOGGER.info("Voice recording completed and queued for upload: " + recordingPath);
+                } else {
+                    showErrorAlert("Recording Error", "No audio data recorded or file is empty.");
                 }
-
-                if (sendVoiceCallback != null) {
-                    sendVoiceCallback.accept(recordingPath);
-                }
-
-                showInfoAlert("Voice Message", "Voice message sent successfully.");
-                LOGGER.info("Voice message sent successfully");
             }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to stop voice recording", e);
             showErrorAlert("Recording Error", "Failed to stop voice recording: " + e.getMessage());
         }
+    }
+
+    private void processAudioFileAsync(File audioFile) {
+        CompletableFuture.runAsync(() -> {
+            Platform.runLater(() -> {
+                isUploading.set(true);
+                statusLabel.setText("Uploading voice message...");
+                statusLabel.setVisible(true);
+                uploadProgress.setVisible(true);
+                uploadProgress.setProgress(0.0);
+            });
+
+            try {
+                // Upload file audio lên server
+                MessageApiClient apiClient = new MessageApiClient();
+
+                apiClient.uploadFile(audioFile).thenAccept(fileUrl -> {
+                    String fileName = audioFile.getName();
+                    long duration = voiceRecorder.getRecordingDuration();
+
+                    // Tạo attachment cho file audio
+                    AttachmentMessage audioAttachment = new AttachmentMessage(
+                            fileName,
+                            "audio", // Đặt type là "audio"
+                            audioFile.length(),
+                            fileUrl,
+                            getAudioFileExtension(fileName) // wav, mp3, etc.
+                    );
+
+                    Platform.runLater(() -> {
+                        // Gửi attachment thay vì text message
+                        if (sendAttachmentCallback != null && sender != null && receiver != null) {
+                            sendAttachmentCallback.accept(sender, receiver, audioAttachment);
+                        }
+
+                        // Gửi mô tả voice message (optional)
+                        if (sendMessageCallback != null && sender != null && receiver != null) {
+                            String voiceDescription = String.format("🎤 Voice Message (%s)",
+                                    formatDuration(duration));
+                            sendMessageCallback.accept(sender, receiver, voiceDescription);
+                        }
+
+                        // Reset UI
+                        isUploading.set(false);
+                        statusLabel.setVisible(false);
+                        uploadProgress.setVisible(false);
+
+                        showInfoAlert("Voice Message", "Voice message sent successfully.");
+                        LOGGER.info("Voice message sent as file attachment");
+                    });
+
+                }).exceptionally(ex -> {
+                    ex.printStackTrace();
+                    Platform.runLater(() -> {
+                        isUploading.set(false);
+                        statusLabel.setVisible(false);
+                        uploadProgress.setVisible(false);
+                        showErrorAlert("Upload Failed", "Could not upload voice message: " + ex.getMessage());
+                    });
+                    return null;
+                });
+
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE, "Failed to upload voice message", e);
+                Platform.runLater(() -> {
+                    isUploading.set(false);
+                    statusLabel.setVisible(false);
+                    uploadProgress.setVisible(false);
+                    showErrorAlert("Upload Error", "Failed to upload voice message: " + e.getMessage());
+                });
+            }
+        }, executorService);
+    }
+
+    private String getAudioFileExtension(String fileName) {
+        int lastDot = fileName.lastIndexOf('.');
+        if (lastDot > 0 && lastDot < fileName.length() - 1) {
+            return fileName.substring(lastDot + 1).toLowerCase();
+        }
+        return "wav";
     }
 
     private void startRecordingAnimation() {
@@ -502,7 +592,6 @@ public class MessageInputPanel {
         });
     }
 
-    // Public API
     public VBox getComponent() {
         return container;
     }

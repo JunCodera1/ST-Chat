@@ -15,9 +15,46 @@ public class MessageController {
     private final MessageApiClient messageApiClient;
     SocketClient socketClient = AppContext.getInstance().getSocketClient();
 
+    private ChatPanel activeChatPanel;
+    private int activeConversationId = -1;
+    private static MessageController instance;
+
+    public static MessageController getInstance() {
+        if (instance == null) {
+            instance = new MessageController();
+        }
+        return instance;
+    }
+
     public MessageController() {
         this.messageApiClient = new MessageApiClient();
     }
+
+    public void receiveMessage(Message message) {
+        if (activeChatPanel != null && message.getConversationId() == activeConversationId) {
+            Platform.runLater(() -> {
+                activeChatPanel.addMessage(message);
+            });
+        } else {
+            System.out.println("Received message for other conversation: " + message.getConversationId());
+        }
+    }
+
+    public void handleIncomingMessage(Message message) {
+        int conversationId = message.getConversationId();
+
+        System.out.println("[Socket] Received message for conversation: " + conversationId);
+
+        if (activeChatPanel != null && activeConversationId == conversationId) {
+            Platform.runLater(() -> {
+                System.out.println("[Socket] Appending message to UI");
+                activeChatPanel.addMessage(message);
+            });
+        } else {
+            System.out.println("[Socket] Message not for current conversation. Ignored.");
+        }
+    }
+
 
     public void loadMessagesForConversation(int conversationId, ChatPanel chatPanel) {
         System.out.println("Loading messages for conversation: " + conversationId);
@@ -59,7 +96,6 @@ public class MessageController {
 
         message.setConversationId(conversationId);
         message.setSenderId(sender.getId());
-
         message.setCreatedAt(LocalDateTime.now());
         System.out.println("Created message: " + message);
 
@@ -67,21 +103,12 @@ public class MessageController {
                 .thenAccept(success -> {
                     System.out.println("API call result: " + success);
                     if (success) {
-                        if (isJavaFXApplicationActive()) {
-                            Platform.runLater(() -> {
-                                if (chatPanel != null) {
-                                    chatPanel.addMessage(message);
-                                }
-                                System.out.println("Message sent successfully via API");
-                            });
-                        } else {
+                        Platform.runLater(() -> {
                             if (chatPanel != null) {
-                                chatPanel.addMessage(message);
+                                chatPanel.addMessage(message); // Luôn add vào UI ngay khi gửi thành công API
                             }
                             System.out.println("Message sent successfully via API");
-                        }
-
-                        // Send via socket
+                        });
                         if (socketClient != null && socketClient.isConnected()) {
                             socketClient.sendMessage(message);
                             System.out.println("Message sent via socket");
@@ -107,36 +134,41 @@ public class MessageController {
                 });
     }
 
-    public void sendDirectMessage(User sender,
-                                  User receiver,
-                                  String content,
-                                  int conversationId,
-                                  ChatPanel chatPanel) {
-        if (content == null || content.isBlank()) return;
+    public void sendDirectMessage(User sender, User receiver, String content, int conversationId) {
+        System.out.println("Sending message: " + content + " to conversation: " + conversationId);
 
-        System.out.println("Sending DM from " + sender + " to " + receiver);
+        Message message = new Message();
+        message.setSenderId(sender.getId());
+        message.setReceiverId(receiver.getId());
+        message.setConversationId(conversationId);
+        message.setContent(content);
+        message.setType(Message.MessageType.TEXT);
+        message.setCreatedAt(LocalDateTime.now());
 
-        messageApiClient.sendDirectMessage(sender.getId(), receiver.getId(), content)
-                .thenAccept(ignored -> {
-                    Message msg = new Message(sender.getUsername(), content, Message.MessageType.USER);
-                    msg.setSenderId(sender.getId());
-                    msg.setReceiverId(receiver.getId());
-                    msg.setConversationId(conversationId);
-                    msg.setCreatedAt(LocalDateTime.now());
+        if (activeChatPanel != null && conversationId == activeConversationId) {
+            System.out.println("Adding message to active chat panel immediately");
+            activeChatPanel.addMessage(message);
+        }
 
-                    // Cập nhật UI
-                    Platform.runLater(() -> chatPanel.addMessage(msg));
-
-                    // Gửi socket nếu cần
-                    if (socketClient != null && socketClient.isConnected()) {
-                        socketClient.sendMessage(msg);
+        messageApiClient.sendMessage(message)
+                .thenAccept(success -> {
+                    if (success) {
+                        System.out.println("Message sent successfully via API");
+                    } else {
+                        Platform.runLater(() -> {
+                            System.err.println("Failed to send message via API");
+                        });
                     }
                 })
-                .exceptionally(ex -> {
-                    ex.printStackTrace();
+                .exceptionally(throwable -> {
+                    Platform.runLater(() -> {
+                        System.err.println("Error sending message: " + throwable.getMessage());
+                        throwable.printStackTrace();
+                    });
                     return null;
                 });
     }
+
 
     private boolean isJavaFXApplicationActive() {
         try {
@@ -191,5 +223,12 @@ public class MessageController {
         }
     }
 
+    public void setActiveChatPanel(ChatPanel chatPanel, int conversationId) {
+        this.activeChatPanel = chatPanel;
+        this.activeConversationId = conversationId;
+    }
 
+    public ChatPanel getActiveChatPanel() {
+        return activeChatPanel;
+    }
 }

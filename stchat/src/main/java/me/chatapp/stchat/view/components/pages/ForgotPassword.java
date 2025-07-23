@@ -68,7 +68,6 @@ public class ForgotPassword {
         logoText.setFont(Font.font(30));
         logoContainer.getChildren().addAll(logoCircle, logoText);
 
-        // Title
         Text title = new Text("Forgot Password");
         title.setFont(Font.font("System", FontWeight.BOLD, 28));
         title.setFill(Color.web("#2d3748"));
@@ -77,11 +76,9 @@ public class ForgotPassword {
         subtitle.setFont(Font.font("System", FontWeight.NORMAL, 14));
         subtitle.setFill(Color.web("#718096"));
 
-        // Form fields
         VBox formContainer = new VBox(20);
         formContainer.setAlignment(Pos.CENTER);
 
-        // Email field
         VBox emailContainer = new VBox(8);
         Label emailLabel = new Label("Email");
         emailLabel.setFont(Font.font("System", FontWeight.MEDIUM, 14));
@@ -96,13 +93,11 @@ public class ForgotPassword {
 
         formContainer.getChildren().add(emailContainer);
 
-        // Reset password button
         Button resetButton = new Button("Reset Password");
         resetButton.setPrefWidth(300);
         resetButton.setPrefHeight(50);
         resetButton.setFont(Font.font("System", FontWeight.BOLD, 16));
 
-        // Back to login link
         VBox loginContainer = new VBox(5);
         loginContainer.setAlignment(Pos.CENTER);
 
@@ -115,12 +110,10 @@ public class ForgotPassword {
 
         loginContainer.getChildren().addAll(loginText, loginButton);
 
-        // Status message
         Text statusMessage = new Text();
         statusMessage.setFont(Font.font("System", FontWeight.MEDIUM, 12));
         statusMessage.setFill(Color.web("#e53e3e"));
 
-        // Add all components to card
         card.getChildren().addAll(
                 logoContainer,
                 title,
@@ -133,27 +126,22 @@ public class ForgotPassword {
 
         root.getChildren().add(card);
 
-        // Add focus effects
         addFieldFocusEffects(emailField);
         addButtonHoverEffects(resetButton, loginButton);
 
-        // Event handlers
         resetButton.setOnAction(event -> handleResetPassword(emailField, statusMessage, resetButton));
         loginButton.setOnAction(event -> {
             stage.close();
             onSwitchToLogin.run();
         });
 
-        // Enter key support
         emailField.setOnAction(event -> resetButton.fire());
 
-        // Create scene
         Scene scene = new Scene(root, 500, 700);
         stage.setTitle("ST Chat - Forgot Password");
         stage.setScene(scene);
         stage.setResizable(false);
 
-        // Add entrance animation
         addEntranceAnimation(card);
     }
 
@@ -178,7 +166,6 @@ public class ForgotPassword {
     private void handleResetPassword(TextField emailField, Text statusMessage, Button resetButton) {
         String email = emailField.getText().trim();
 
-        // Validation
         if (email.isEmpty()) {
             statusMessage.setText("Please enter your email");
             statusMessage.setFill(Color.web("#e53e3e"));
@@ -200,7 +187,6 @@ public class ForgotPassword {
             try {
                 SocketClient socketClient = new SocketClient("localhost", 8080);
 
-                // Gửi JSON yêu cầu reset password
                 String request = new JSONObject()
                         .put("type", "FORGOT_PASSWORD")
                         .put("email", email)
@@ -223,7 +209,6 @@ public class ForgotPassword {
                         statusMessage.setFill(Color.web("#38a169"));
                         LOGGER.info("Password reset success: " + message);
 
-                        // Optional: animation
                         ScaleTransition successScale = new ScaleTransition(Duration.millis(200), stage.getScene().getRoot());
                         successScale.setToX(0.95);
                         successScale.setToY(0.95);
@@ -232,7 +217,6 @@ public class ForgotPassword {
                         statusMessage.setText(message);
                         statusMessage.setFill(Color.web("#e53e3e")); // đỏ
 
-                        // shake effect
                         ScaleTransition shakeScale = new ScaleTransition(Duration.millis(100), statusMessage);
                         shakeScale.setToX(1.1);
                         shakeScale.setAutoReverse(true);

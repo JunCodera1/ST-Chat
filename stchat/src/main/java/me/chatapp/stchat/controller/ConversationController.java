@@ -4,7 +4,6 @@ import me.chatapp.stchat.api.ConversationApiClient;
 import me.chatapp.stchat.model.Conversation;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 
 public class ConversationController {
 
@@ -23,7 +22,5 @@ public class ConversationController {
         return conversationApiClient.createChannelConversation(channelName)
                 .thenApply(Conversation::getId);
     }
-
-
 
 }

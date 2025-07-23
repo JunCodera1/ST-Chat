@@ -3,7 +3,6 @@ package me.chatapp.stchat.view.handlers;
 import javafx.application.Platform;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ChoiceDialog;
-import javafx.scene.control.Label;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -36,33 +35,35 @@ public class NavigationSidebarHandlerBinder {
         User currentUser = chatView.getCurrentUser();
         ConversationController conversationController = new ConversationController(new ConversationApiClient());
 
+        setupAddFavoriteHandler(chatView, navigationSidebar, currentUser);
+        setupAddDirectMessageHandler(chatView, navigationSidebar, currentUser);
+        setupAddChannelHandler(chatView, navigationSidebar);
+        setupChannelSelectionHandler(chatView, chatPanel, chatHeader, messageController, conversationController);
+        setupDirectMessageSelectionHandler(chatView, chatPanel, chatHeader, messageController, currentUser, conversationController);
+
+        navigationSidebar.setOnSettingsClicked(() ->
+                chatView.showInfo("Settings", "Settings panel will be implemented soon!"));
+    }
+
+    private static void setupAddFavoriteHandler(ChatView chatView, NavigationSidebar navigationSidebar, User currentUser) {
         navigationSidebar.setOnAddFavoriteClicked(() -> {
             UserApiClient userApiClient = new UserApiClient();
             FavouriteApiClient favouriteApiClient = new FavouriteApiClient();
 
             userApiClient.getAllUsers().thenAccept(users -> {
-                System.out.println("🔍 All users fetched from server: " + users.size());
-
                 List<String> allUsernames = users.stream()
                         .map(User::getUsername)
                         .filter(name -> !name.equals(currentUser.getUsername()))
                         .toList();
 
-                System.out.println("✅ Filtered usernames (excluding self): " + allUsernames);
-
                 List<String> alreadyAdded = navigationSidebar.getFavoriteUsernames();
-                System.out.println("📌 Already added to favorites: " + alreadyAdded);
-
                 List<String> selectableUsernames = allUsernames.stream()
                         .filter(name -> !alreadyAdded.contains(name))
                         .toList();
 
-                System.out.println("🟢 Selectable usernames: " + selectableUsernames);
-
                 Platform.runLater(() -> {
                     if (selectableUsernames.isEmpty()) {
                         chatView.showInfo("No more users", "All users are already in favorites.");
-                        System.out.println("⚠️ No selectable users left to add.");
                         return;
                     }
 
@@ -70,62 +71,35 @@ public class NavigationSidebarHandlerBinder {
                             .map(name -> "😊 " + name)
                             .toList();
 
-                    ChoiceDialog<String> dialog = new ChoiceDialog<>(emojiNames.get(0), emojiNames);
-                    dialog.setTitle("Add Favorite");
-                    dialog.setHeaderText("👤 Select a user to add to favorites");
-                    dialog.setContentText("Username:");
-
-                    FontIcon icon = new FontIcon(Feather.USER_PLUS);
-                    icon.setIconSize(30);
-                    icon.setIconColor(Color.web("#5865F2"));
-                    dialog.getDialogPane().setGraphic(icon);
-
-                    dialog.getDialogPane().setStyle("-fx-background-color: #2f3136; -fx-padding: 20;");
-                    dialog.getDialogPane().lookupButton(ButtonType.OK).setStyle("-fx-background-color: #5865f2; -fx-text-fill: white;");
-                    dialog.getDialogPane().lookupButton(ButtonType.CANCEL).setStyle("-fx-background-color: #99aab5; -fx-text-fill: black;");
+                    ChoiceDialog<String> dialog = createStyledChoiceDialog("Add Favorite",
+                            "👤 Select a user to add to favorites", emojiNames, Feather.USER_PLUS);
 
                     dialog.showAndWait().ifPresent(selectedUsername -> {
                         String username = selectedUsername.replace("😊 ", "").trim();
-                        System.out.println("👉 Selected username: " + username);
 
-                        // Tìm thông tin user từ username
                         userApiClient.findUserByUsername(username).ifPresentOrElse(targetUser -> {
-                            System.out.println("✅ Found user in system: " + targetUser.getUsername() + " (ID: " + targetUser.getId() + ")");
-
-                            // Gọi API lưu vào database
                             favouriteApiClient.addFavorite(currentUser.getId(), targetUser.getId()).thenAccept(success -> {
-                                System.out.println("🛠 Sending favorite add request: from=" + currentUser.getId() + ", to=" + targetUser.getId());
-
                                 if (success) {
                                     Platform.runLater(() -> {
-                                        navigationSidebar.addFavorite(username, "😊", true);
+                                        navigationSidebar.addFavorite(username, "😊", targetUser.isActive());
                                         chatView.showInfo("✅ Success", username + " has been added to favorites.");
-                                        System.out.println("🎉 Added to favorites: " + username);
                                     });
                                 } else {
-                                    Platform.runLater(() -> {
-                                        chatView.showError("❌ Failed to add " + username + " to favorites.");
-                                        System.out.println("❌ Server rejected addFavorite request.");
-                                    });
+                                    Platform.runLater(() -> chatView.showError("❌ Failed to add " + username + " to favorites."));
                                 }
                             }).exceptionally(ex -> {
                                 ex.printStackTrace();
                                 Platform.runLater(() -> chatView.showError("❌ Network error while adding favorite."));
                                 return null;
                             });
-
-                        }, () -> {
-                            Platform.runLater(() -> chatView.showError("❌ User not found in system."));
-                            System.out.println("❌ User not found in system: " + username);
-                        });
+                        }, () -> Platform.runLater(() -> chatView.showError("❌ User not found in system.")));
                     });
                 });
-            }).exceptionally(ex -> {
-                ex.printStackTrace();
-                return null;
             });
         });
+    }
 
+    private static void setupAddDirectMessageHandler(ChatView chatView, NavigationSidebar navigationSidebar, User currentUser) {
         navigationSidebar.setOnAddDirectMessageClicked(() -> {
             UserApiClient userApiClient = new UserApiClient();
             userApiClient.getAllUsers().thenAccept(users -> {
@@ -140,83 +114,47 @@ public class NavigationSidebarHandlerBinder {
                         return;
                     }
 
-                    ChoiceDialog<String> dialog = new ChoiceDialog<>(availableUsernames.get(0), availableUsernames);
-                    dialog.setTitle("Start Direct Message");
-                    dialog.setHeaderText("💬 Select a user to message");
-                    dialog.setContentText("Username:");
-
-                    // Ikonli icon
-                    FontIcon icon = new FontIcon(Feather.MESSAGE_CIRCLE);
-                    icon.setIconSize(30);
-                    icon.setIconColor(Color.web("#5865F2"));
-                    dialog.getDialogPane().setGraphic(icon);
-
-                    // Styling
-                    dialog.getDialogPane().setStyle("-fx-background-color: #2f3136; -fx-padding: 20;");
-                    dialog.getDialogPane().lookupButton(ButtonType.OK).setStyle("-fx-background-color: #5865f2; -fx-text-fill: white;");
-                    dialog.getDialogPane().lookupButton(ButtonType.CANCEL).setStyle("-fx-background-color: #99aab5; -fx-text-fill: black;");
+                    ChoiceDialog<String> dialog = createStyledChoiceDialog("Start Direct Message",
+                            "Select a user to message", availableUsernames, Feather.MESSAGE_CIRCLE);
 
                     dialog.showAndWait().ifPresent(selectedUsername -> {
-                        navigationSidebar.addDirectMessage(selectedUsername, "💬", true, "1");
-                        System.out.println("✅ Started DM with: " + selectedUsername);
+                        navigationSidebar.addDirectMessage(selectedUsername, currentUser.getAvatarUrl(), currentUser.isActive(), "1");
                     });
                 });
-            }).exceptionally(ex -> {
-                ex.printStackTrace();
-                Platform.runLater(() -> chatView.showError("Failed to load users for Direct Message."));
-                return null;
             });
         });
+    }
 
-
+    private static void setupAddChannelHandler(ChatView chatView, NavigationSidebar navigationSidebar) {
         navigationSidebar.setOnAddChannelClicked(() -> {
             TextInputDialog dialog = new TextInputDialog();
             dialog.setTitle("➕ Create Channel");
             dialog.setHeaderText("Enter new channel name");
             dialog.setContentText("Channel name:");
 
-            // Giao diện nâng cấp
-            FontIcon icon = new FontIcon(Feather.HASH);
-            icon.setIconSize(30);
-            icon.setIconColor(Color.web("#FBBF24")); // vàng
-
-            dialog.getDialogPane().setGraphic(icon);
-            dialog.getDialogPane().setStyle("-fx-background-color: #2f3136; -fx-padding: 20;");
-            dialog.getDialogPane().lookupButton(ButtonType.OK).setStyle("-fx-background-color: #5865f2; -fx-text-fill: white;");
-            dialog.getDialogPane().lookupButton(ButtonType.CANCEL).setStyle("-fx-background-color: #99aab5; -fx-text-fill: black;");
+            styleDialog(dialog, Feather.HASH, Color.web("#FBBF24"));
 
             dialog.showAndWait().ifPresent(channelName -> {
                 channelName = channelName.trim();
-
                 boolean invalidName = channelName.isEmpty() || channelName.contains(" ");
                 @org.jetbrains.annotations.NotNull String finalChannelName = channelName;
                 boolean alreadyExists = navigationSidebar.getComponent().getChildren().stream()
-                        .flatMap(node -> {
-                            if (node instanceof VBox section) {
-                                return section.getChildren().stream();
-                            }
-                            return Stream.empty();
-                        })
-                        .filter(node -> node instanceof HBox || node instanceof Label)
+                        .flatMap(node -> node instanceof VBox section ? section.getChildren().stream() : Stream.empty())
                         .anyMatch(node -> node.toString().contains(finalChannelName));
 
                 if (invalidName) {
                     Platform.runLater(() -> chatView.showError("❌ Invalid channel name. No spaces allowed."));
-                    return;
+                } else if (alreadyExists) {
+                    Platform.runLater(() -> chatView.showInfo("Duplicate Channel", "Channel already exists."));
+                } else {
+                    navigationSidebar.addChannel(channelName, "#", false, false);
                 }
-
-                if (alreadyExists) {
-                    Platform.runLater(() -> chatView.showInfo("⚠️ Duplicate Channel", "Channel already exists."));
-                    return;
-                }
-
-                // Thêm channel
-                navigationSidebar.addChannel(channelName, "#", false, false);
-                System.out.println("✅ Created new channel: #" + channelName);
             });
         });
+    }
 
-        navigationSidebar.setOnChannelSelected(channelName -> {
+    private static void setupChannelSelectionHandler(ChatView chatView, ChatPanel chatPanel, ChatHeader chatHeader, MessageController messageController, ConversationController conversationController) {
+        chatView.getNavigationSidebar().setOnChannelSelected(channelName -> {
             conversationController.createChannelConversation(channelName)
                     .thenAccept(convId -> {
                         chatView.setCurrentConversationId(convId);
@@ -225,7 +163,6 @@ public class NavigationSidebarHandlerBinder {
                             chatHeader.setActiveConversation(channelName);
                             chatPanel.setCurrentContact(channelName, "channel");
                             chatPanel.clearMessages();
-
                             if (messageController != null) {
                                 messageController.loadMessagesForConversation(convId, chatPanel);
                             }
@@ -237,45 +174,71 @@ public class NavigationSidebarHandlerBinder {
                         return null;
                     });
         });
+    }
 
-
-        // Direct message selected
-        navigationSidebar.setOnDirectMessageSelected(userName -> {
+    public static void setupDirectMessageSelectionHandler(ChatView chatView, ChatPanel chatPanel,
+                                                           ChatHeader chatHeader,
+                                                           MessageController messageController,
+                                                           User currentUser,
+                                                           ConversationController conversationController) {
+        chatView.getNavigationSidebar().setOnDirectMessageSelected(userName -> {
             chatView.setCurrentContactName(userName);
             UserApiClient userApiClient = new UserApiClient();
-
+            System.out.println("[DEBUG] Clicked on user in sidebar: " + userName);
             userApiClient.findUserByUsername(userName).ifPresentOrElse(targetUser -> {
+                System.out.println("[DEBUG] Found user: " + targetUser.getUsername() + " (id=" + targetUser.getId() + ")");
                 int currentUserId = currentUser.getId();
                 int targetUserId = targetUser.getId();
 
                 conversationController.createConversationId(currentUserId, targetUserId)
                         .thenAccept(convId -> {
+                            System.out.println("[DEBUG] Got conversationId: " + convId);
+                            System.out.println("[DEBUG] Got targetUserId: " + targetUserId);
+                            System.out.println("[DEBUG] Got currentUserId: " + currentUserId);
+
                             chatView.setCurrentConversationId(convId);
+                            chatPanel.setConversationId(convId);
+                            messageController.setActiveChatPanel(chatPanel, convId);
+
                             Platform.runLater(() -> {
-                                chatHeader.setActiveConversation(userName);
+                                chatHeader.setActiveUser(targetUser);
                                 chatPanel.setCurrentContact(userName, "user");
                                 chatPanel.clearMessages();
-
                                 chatView.getMessageInputPanel().setSender(currentUser);
                                 chatView.getMessageInputPanel().setReceiver(targetUser);
-
-                                if (messageController != null) {
-                                    messageController.loadMessagesForConversation(convId, chatPanel);
-                                }
+                                messageController.loadMessagesForConversation(convId, chatPanel);
                             });
                         });
-            }, () -> {
-                Platform.runLater(() ->
-                        chatView.showError("❌ Cannot find user: " + userName));
-            });
+
+            }, () -> Platform.runLater(() -> chatView.showError("❌ Cannot find user: " + userName)));
         });
+    }
 
+    private static ChoiceDialog<String> createStyledChoiceDialog(String title, String header, List<String> items, Feather iconType) {
+        ChoiceDialog<String> dialog = new ChoiceDialog<>(items.get(0), items);
+        dialog.setTitle(title);
+        dialog.setHeaderText(header);
+        dialog.setContentText("Username:");
 
+        FontIcon icon = new FontIcon(iconType);
+        icon.setIconSize(30);
+        icon.setIconColor(Color.web("#5865F2"));
+        dialog.getDialogPane().setGraphic(icon);
+        dialog.getDialogPane().setStyle("-fx-background-color: #2f3136; -fx-padding: 20;");
+        dialog.getDialogPane().lookupButton(ButtonType.OK).setStyle("-fx-background-color: #5865f2; -fx-text-fill: white;");
+        dialog.getDialogPane().lookupButton(ButtonType.CANCEL).setStyle("-fx-background-color: #99aab5; -fx-text-fill: black;");
 
+        return dialog;
+    }
 
-        // Settings
-        navigationSidebar.setOnSettingsClicked(() ->
-                chatView.showInfo("Settings", "Settings panel will be implemented soon!"));
+    private static void styleDialog(TextInputDialog dialog, Feather iconType, Color iconColor) {
+        FontIcon icon = new FontIcon(iconType);
+        icon.setIconSize(30);
+        icon.setIconColor(iconColor);
+        dialog.getDialogPane().setGraphic(icon);
+        dialog.getDialogPane().setStyle("-fx-background-color: #2f3136; -fx-padding: 20;");
+        dialog.getDialogPane().lookupButton(ButtonType.OK).setStyle("-fx-background-color: #5865f2; -fx-text-fill: white;");
+        dialog.getDialogPane().lookupButton(ButtonType.CANCEL).setStyle("-fx-background-color: #99aab5; -fx-text-fill: black;");
     }
 
     public static void fetchFavoritesForUser(User user, NavigationSidebar navigationSidebar, ChatView chatView) {
@@ -295,13 +258,9 @@ public class NavigationSidebarHandlerBinder {
                             .toList());
         }).thenAccept(favoriteUsers -> {
             Platform.runLater(() -> {
-                navigationSidebar.clearFavorites(); // 🧹 clear trước khi add mới
-                for (User favUser : favoriteUsers) {
-                    navigationSidebar.addFavorite(favUser.getUsername(), "😊", true);
-                }
-                System.out.println("✅ Loaded " + favoriteUsers.size() + " favorites for user: " + user.getUsername());
+                navigationSidebar.clearFavorites();
+                favoriteUsers.forEach(favUser -> navigationSidebar.addFavorite(favUser.getUsername(), favUser.getAvatarUrl(), true));
             });
-
         }).exceptionally(ex -> {
             ex.printStackTrace();
             Platform.runLater(() -> chatView.showError("❌ Failed to load favorite users"));

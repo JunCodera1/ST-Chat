@@ -31,9 +31,11 @@ public class SidebarFooter extends VBox {
     private final SocketClient client;
     private final Stage stage;
     private final Runnable onSettingsClicked;
+    private final User user;
 
 
     public SidebarFooter(User user, SocketClient client, Stage stage, Runnable onSettingsClicked) {
+        this.user = user;
         this.client = client;
         this.stage = stage;
         this.onSettingsClicked = onSettingsClicked;
@@ -81,9 +83,8 @@ public class SidebarFooter extends VBox {
         userNameLabel = new Label(user.getUsername());
         userNameLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
 
-        StatusLabel statusLabel = new StatusLabel("🟢 Online");
 
-        userInfo.getChildren().addAll(userNameLabel, statusLabel.getComponent());
+        userInfo.getChildren().addAll(userNameLabel);
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -112,11 +113,18 @@ public class SidebarFooter extends VBox {
             Button logout = createHoverButton("Logout");
 
             logout.setOnAction(event -> {
-                client.logoutAndClose();
+                // 1. Gửi logout cho server
+                if (client != null && client.isOpen()) {
+                    client.sendLogout(user.getId());
+                    client.close();
+                }
+
+                // 2. Đóng cửa sổ chính
                 if (stage != null) {
                     stage.close();
                 }
 
+                // 3. Mở lại màn hình đăng nhập
                 new Login(
                         onSettingsClicked,
                         user -> {
@@ -130,13 +138,13 @@ public class SidebarFooter extends VBox {
                                 mainStage.setMinWidth(900);
                                 mainStage.setMinHeight(650);
                                 mainStage.show();
-
                             } catch (Exception e) {
                                 e.printStackTrace();
                             }
                         }
                 ).show();
             });
+
 
 
             content.getChildren().addAll(profileSettings, changeStatus, logout);

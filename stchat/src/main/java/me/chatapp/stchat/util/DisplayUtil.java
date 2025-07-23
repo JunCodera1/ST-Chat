@@ -1,19 +1,22 @@
 package me.chatapp.stchat.util;
 
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.PasswordField;
-import javafx.scene.control.TextField;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.control.*;
 import javafx.scene.effect.DropShadow;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.text.*;
+import me.chatapp.stchat.model.AttachmentMessage;
 import me.chatapp.stchat.model.Message;
+import org.kordamp.ikonli.fontawesome.FontAwesome;
 import org.kordamp.ikonli.javafx.FontIcon;
 
+import java.io.File;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -291,5 +294,206 @@ public class DisplayUtil {
         flow.setPrefWidth(Region.USE_COMPUTED_SIZE);
 
         return flow;
+    }
+
+    public static Button createModernButton(String text, FontAwesome icon) {
+        Button button = new Button(text);
+        button.setGraphic(new FontIcon(icon));
+        button.setStyle(String.format(
+                "-fx-background-color: transparent; " +
+                        "-fx-text-fill: %s; " +
+                        "-fx-border-color: %s; " +
+                        "-fx-border-radius: 6px; " +
+                        "-fx-background-radius: 6px; " +
+                        "-fx-padding: 8px 16px; " +
+                        "-fx-font-size: 13px; " +
+                        "-fx-font-weight: 500; " +
+                        "-fx-cursor: hand;",
+                PRIMARY_COLOR, BORDER_COLOR
+        ));
+
+        // Add hover effect
+        button.setOnMouseEntered(e -> {
+            button.setStyle(String.format(
+                    "-fx-background-color: %s; " +
+                            "-fx-text-fill: %s; " +
+                            "-fx-border-color: %s; " +
+                            "-fx-border-radius: 6px; " +
+                            "-fx-background-radius: 6px; " +
+                            "-fx-padding: 8px 16px; " +
+                            "-fx-font-size: 13px; " +
+                            "-fx-font-weight: 500; " +
+                            "-fx-cursor: hand;",
+                    HOVER_COLOR, PRIMARY_COLOR, PRIMARY_COLOR
+            ));
+        });
+
+        button.setOnMouseExited(e -> {
+            button.setStyle(String.format(
+                    "-fx-background-color: transparent; " +
+                            "-fx-text-fill: %s; " +
+                            "-fx-border-color: %s; " +
+                            "-fx-border-radius: 6px; " +
+                            "-fx-background-radius: 6px; " +
+                            "-fx-padding: 8px 16px; " +
+                            "-fx-font-size: 13px; " +
+                            "-fx-font-weight: 500; " +
+                            "-fx-cursor: hand;",
+                    PRIMARY_COLOR, BORDER_COLOR
+            ));
+        });
+
+        // Add tooltip
+        Tooltip tooltip = new Tooltip(text);
+        tooltip.setStyle("-fx-font-size: 12px;");
+        button.setTooltip(tooltip);
+
+        return button;
+    }
+
+    public static HBox createActionButtons(AttachmentMessage attachment, MessageActions messageActions) {
+        HBox actionBox = new HBox();
+        actionBox.setSpacing(12);
+        actionBox.setAlignment(Pos.CENTER_LEFT);
+        actionBox.setPadding(new Insets(8, 0, 0, 0));
+
+        Button downloadBtn = createModernButton("Download", FontAwesome.DOWNLOAD);
+        downloadBtn.setOnAction(e -> {
+            try {
+                if (messageActions != null) {
+                    messageActions.handleDownload(attachment);
+                } else {
+                    System.err.println("MessageActions is null");
+                }
+            } catch (Exception ex) {
+                System.err.println("Error downloading file: " + ex.getMessage());
+            }
+        });
+
+        Button openBtn = createModernButton("Open", FontAwesome.EXTERNAL_LINK);
+        openBtn.setOnAction(e -> {
+            try {
+                if (messageActions != null) {
+                    messageActions.handleOpenFile(attachment);
+                } else {
+                    // Fallback: Open with system default application
+                    try {
+                        java.awt.Desktop.getDesktop().open(new File(attachment.getFilePath()));
+                    } catch (Exception desktopEx) {
+                        System.err.println("Cannot open file: " + desktopEx.getMessage());
+                    }
+                }
+            } catch (Exception ex) {
+                System.err.println("Error opening file: " + ex.getMessage());
+            }
+        });
+
+        // Add share button
+        Button shareBtn = createModernButton("Share", FontAwesome.SHARE);
+        shareBtn.setOnAction(e -> {
+            try {
+                // Implement share functionality safely
+                System.out.println("Share file: " + attachment.getFileName());
+                // You can add actual share logic here
+            } catch (Exception ex) {
+                System.err.println("Error sharing file: " + ex.getMessage());
+            }
+        });
+
+        actionBox.getChildren().addAll(downloadBtn, openBtn, shareBtn);
+        return actionBox;
+    }
+
+    // Error message component
+    public static VBox createErrorMessage() {
+        VBox errorContainer = new VBox();
+        errorContainer.setSpacing(8);
+        errorContainer.setPadding(new Insets(12));
+        errorContainer.setStyle(String.format(
+                "-fx-background-color: %s; " +
+                        "-fx-background-radius: 8px; " +
+                        "-fx-border-color: #ff6b6b; " +
+                        "-fx-border-radius: 8px; " +
+                        "-fx-border-width: 1px;",
+                HOVER_COLOR
+        ));
+
+        Label errorLabel = new Label("Video file not found");
+        errorLabel.setStyle("-fx-text-fill: #ff6b6b; -fx-font-weight: 500;");
+        errorContainer.getChildren().add(errorLabel);
+
+        return errorContainer;
+    }
+
+    // Fallback video player using external application
+    public static VBox createVideoPlayerFallback(AttachmentMessage attachment) {
+        VBox container = new VBox();
+        container.setSpacing(12);
+        container.setPadding(new Insets(12));
+        container.setStyle(String.format(
+                "-fx-background-color: %s; " +
+                        "-fx-background-radius: 8px; " +
+                        "-fx-border-color: %s; " +
+                        "-fx-border-radius: 8px; " +
+                        "-fx-border-width: 1px;",
+                HOVER_COLOR, BORDER_COLOR
+        ));
+
+        // Video thumbnail or icon
+        Label videoIcon = new Label("🎬");
+        videoIcon.setStyle(String.format(
+                "-fx-font-size: 48px; " +
+                        "-fx-text-fill: %s; " +
+                        "-fx-background-color: %s; " +
+                        "-fx-background-radius: 8px; " +
+                        "-fx-padding: 16px; " +
+                        "-fx-alignment: center;",
+                PRIMARY_COLOR, BACKGROUND_COLOR
+        ));
+
+        Label infoLabel = new Label("Video preview not available");
+        infoLabel.setStyle(String.format(
+                "-fx-text-fill: %s; " +
+                        "-fx-font-size: 14px; " +
+                        "-fx-font-weight: 500;",
+                TEXT_SECONDARY
+        ));
+
+        Label fileLabel = new Label(attachment.getFileName());
+        fileLabel.setStyle(String.format(
+                "-fx-text-fill: %s; " +
+                        "-fx-font-size: 13px;",
+                TEXT_PRIMARY
+        ));
+
+        Button openExternalBtn = createModernButton("Open in External Player", FontAwesome.EXTERNAL_LINK);
+        openExternalBtn.setStyle(String.format(
+                "-fx-background-color: %s; " +
+                        "-fx-text-fill: white; " +
+                        "-fx-border-color: %s; " +
+                        "-fx-border-radius: 6px; " +
+                        "-fx-background-radius: 6px; " +
+                        "-fx-padding: 8px 16px; " +
+                        "-fx-font-size: 13px; " +
+                        "-fx-font-weight: 500;",
+                PRIMARY_COLOR, PRIMARY_COLOR
+        ));
+
+        openExternalBtn.setOnAction(e -> {
+            try {
+                java.awt.Desktop.getDesktop().open(new File(attachment.getFilePath()));
+            } catch (Exception ex) {
+                System.err.println("Cannot open external player: " + ex.getMessage());
+            }
+        });
+
+        VBox contentBox = new VBox(8);
+        contentBox.setAlignment(Pos.CENTER);
+        contentBox.getChildren().addAll(videoIcon, infoLabel, fileLabel);
+
+        container.getChildren().addAll(contentBox, openExternalBtn);
+        container.setAlignment(Pos.CENTER);
+
+        return container;
     }
 }

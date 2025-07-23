@@ -38,32 +38,6 @@ public class IconSidebar {
         root.getChildren().add(createSpacer());
 
         addIcon("fa-cog", "Settings");
-
-        // Avatar cuối cùng
-        Image image = null;
-        try {
-            image = new Image(Objects.requireNonNull(getClass().getResource("/image/tech.jpg")).toExternalForm());
-        } catch (Exception e) {
-            System.err.println("⚠️ Không tìm thấy ảnh avatar: " + e.getMessage());
-        }
-
-        ImageView avatar = new ImageView();
-        if (image != null && !image.isError()) {
-            avatar.setImage(image);
-            avatar.setFitWidth(32);
-            avatar.setFitHeight(32);
-            avatar.setClip(new Circle(16, 16, 16));
-        } else {
-            avatar.setImage(new Image("https://via.placeholder.com/32"));
-        }
-
-
-        StackPane avatarWrapper = new StackPane(avatar);
-        avatarWrapper.setPadding(new Insets(5));
-        avatarWrapper.setStyle("-fx-background-color: #3c3f45; -fx-background-radius: 16px;");
-        Tooltip.install(avatarWrapper, new Tooltip("Your Profile"));
-
-        root.getChildren().add(avatarWrapper);
     }
 
     public Node getComponent() {

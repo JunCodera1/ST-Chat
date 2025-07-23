@@ -1,6 +1,5 @@
 package me.chatapp.stchat.util;
 
-import javafx.animation.ScaleTransition;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -9,31 +8,22 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.Slider;
-import javafx.scene.control.Tooltip;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.util.Duration;
 import me.chatapp.stchat.model.AttachmentMessage;
 import org.kordamp.ikonli.fontawesome.FontAwesome;
 import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.io.File;
 
-public class AttachmentRenderer {
+import static me.chatapp.stchat.util.CSSUtil.*;
+import static me.chatapp.stchat.util.DisplayUtil.*;
+import static me.chatapp.stchat.util.FileUtil.*;
 
-    // Modern color palette
-    private static final String PRIMARY_COLOR = "#007bff";
-    private static final String SECONDARY_COLOR = "#6c757d";
-    private static final String SUCCESS_COLOR = "#28a745";
-    private static final String BACKGROUND_COLOR = "#ffffff";
-    private static final String BORDER_COLOR = "#e9ecef";
-    private static final String HOVER_COLOR = "#f8f9fa";
-    private static final String TEXT_PRIMARY = "#212529";
-    private static final String TEXT_SECONDARY = "#6c757d";
+public class AttachmentRenderer {
 
     public VBox createAttachmentBox(AttachmentMessage attachment, MessageActions messageActions) {
         System.out.println("DEBUG: File path = " + attachment.getFilePath());
@@ -79,7 +69,6 @@ public class AttachmentRenderer {
         headerBox.setSpacing(12);
         headerBox.setAlignment(Pos.CENTER_LEFT);
 
-        // File icon with modern styling
         Label fileIcon = new Label(attachment.getFileIcon());
         fileIcon.setStyle(String.format(
                 "-fx-font-size: 32px; " +
@@ -131,32 +120,17 @@ public class AttachmentRenderer {
         return headerBox;
     }
 
-    private Node createContentPreview(AttachmentMessage attachment, MessageActions messageActions) {
-        if (attachment.isImage()) {
-            return createImagePreview(attachment, messageActions);
-        } else if ("Audio".equalsIgnoreCase(attachment.getFileType())) {
-            return createModernAudioPlayer(attachment);
-        }
-        return null;
-    }
-
-    public void cleanup(VBox attachmentBox) {
-        if (attachmentBox != null && attachmentBox.getUserData() instanceof AudioPlayer player) {
-            player.cleanup();
-        }
-    }
-
-    private VBox createModernAudioPlayer(AttachmentMessage attachment) {
-        File audioFile = new File(attachment.getFilePath());
-        if (!audioFile.exists()) {
-            System.err.println("Audio file not found: " + audioFile.getAbsolutePath());
-            return null;
+    private VBox createVideoPlayer(AttachmentMessage attachment) {
+        File videoFile = new File(attachment.getFilePath());
+        if (!videoFile.exists()) {
+            System.err.println("Video file not found: " + videoFile.getAbsolutePath());
+            return createErrorMessage();
         }
 
-        VBox audioContainer = new VBox();
-        audioContainer.setSpacing(12);
-        audioContainer.setPadding(new Insets(16));
-        audioContainer.setStyle(String.format(
+        VBox videoContainer = new VBox();
+        videoContainer.setSpacing(12);
+        videoContainer.setPadding(new Insets(16));
+        videoContainer.setStyle(String.format(
                 "-fx-background-color: %s; " +
                         "-fx-background-radius: 8px; " +
                         "-fx-border-color: %s; " +
@@ -165,59 +139,50 @@ public class AttachmentRenderer {
                 HOVER_COLOR, BORDER_COLOR
         ));
 
-        // Audio controls
-        HBox controlsBox = new HBox();
-        controlsBox.setSpacing(12);
-        controlsBox.setAlignment(Pos.CENTER_LEFT);
+        try {
+            // Create VLC video player
+            final VideoPlayer player = new VideoPlayer();
 
-        // Play/Pause button with modern styling
-        Button playPauseBtn = createModernButton("", FontAwesome.PLAY);
-        playPauseBtn.setStyle(String.format(
-                "-fx-background-color: %s; " +
-                        "-fx-text-fill: white; " +
-                        "-fx-background-radius: 50%%; " +
-                        "-fx-min-width: 48px; " +
-                        "-fx-min-height: 48px; " +
-                        "-fx-font-size: 16px;",
-                PRIMARY_COLOR
-        ));
+            // Get video display container
+            StackPane videoDisplay = player.getVideoContainer();
+            videoDisplay.setPrefSize(400, 300);
+            videoDisplay.setStyle(
+                    "-fx-background-color: black; " +
+                            "-fx-background-radius: 6px;"
+            );
 
-        // Progress bar
-        ProgressBar progressBar = new ProgressBar();
-        progressBar.setProgress(0.0);
-        progressBar.setPrefWidth(200);
-        progressBar.setStyle(String.format(
-                "-fx-accent: %s;",
-                PRIMARY_COLOR
-        ));
-        HBox.setHgrow(progressBar, Priority.ALWAYS);
+            // Create control panel
+            VBox controlsPanel = createVideoControls(player, attachment);
 
-        // Initialize VLCJPlayer
-        final AudioPlayer player = new AudioPlayer();
+            // Setup video player callbacks
+            setupVideoPlayerCallbacks(player, controlsPanel);
 
-        // Make progress bar clickable for seeking
-        progressBar.setOnMouseClicked(e -> {
-            if (progressBar.getWidth() > 0) {
-                double clickPosition = e.getX() / progressBar.getWidth();
-                player.seek(clickPosition);
-            }
-        });
+            // Set video size
+            player.setSize(400, 300);
 
-        // Time labels
-        Label currentTime = new Label("0:00");
-        Label totalTime = new Label("0:00");
-        currentTime.setStyle(String.format("-fx-text-fill: %s; -fx-font-size: 12px;", TEXT_SECONDARY));
-        totalTime.setStyle(String.format("-fx-text-fill: %s; -fx-font-size: 12px;", TEXT_SECONDARY));
+            videoContainer.getChildren().addAll(videoDisplay, controlsPanel);
 
-        // Volume control
-        Slider volumeSlider = new Slider(0, 100, 50);
-        volumeSlider.setPrefWidth(80);
-        volumeSlider.setStyle(String.format("-fx-accent: %s;", PRIMARY_COLOR));
+            // Store player reference for cleanup
+            videoContainer.setUserData(player);
 
-        FontIcon volumeIcon = new FontIcon(FontAwesome.VOLUME_UP);
-        volumeIcon.setIconColor(Color.web(TEXT_SECONDARY));
+            return videoContainer;
 
-        // Setup callbacks for VLCJPlayer
+        } catch (Exception e) {
+            System.err.println("Failed to create VLC video player: " + e.getMessage());
+            e.printStackTrace();
+            return createVideoPlayerFallback(attachment);
+        }
+    }
+
+    private void setupVideoPlayerCallbacks(VideoPlayer player, VBox controlsPanel) {
+        // Get controls from the panel
+        HBox mainControls = (HBox) controlsPanel.getChildren().get(0);
+        Button playPauseBtn = (Button) mainControls.getChildren().get(0);
+        Label currentTime = (Label) mainControls.getChildren().get(2);
+        ProgressBar progressBar = (ProgressBar) mainControls.getChildren().get(3);
+        Label totalTime = (Label) mainControls.getChildren().get(4);
+
+        // Setup callbacks
         player.setOnProgressUpdate(progress -> {
             Platform.runLater(() -> progressBar.setProgress(progress));
         });
@@ -237,43 +202,30 @@ public class AttachmentRenderer {
                 currentTime.setText("0:00");
             });
         });
+    }
 
-        // Play/Pause button action
-        playPauseBtn.setOnAction(e -> {
-            FontIcon currentIcon = (FontIcon) playPauseBtn.getGraphic();
-            if (currentIcon.getIconLiteral().equals(FontAwesome.PLAY.getDescription())) {
-                player.play(audioFile.getAbsolutePath());
-                playPauseBtn.setGraphic(new FontIcon(FontAwesome.PAUSE));
-            } else {
-                if (player.isPlaying()) {
-                    player.pause();
-                    playPauseBtn.setGraphic(new FontIcon(FontAwesome.PLAY));
-                } else if (player.isPaused()) {
-                    player.resume();
-                    playPauseBtn.setGraphic(new FontIcon(FontAwesome.PAUSE));
-                } else {
-                    player.stop();
-                    playPauseBtn.setGraphic(new FontIcon(FontAwesome.PLAY));
-                }
-            }
-        });
+    private VBox createVideoControls(VideoPlayer player, AttachmentMessage attachment) {
+        VBox controlsPanel = new VBox();
+        controlsPanel.setSpacing(8);
 
-        // Volume control
-        volumeSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
-            float volume = newVal.floatValue() / 100.0f;
-            player.setVolume(volume);
+        // Main controls row
+        HBox mainControls = new HBox();
+        mainControls.setSpacing(12);
+        mainControls.setAlignment(Pos.CENTER_LEFT);
 
-            // Update volume icon based on level
-            if (volume == 0) {
-                volumeIcon.setIconLiteral(FontAwesome.VOLUME_OFF.getDescription());
-            } else if (volume < 0.5) {
-                volumeIcon.setIconLiteral(FontAwesome.VOLUME_DOWN.getDescription());
-            } else {
-                volumeIcon.setIconLiteral(FontAwesome.VOLUME_UP.getDescription());
-            }
-        });
+        // Play/Pause button
+        Button playPauseBtn = createModernButton("", FontAwesome.PLAY);
+        playPauseBtn.setStyle(String.format(
+                "-fx-background-color: %s; " +
+                        "-fx-text-fill: white; " +
+                        "-fx-background-radius: 50%%; " +
+                        "-fx-min-width: 48px; " +
+                        "-fx-min-height: 48px; " +
+                        "-fx-font-size: 16px;",
+                PRIMARY_COLOR
+        ));
 
-        // Additional control buttons
+        // Stop button
         Button stopBtn = createModernButton("", FontAwesome.STOP);
         stopBtn.setStyle(String.format(
                 "-fx-background-color: %s; " +
@@ -285,224 +237,102 @@ public class AttachmentRenderer {
                 SECONDARY_COLOR
         ));
 
+        // Progress bar
+        ProgressBar progressBar = new ProgressBar();
+        progressBar.setProgress(0.0);
+        progressBar.setPrefWidth(200);
+        progressBar.setStyle(String.format("-fx-accent: %s;", PRIMARY_COLOR));
+        HBox.setHgrow(progressBar, Priority.ALWAYS);
+
+        // Time labels
+        Label currentTime = new Label("0:00");
+        Label totalTime = new Label("0:00");
+        currentTime.setStyle(String.format("-fx-text-fill: %s; -fx-font-size: 12px;", TEXT_SECONDARY));
+        totalTime.setStyle(String.format("-fx-text-fill: %s; -fx-font-size: 12px;", TEXT_SECONDARY));
+
+        mainControls.getChildren().addAll(playPauseBtn, stopBtn, currentTime, progressBar, totalTime);
+
+        // Volume controls row
+        HBox volumeControls = new HBox();
+        volumeControls.setSpacing(8);
+        volumeControls.setAlignment(Pos.CENTER_LEFT);
+
+        FontIcon volumeIcon = new FontIcon(FontAwesome.VOLUME_UP);
+        volumeIcon.setIconColor(Color.web(TEXT_SECONDARY));
+
+        Slider volumeSlider = new Slider(0, 100, 50);
+        volumeSlider.setPrefWidth(120);
+        volumeSlider.setStyle(String.format("-fx-accent: %s;", PRIMARY_COLOR));
+
+        volumeControls.getChildren().addAll(volumeIcon, volumeSlider);
+
+        controlsPanel.getChildren().addAll(mainControls, volumeControls);
+
+        // Setup button actions
+        playPauseBtn.setOnAction(e -> {
+            FontIcon currentIcon = (FontIcon) playPauseBtn.getGraphic();
+            if (currentIcon.getIconLiteral().equals(FontAwesome.PLAY.getDescription())) {
+                player.play(attachment.getFilePath());
+                playPauseBtn.setGraphic(new FontIcon(FontAwesome.PAUSE));
+            } else {
+                if (player.isPlaying()) {
+                    player.pause();
+                    playPauseBtn.setGraphic(new FontIcon(FontAwesome.PLAY));
+                } else if (player.isPaused()) {
+                    player.resume();
+                    playPauseBtn.setGraphic(new FontIcon(FontAwesome.PAUSE));
+                }
+            }
+        });
+
         stopBtn.setOnAction(e -> {
             player.stop();
             playPauseBtn.setGraphic(new FontIcon(FontAwesome.PLAY));
         });
 
-        controlsBox.getChildren().addAll(playPauseBtn, stopBtn, currentTime, progressBar, totalTime);
+        // Progress bar click for seeking
+        progressBar.setOnMouseClicked(e -> {
+            if (progressBar.getWidth() > 0) {
+                double clickPosition = e.getX() / progressBar.getWidth();
+                player.seek(clickPosition);
+            }
+        });
 
-        HBox volumeBox = new HBox(8);
-        volumeBox.setAlignment(Pos.CENTER_LEFT);
-        volumeBox.getChildren().addAll(volumeIcon, volumeSlider);
+        // Volume control
+        volumeSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
+            float volume = newVal.floatValue() / 100.0f;
+            player.setVolume(volume);
 
-        audioContainer.getChildren().addAll(controlsBox, volumeBox);
+            // Update volume icon
+            if (volume == 0) {
+                volumeIcon.setIconLiteral(FontAwesome.VOLUME_OFF.getDescription());
+            } else if (volume < 0.5) {
+                volumeIcon.setIconLiteral(FontAwesome.VOLUME_DOWN.getDescription());
+            } else {
+                volumeIcon.setIconLiteral(FontAwesome.VOLUME_UP.getDescription());
+            }
+        });
 
-        // Store player reference for cleanup
-        audioContainer.setUserData(player);
-
-        return audioContainer;
+        return controlsPanel;
     }
 
-    private ImageView createImagePreview(AttachmentMessage attachment, MessageActions messageActions){
-        try {
-            File imageFile = new File(attachment.getFilePath());
-            if (imageFile.exists()) {
-                Image image = new Image("file:" + imageFile.getAbsolutePath());
 
-                ImageView imageView = new ImageView(image);
-                imageView.setFitWidth(350);
-                imageView.setPreserveRatio(true);
-                imageView.setSmooth(true);
-                imageView.setStyle(
-                        "-fx-background-radius: 8px; " +
-                                "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 6, 0, 0, 2); " +
-                                "-fx-cursor: hand;"
-                );
-
-                // Add click effect with null check
-                imageView.setOnMouseClicked(e -> {
-                    try {
-                        if (messageActions != null) {
-                            messageActions.showFullSizeImage(attachment);
-                        } else {
-                            new Thread(() -> {
-                                try {
-                                    java.awt.Desktop.getDesktop().open(imageFile);
-                                } catch (Exception desktopEx) {
-                                    System.err.println("Cannot open image: " + desktopEx.getMessage());
-                                }
-                            }).start();
-
-                        }
-                    } catch (Exception ex) {
-                        System.err.println("Error showing full size image: " + ex.getMessage());
-                    }
-                });
-
-
-                // Add hover effect for image with null check
-                imageView.setOnMouseEntered(e -> {
-                    try {
-                        ScaleTransition scale = new ScaleTransition(Duration.millis(200), imageView);
-                        scale.setToX(1.05);
-                        scale.setToY(1.05);
-                        scale.play();
-                    } catch (Exception ex) {
-                        System.err.println("Error in hover effect: " + ex.getMessage());
-                    }
-                });
-
-                imageView.setOnMouseExited(e -> {
-                    try {
-                        ScaleTransition scale = new ScaleTransition(Duration.millis(200), imageView);
-                        scale.setToX(1.0);
-                        scale.setToY(1.0);
-                        scale.play();
-                    } catch (Exception ex) {
-                        System.err.println("Error in hover effect: " + ex.getMessage());
-                    }
-                });
-
-                return imageView;
-            }
-        } catch (Exception e) {
-            System.err.println("Error creating image preview: " + e.getMessage());
+    private Node createContentPreview(AttachmentMessage attachment, MessageActions messageActions) {
+        if (attachment.isImage()) {
+            return createImagePreview(attachment, messageActions);
+        } else if ("Audio".equalsIgnoreCase(attachment.getFileType())) {
+            return createModernAudioPlayer(attachment);
         }
+        else if ("Video".equalsIgnoreCase(attachment.getFileType())) {
+            return createVideoPlayer(attachment);
+        }
+
         return null;
     }
 
-    private HBox createActionButtons(AttachmentMessage attachment, MessageActions messageActions) {
-        HBox actionBox = new HBox();
-        actionBox.setSpacing(12);
-        actionBox.setAlignment(Pos.CENTER_LEFT);
-        actionBox.setPadding(new Insets(8, 0, 0, 0));
-
-        Button downloadBtn = createModernButton("Download", FontAwesome.DOWNLOAD);
-        downloadBtn.setOnAction(e -> {
-            try {
-                if (messageActions != null) {
-                    messageActions.handleDownload(attachment);
-                } else {
-                    System.err.println("MessageActions is null");
-                }
-            } catch (Exception ex) {
-                System.err.println("Error downloading file: " + ex.getMessage());
-            }
-        });
-
-        Button openBtn = createModernButton("Open", FontAwesome.EXTERNAL_LINK);
-        openBtn.setOnAction(e -> {
-            try {
-                if (messageActions != null) {
-                    messageActions.handleOpenFile(attachment);
-                } else {
-                    // Fallback: Open with system default application
-                    try {
-                        java.awt.Desktop.getDesktop().open(new File(attachment.getFilePath()));
-                    } catch (Exception desktopEx) {
-                        System.err.println("Cannot open file: " + desktopEx.getMessage());
-                    }
-                }
-            } catch (Exception ex) {
-                System.err.println("Error opening file: " + ex.getMessage());
-            }
-        });
-
-        // Add share button
-        Button shareBtn = createModernButton("Share", FontAwesome.SHARE);
-        shareBtn.setOnAction(e -> {
-            try {
-                // Implement share functionality safely
-                System.out.println("Share file: " + attachment.getFileName());
-                // You can add actual share logic here
-            } catch (Exception ex) {
-                System.err.println("Error sharing file: " + ex.getMessage());
-            }
-        });
-
-        actionBox.getChildren().addAll(downloadBtn, openBtn, shareBtn);
-        return actionBox;
-    }
-
-    private Button createModernButton(String text, FontAwesome icon) {
-        Button button = new Button(text);
-        button.setGraphic(new FontIcon(icon));
-        button.setStyle(String.format(
-                "-fx-background-color: transparent; " +
-                        "-fx-text-fill: %s; " +
-                        "-fx-border-color: %s; " +
-                        "-fx-border-radius: 6px; " +
-                        "-fx-background-radius: 6px; " +
-                        "-fx-padding: 8px 16px; " +
-                        "-fx-font-size: 13px; " +
-                        "-fx-font-weight: 500; " +
-                        "-fx-cursor: hand;",
-                PRIMARY_COLOR, BORDER_COLOR
-        ));
-
-        // Add hover effect
-        button.setOnMouseEntered(e -> {
-            button.setStyle(String.format(
-                    "-fx-background-color: %s; " +
-                            "-fx-text-fill: %s; " +
-                            "-fx-border-color: %s; " +
-                            "-fx-border-radius: 6px; " +
-                            "-fx-background-radius: 6px; " +
-                            "-fx-padding: 8px 16px; " +
-                            "-fx-font-size: 13px; " +
-                            "-fx-font-weight: 500; " +
-                            "-fx-cursor: hand;",
-                    HOVER_COLOR, PRIMARY_COLOR, PRIMARY_COLOR
-            ));
-        });
-
-        button.setOnMouseExited(e -> {
-            button.setStyle(String.format(
-                    "-fx-background-color: transparent; " +
-                            "-fx-text-fill: %s; " +
-                            "-fx-border-color: %s; " +
-                            "-fx-border-radius: 6px; " +
-                            "-fx-background-radius: 6px; " +
-                            "-fx-padding: 8px 16px; " +
-                            "-fx-font-size: 13px; " +
-                            "-fx-font-weight: 500; " +
-                            "-fx-cursor: hand;",
-                    PRIMARY_COLOR, BORDER_COLOR
-            ));
-        });
-
-        // Add tooltip
-        Tooltip tooltip = new Tooltip(text);
-        tooltip.setStyle("-fx-font-size: 12px;");
-        button.setTooltip(tooltip);
-
-        return button;
-    }
-
-    private void addHoverEffect(VBox attachmentBox) {
-        attachmentBox.setOnMouseEntered(e -> {
-            attachmentBox.setStyle(String.format(
-                    "-fx-background-color: %s; " +
-                            "-fx-background-radius: 12px; " +
-                            "-fx-border-color: %s; " +
-                            "-fx-border-radius: 12px; " +
-                            "-fx-border-width: 1px; " +
-                            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 12, 0, 0, 4);",
-                    BACKGROUND_COLOR, PRIMARY_COLOR
-            ));
-        });
-
-        attachmentBox.setOnMouseExited(e -> {
-            attachmentBox.setStyle(String.format(
-                    "-fx-background-color: %s; " +
-                            "-fx-background-radius: 12px; " +
-                            "-fx-border-color: %s; " +
-                            "-fx-border-radius: 12px; " +
-                            "-fx-border-width: 1px; " +
-                            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 8, 0, 0, 2);",
-                    BACKGROUND_COLOR, BORDER_COLOR
-            ));
-        });
+    public void cleanup(VBox attachmentBox) {
+        if (attachmentBox != null && attachmentBox.getUserData() instanceof AudioPlayer player) {
+            player.cleanup();
+        }
     }
 }
