@@ -1,11 +1,15 @@
 package me.chatapp.stchat.view.components.pages;
 
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Application;
+import javafx.application.HostServices;
 import javafx.application.Platform;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import me.chatapp.stchat.controller.ConversationController;
 import me.chatapp.stchat.controller.MessageController;
 import me.chatapp.stchat.model.AttachmentMessage;
@@ -41,6 +45,8 @@ public class ChatView extends Application {
     private final BorderPane root;
     private final Scene scene;
 
+    private HostServices hostServices;
+
     private NavigationSidebar navigationSidebar;
     private IconSidebar iconSidebar;
     private ChatPanel chatPanel;
@@ -59,10 +65,6 @@ public class ChatView extends Application {
 
     private Stage currentStage;
 
-    public ChatView() {
-        this(new ChatViewConfig());
-    }
-
     public ChatView(ChatViewConfig config) {
         this.config = config;
         this.root = new BorderPane();
@@ -72,6 +74,7 @@ public class ChatView extends Application {
 
     public ChatView(ChatViewConfig config, User user, Stage stage) {
         this.config = config;
+        this.hostServices = getHostServices();
         this.root = new BorderPane();
         this.scene = new Scene(root, config.getWidth(), config.getHeight());
         this.currentUser = user;
@@ -84,7 +87,6 @@ public class ChatView extends Application {
             if (currentStage != null) {
                 currentStage.setTitle(config.getTitle() + " - " + user.getUsername());
             }
-            // Gọi fetch favorites SAU khi UI đã sẵn sàng
             NavigationSidebarHandlerBinder.fetchFavoritesForUser(user, navigationSidebar, this);
         });
     }
@@ -112,10 +114,13 @@ public class ChatView extends Application {
     private void initializeComponents() {
         iconSidebar = new IconSidebar();
         messageInputPanel = new MessageInputPanel(this::handleSendAttachment,this::handleSendMessage);
-        chatPanel = new ChatPanel(currentUser, messageInputPanel);
+        chatPanel = new ChatPanel(currentUser, messageInputPanel, hostServices);
         statusBar = new StatusBar();
         chatHeader = new ChatHeader();
     }
+
+
+
 
     private void restoreMainChatLayout(User user) {
         chatAreaContainer.getChildren().clear();
@@ -189,13 +194,6 @@ public class ChatView extends Application {
         chatAreaContainer.getChildren().add(messageInputPanel.getComponent());
     }
 
-    private void updateChatAreaContent(Node newContent) {
-        chatAreaContainer.getChildren().clear();
-        chatAreaContainer.getChildren().add(newContent);
-    }
-
-
-
     private void initializeManagers() {
         try {
             var result = ChatInitializer.initialize(
@@ -208,8 +206,7 @@ public class ChatView extends Application {
                     statusBar,
                     chatHeader,
                     this::logout,
-                    msg -> showInfo("Conversation Info", msg),
-                    this::showError
+                    msg -> showInfo("Conversation Info", msg)
             );
 
             this.conversationController = result.conversationController();
@@ -217,15 +214,21 @@ public class ChatView extends Application {
             this.messageController = result.messageController();
             this.stateManager = result.stateManager();
             this.navigationSidebar = result.navigationSidebar();
+            messageController.setActiveChatPanel(chatPanel, currentConversationId);
 
             NavigationSidebarHandlerBinder.bindHandlers(this);
+            NavigationSidebarHandlerBinder.setupDirectMessageSelectionHandler(this,chatPanel,
+                    chatHeader, messageController, currentUser,conversationController);
 
 
             setupSocketMessageListener();
+            setupAutoRefresh();
 
         } catch (IOException e) {
             e.printStackTrace();
             showError("Failed to initialize chat components: " + e.getMessage());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -234,13 +237,17 @@ public class ChatView extends Application {
         if (socketClient != null) {
             socketClient.setMessageListener(message -> {
                 Platform.runLater(() -> {
+                    System.out.println("Received message: " + message);
                     if (message.getConversationId() == currentConversationId) {
                         chatPanel.addMessage(message);
+                    } else {
+                        System.out.println("Message for different conversation: " + message.getConversationId());
                     }
                 });
             });
         }
     }
+
     private void handleSendAttachment(User sender, User receiver, AttachmentMessage attachment) {
         if (receiver == null || currentConversationId == -1) {
             System.out.println("⚠️ Không thể gửi file: thiếu thông tin receiver hoặc conversationId");
@@ -260,12 +267,17 @@ public class ChatView extends Application {
     private void handleSendMessage(User sender, User receiver, String content) {
         System.out.println("DEBUG: handleSendMessage(...) — sender=" + sender + ", receiver=" + receiver +
                 ", convId=" + currentConversationId + ", content=\"" + content + "\"");
+
         if (receiver == null || currentConversationId == -1) {
             System.out.println("⚠️ Không thể gửi: thiếu thông tin receiver hoặc conversationId");
             return;
         }
-        messageController.sendDirectMessage(sender, receiver, content,currentConversationId, chatPanel);
+
+        messageController.setActiveChatPanel(chatPanel, currentConversationId);
+
+        messageController.sendDirectMessage(sender, receiver, content, currentConversationId);
     }
+
 
     private void setupSystemMessage() {
         stateManager.addMessage(new Message("System",
@@ -403,5 +415,18 @@ public class ChatView extends Application {
 
     public MessageInputPanel getMessageInputPanel() {
         return messageInputPanel;
+    }
+
+    private void setupAutoRefresh() {
+        Timeline autoRefreshTimeline = new Timeline(
+                new KeyFrame(Duration.millis(500), event -> {
+                    Platform.runLater(() -> {
+                        chatPanel.getChatHeader().updateMessageCount(chatPanel.getMessageContainer());
+                        chatPanel.getScrollPane().requestLayout();
+                    });
+                })
+        );
+        autoRefreshTimeline.setCycleCount(Timeline.INDEFINITE);
+        autoRefreshTimeline.play();
     }
 }

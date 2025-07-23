@@ -29,6 +29,7 @@ module me.chatapp.stchat {
     requires javafx.media;
     requires jlayer;
     requires uk.co.caprica.vlcj;
+    requires javafx.swing;
 
     opens me.chatapp.stchat to javafx.fxml;
     exports me.chatapp.stchat;

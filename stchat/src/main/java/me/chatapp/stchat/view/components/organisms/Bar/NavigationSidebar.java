@@ -3,7 +3,6 @@ package me.chatapp.stchat.view.components.organisms.Bar;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
@@ -315,24 +314,24 @@ public class NavigationSidebar {
 
     }
 
-    public void addFavorite(String name, String icon, boolean isOnline) {
-        System.out.println("🟢 Adding favorite: " + name + " to container with " + favoritesContainer.getChildren().size() + " items");
-        DirectMessageItem item = new DirectMessageItem(name, icon, isOnline, null);
+    public void addFavorite(String name, String avatarUrl, boolean isOnline) {
+        DirectMessageItem item = new DirectMessageItem(name, avatarUrl, isOnline, null);
+        item.setOnline(isOnline);
         item.setOnAction(() -> {
             if (onDirectMessageSelected != null) {
                 onDirectMessageSelected.accept(name);
             }
         });
         favoritesContainer.getChildren().add(item.getComponent());
-        System.out.println("✅ Favorite added. New count: " + favoritesContainer.getChildren().size());
     }
 
 
-    public void addDirectMessage(String name, String icon, boolean isOnline, String unreadCount) {
-        DirectMessageItem item = new DirectMessageItem(name, icon, isOnline, unreadCount);
+    public void addDirectMessage(String name, String avatarUrl, boolean isOnline, String unreadCount) {
+        DirectMessageItem item = new DirectMessageItem(name, avatarUrl, isOnline, unreadCount);
         item.setOnAction(() -> {
             if (onDirectMessageSelected != null) {
                 onDirectMessageSelected.accept(name);
+
             }
         });
         directMessagesContainer.getChildren().add(item.getComponent());

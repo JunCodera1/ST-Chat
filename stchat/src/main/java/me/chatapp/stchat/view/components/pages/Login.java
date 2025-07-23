@@ -14,7 +14,6 @@ import me.chatapp.stchat.view.components.templates.LoginTemplate;
 import org.json.JSONObject;
 
 import java.util.function.Consumer;
-import java.util.logging.Logger;
 
 public class Login {
     private final Stage stage;

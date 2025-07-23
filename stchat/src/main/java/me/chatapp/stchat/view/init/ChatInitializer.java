@@ -29,7 +29,6 @@ public class ChatInitializer {
             NavigationSidebar navigationSidebar
     ) {}
 
-
     public static ChatInitResult initialize(
             ChatViewConfig config,
             User currentUser,
@@ -40,9 +39,8 @@ public class ChatInitializer {
             StatusBar statusBar,
             ChatHeader chatHeader,
             Runnable logoutCallback,
-            Consumer<String> showInfo,
-            Consumer<String> showError
-    ) throws IOException {
+            Consumer<String> showInfo
+    ) throws Exception {
 
         SocketClient socketClient = new SocketClient("localhost", config.getPort());
         AppContext.getInstance().setSocketClient(socketClient);
@@ -63,7 +61,6 @@ public class ChatInitializer {
                 currentUser, currentStage, logoutCallback
         );
 
-        // Gán xử lý header
         chatHeader.setOnCallAction(() -> {
             String name = currentUser != null ? currentUser.getUsername() : "Unknown";
             new me.chatapp.stchat.view.components.organisms.Window.CallWindow(name).show();
@@ -77,7 +74,6 @@ public class ChatInitializer {
 
         chatHeader.setOnInfoAction(() -> showInfo.accept("Conversation details coming soon!"));
 
-        // Typing indicator
         messageInputPanel.getMessageField().textProperty().addListener((obs, oldText, newText) -> {
             if (!newText.isEmpty() && (oldText == null || oldText.isEmpty())) {
                 if (currentUser != null) {

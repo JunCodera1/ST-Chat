@@ -1,8 +1,12 @@
 package me.chatapp.stchat;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.stage.Stage;
 import me.chatapp.stchat.api.SocketClient;
+import me.chatapp.stchat.controller.MessageController;
+import me.chatapp.stchat.model.Message;
 import me.chatapp.stchat.view.init.SceneManager;
 import me.chatapp.stchat.view.config.ChatViewConfig;
 import me.chatapp.stchat.view.components.pages.ChatView;
@@ -18,12 +22,33 @@ public class Main extends Application {
         try {
             SocketClient socketClient = new SocketClient("localhost", 8080);
             AppContext.getInstance().setSocketClient(socketClient);
+            socketClient.startListening(json -> {
+                try {
+                    ObjectMapper mapper = new ObjectMapper();
+                    Message message = mapper.readValue(json, Message.class);
+
+                    MessageController.getInstance().receiveMessage(message);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
+
+
         } catch (IOException e) {
             e.printStackTrace();
             return;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
         SceneManager.setStage(primaryStage);
-        showSignUpStage(primaryStage);
+
+        primaryStage.setOnCloseRequest(event -> {
+            AppContext.getInstance().getSocketClient().close();
+            Platform.exit();
+            System.exit(0);
+        });
+
+        showLoginStage(primaryStage);
     }
 
 

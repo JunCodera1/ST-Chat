@@ -6,6 +6,7 @@ import javafx.geometry.Pos;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import me.chatapp.stchat.api.UserApiClient;
+import me.chatapp.stchat.model.User;
 import me.chatapp.stchat.view.components.atoms.Circle.AvatarCircleHeader;
 import me.chatapp.stchat.view.components.atoms.Button.IconButton;
 import me.chatapp.stchat.view.components.molecules.Conversation.ConversationInfoBlock;
@@ -14,6 +15,7 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+
 
 public class ChatHeader {
     private final HBox container;
@@ -43,7 +45,6 @@ public class ChatHeader {
         videoBtn = new IconButton("fas-video");
         infoBtn = new IconButton("fas-info-circle");
 
-
         callBtn.setOnAction(e -> { if (onCallAction != null) onCallAction.run(); });
         videoBtn.setOnAction(e -> { if (onVideoCallAction != null) onVideoCallAction.run(); });
         infoBtn.setOnAction(e -> { if (onInfoAction != null) onInfoAction.run(); });
@@ -65,15 +66,10 @@ public class ChatHeader {
 
                 if (user.getAvatarUrl() != null && !user.getAvatarUrl().isBlank()) {
                     avatarCircle.setImageFromUrl(user.getAvatarUrl());
-                } else {
-                    avatarCircle.setInitials(generateInitials(username));
-                    avatarCircle.setColor(getColorFromName(username));
                 }
-
                 setButtonsEnabled(true);
             });
         }, () -> {
-            // Trường hợp không tìm thấy user
             Platform.runLater(() -> {
                 infoBlock.setName(username);
                 infoBlock.setStatus("Unknown");
@@ -116,12 +112,6 @@ public class ChatHeader {
         return name.substring(0, Math.min(2, name.length())).toUpperCase();
     }
 
-
-
-    public void setOnlineStatus(String status) {
-        infoBlock.setStatus(status);
-    }
-
     public void setButtonsEnabled(boolean enabled) {
         callBtn.setEnabled(enabled);
         videoBtn.setEnabled(enabled);
@@ -144,4 +134,21 @@ public class ChatHeader {
         };
         return Color.web(palette[Math.abs(name.hashCode()) % palette.length]);
     }
+
+    public void setActiveUser(User user) {
+        Platform.runLater(() -> {
+            System.out.println("Active: " + user.isActive());
+            System.out.println("Last seen: " + user.getLastSeen());
+            infoBlock.setName(user.getUsername());
+            infoBlock.setStatus(user.isActive() ? "Online" : "Last seen: " + formatTime(user.getLastSeen()));
+
+            if (user.getAvatarUrl() != null && !user.getAvatarUrl().isBlank()) {
+                avatarCircle.setImageFromUrl(user.getAvatarUrl());
+            } else {
+                avatarCircle.setInitials(generateInitials(user.getUsername()));
+            }
+            setButtonsEnabled(true);
+        });
+    }
+
 }

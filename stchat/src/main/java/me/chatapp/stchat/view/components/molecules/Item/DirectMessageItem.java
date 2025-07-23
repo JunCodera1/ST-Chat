@@ -3,6 +3,8 @@ package me.chatapp.stchat.view.components.molecules.Item;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -10,11 +12,13 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 
+import java.util.Objects;
+
 public class DirectMessageItem {
 
     private final HBox root;
     private final StackPane avatarContainer;
-    private final Circle avatar;
+    private final ImageView avatarImageView;
     private final Circle statusIndicator;
     private final Label nameLabel;
     private final Label unreadBadge;
@@ -22,13 +26,13 @@ public class DirectMessageItem {
     private String unreadCount;
     private Runnable onAction;
 
-    public DirectMessageItem(String name, String icon, boolean isOnline, String unreadCount) {
+    public DirectMessageItem(String name, String avatarUrl, boolean isOnline, String unreadCount) {
         this.isOnline = isOnline;
         this.unreadCount = unreadCount;
 
         this.root = new HBox();
         this.avatarContainer = new StackPane();
-        this.avatar = new Circle(12);
+        this.avatarImageView = createRoundedAvatarImageView(avatarUrl);
         this.statusIndicator = new Circle(4);
         this.nameLabel = new Label(name);
         this.unreadBadge = new Label();
@@ -37,22 +41,19 @@ public class DirectMessageItem {
         updateAppearance();
     }
 
+
     private void initializeComponent() {
         root.setAlignment(Pos.CENTER_LEFT);
         root.setSpacing(10);
         root.setPadding(new Insets(6, 12, 6, 12));
         root.setMinHeight(32);
 
-        // Avatar setup
-        avatar.setFill(Color.web("#7289da"));
-
-        // Status indicator
         statusIndicator.setFill(isOnline ? Color.web("#43b581") : Color.web("#747f8d"));
         statusIndicator.setStroke(Color.web("#1a1d21"));
         statusIndicator.setStrokeWidth(2);
 
         // Position status indicator
-        avatarContainer.getChildren().addAll(avatar, statusIndicator);
+        avatarContainer.getChildren().addAll(avatarImageView, statusIndicator);
         StackPane.setAlignment(statusIndicator, Pos.BOTTOM_RIGHT);
         StackPane.setMargin(statusIndicator, new Insets(0, -2, -2, 0));
 
@@ -104,6 +105,33 @@ public class DirectMessageItem {
             );
         });
     }
+    private ImageView createRoundedAvatarImageView(String avatarUrl) {
+        Image image;
+
+        try {
+            if (avatarUrl == null || avatarUrl.isBlank()) {
+                throw new IllegalArgumentException("Avatar URL is null or blank");
+            }
+
+            image = new Image(avatarUrl, 32, 32, true, true);
+            if (image.isError()) {
+                throw new RuntimeException("Failed to load image from URL: " + avatarUrl);
+            }
+
+        } catch (Exception e) {
+            image = new Image(Objects.requireNonNull(getClass().getResource("/image/default_avatar.png")).toExternalForm());
+        }
+
+        ImageView imageView = new ImageView(image);
+        imageView.setFitWidth(32);
+        imageView.setFitHeight(32);
+
+        Circle clip = new Circle(16, 16, 16);
+        imageView.setClip(clip);
+
+        return imageView;
+    }
+
 
     private void updateAppearance() {
         root.setStyle(

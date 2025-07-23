@@ -1,24 +1,32 @@
 package me.chatapp.stchat.util;
 
+import javafx.application.HostServices;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.text.Text;
+import javafx.scene.text.TextAlignment;
 import javafx.scene.text.TextFlow;
 import me.chatapp.stchat.model.Message;
 import me.chatapp.stchat.model.User;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static me.chatapp.stchat.util.CSSUtil.*;
 
 public class MessageRenderer {
     private final User currentUser;
+    private final HostServices hostServices;
 
-    public MessageRenderer(User currentUser) {
+    public MessageRenderer(User currentUser, HostServices hostServices) {
         this.currentUser = currentUser;
+        this.hostServices = hostServices;
     }
 
     public void addMessage(VBox messageContainer, Message message, MessageActions messageActions) {
@@ -78,8 +86,7 @@ public class MessageRenderer {
             headerBox.getChildren().add(senderTimeBox); // Chỉ hiện tên và giờ
         } else {
             headerBox.setAlignment(Pos.CENTER_LEFT);
-            Circle avatar = createAvatar(message);
-            headerBox.getChildren().addAll(avatar, senderTimeBox);
+            headerBox.getChildren().addAll(senderTimeBox);
         }
 
         bubble.getChildren().add(headerBox);
@@ -130,24 +137,6 @@ public class MessageRenderer {
         return content;
     }
 
-    private Circle createAvatar(Message message) {
-        Circle avatar = new Circle(16);
-        switch (message.getType()) {
-            case USER:
-                avatar.setFill(Color.web("#2196F3"));
-                break;
-            case BOT:
-                avatar.setFill(Color.web("#4CAF50"));
-                break;
-            case SYSTEM:
-                avatar.setFill(Color.web("#FF9800"));
-                break;
-            default:
-                avatar.setFill(Color.web("#9E9E9E"));
-        }
-        return avatar;
-    }
-
     public void styleMessageBubble(VBox bubble, Label senderLabel, Message message) {
         String baseStyle = "-fx-background-radius: 12px; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 4, 0, 0, 1);";
 
@@ -174,9 +163,49 @@ public class MessageRenderer {
 
     public TextFlow parseMessageToTextFlow(String content) {
         TextFlow textFlow = new TextFlow();
-        Text text = new Text(content);
-        text.setStyle("-fx-font-size: 14px; -fx-font-family: 'Segoe UI', Arial, sans-serif;");
-        textFlow.getChildren().add(text);
+        textFlow.setLineSpacing(2);
+        textFlow.setStyle("-fx-font-size: 14px; -fx-font-family: 'Segoe UI', Arial, sans-serif;");
+        textFlow.setPrefWidth(400); // Tùy chỉnh theo layout bạn cần
+        textFlow.setMaxWidth(400);
+        textFlow.setTextAlignment(TextAlignment.LEFT);
+
+        String regex = "(https?://[\\w\\-._~:/?#\\[\\]@!$&'()*+,;=%]+)";
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(content);
+
+        int lastIndex = 0;
+        while (matcher.find()) {
+            if (matcher.start() > lastIndex) {
+                String before = content.substring(lastIndex, matcher.start());
+                Text text = new Text(before);
+                text.setFill(Color.BLACK);
+                textFlow.getChildren().add(text);
+            }
+
+            String url = matcher.group();
+            Hyperlink link = new Hyperlink(url);
+            link.setStyle("-fx-text-fill: #1a73e8; -fx-underline: true;");
+            link.setOnAction(e -> hostServices.showDocument(url));
+            textFlow.getChildren().add(link);
+
+            lastIndex = matcher.end();
+        }
+
+        if (lastIndex < content.length()) {
+            String remaining = content.substring(lastIndex);
+            Text text = new Text(remaining);
+            text.setFill(Color.BLACK);
+            textFlow.getChildren().add(text);
+        }
+
         return textFlow;
     }
+
+
+
+    public HostServices getHostServices() {
+        return hostServices;
+    }
+
+
 }
