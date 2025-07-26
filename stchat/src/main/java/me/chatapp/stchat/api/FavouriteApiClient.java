@@ -67,7 +67,8 @@ public class FavouriteApiClient {
     }
 
     public CompletableFuture<Boolean> removeFavorite(int userId, int targetUserId) {
-        String uri = baseUrl + "/remove?userId=" + userId + "&targetUserId=" + targetUserId;
+        String uri = baseUrl + "/" + userId + "/" + targetUserId;
+        System.out.println(uri);
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(uri))
@@ -75,7 +76,10 @@ public class FavouriteApiClient {
                 .build();
 
         return client.sendAsync(request, HttpResponse.BodyHandlers.discarding())
-                .thenApply(response -> response.statusCode() == 200);
+                .thenApply(response -> {
+                    System.out.println("🧾 removeFavorite - Status: " + response.statusCode());
+                    return response.statusCode() == 200;
+                });
     }
 
     public void close() {

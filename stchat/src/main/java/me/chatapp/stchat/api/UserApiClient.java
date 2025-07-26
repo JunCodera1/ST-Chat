@@ -10,7 +10,9 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.net.http.*;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -38,7 +40,8 @@ public class UserApiClient {
 
     public Optional<User> findUserByUsername(String username) {
         try {
-            URL url = new URL("http://localhost:6060/api/users/" + username);
+            String encodedUsername = URLEncoder.encode(username, StandardCharsets.UTF_8);
+            URL url = new URL("http://localhost:6060/api/users/" + encodedUsername);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
 
@@ -53,6 +56,7 @@ public class UserApiClient {
                     return Optional.of(user);
                 }
             } else {
+                System.out.println("⚠️ Server returned status: " + conn.getResponseCode() + " for username: " + username);
                 return Optional.empty();
             }
         } catch (IOException e) {
@@ -82,27 +86,6 @@ public class UserApiClient {
                         return Optional.empty();
                     } else {
                         throw new RuntimeException("Unexpected error. Status: " + response.statusCode());
-                    }
-                });
-    }
-
-
-    public CompletableFuture<User> getUserByUsername(String username) {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:6060/api/users/" + username))
-                .GET()
-                .build();
-
-        return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-                .thenApply(response -> {
-                    if (response.statusCode() == 200) {
-                        try {
-                            return objectMapper.readValue(response.body(), User.class);
-                        } catch (IOException e) {
-                            throw new RuntimeException("Error parsing user from JSON", e);
-                        }
-                    } else {
-                        throw new RuntimeException("User not found: " + response.statusCode());
                     }
                 });
     }

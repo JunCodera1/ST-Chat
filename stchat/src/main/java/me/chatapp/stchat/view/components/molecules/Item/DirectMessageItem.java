@@ -11,8 +11,13 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
+import javafx.scene.control.MenuButton;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.ContentDisplay;
+
 
 import java.util.Objects;
+import java.util.function.Consumer;
 
 public class DirectMessageItem {
 
@@ -26,6 +31,12 @@ public class DirectMessageItem {
     private String unreadCount;
     private Runnable onAction;
 
+    private Consumer<String> onRemoveClicked;
+    private Consumer<String> onViewProfileClicked;
+
+    private final MenuButton optionsButton;
+
+
     public DirectMessageItem(String name, String avatarUrl, boolean isOnline, String unreadCount) {
         this.isOnline = isOnline;
         this.unreadCount = unreadCount;
@@ -37,10 +48,39 @@ public class DirectMessageItem {
         this.nameLabel = new Label(name);
         this.unreadBadge = new Label();
 
+        this.optionsButton = new MenuButton("...");
+        initializeOptionsMenu(name);
+
+
         initializeComponent();
         updateAppearance();
     }
 
+    private void initializeOptionsMenu(String name) {
+        MenuItem viewProfileItem = new MenuItem("View Profile");
+        MenuItem removeItem = new MenuItem("Remove from favorites");
+
+        viewProfileItem.setOnAction(e -> {
+            if (onViewProfileClicked != null) {
+                onViewProfileClicked.accept(name);
+            }
+        });
+
+        removeItem.setOnAction(e -> {
+            if (onRemoveClicked != null) {
+                onRemoveClicked.accept(name);
+            }
+        });
+
+        optionsButton.getItems().addAll(viewProfileItem, removeItem);
+        optionsButton.setStyle(
+                "-fx-background-color: transparent; " +
+                        "-fx-text-fill: #b9bbbe; " +
+                        "-fx-font-size: 14px; " +
+                        "-fx-padding: 0;"
+        );
+        optionsButton.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
+    }
 
     private void initializeComponent() {
         root.setAlignment(Pos.CENTER_LEFT);
@@ -77,9 +117,9 @@ public class DirectMessageItem {
                             "-fx-min-width: 18px; " +
                             "-fx-alignment: center;"
             );
-            root.getChildren().addAll(avatarContainer, nameLabel, spacer, unreadBadge);
+            root.getChildren().addAll(avatarContainer, nameLabel, spacer, unreadBadge, optionsButton);
         } else {
-            root.getChildren().addAll(avatarContainer, nameLabel, spacer);
+            root.getChildren().addAll(avatarContainer, nameLabel, spacer, optionsButton);
         }
 
         // Click com.stchat.server.handler
@@ -158,7 +198,13 @@ public class DirectMessageItem {
             unreadBadge.setVisible(false);
         }
     }
+    public void setOnRemoveClicked(Consumer<String> onRemoveClicked) {
+        this.onRemoveClicked = onRemoveClicked;
+    }
 
+    public void setOnViewProfileClicked(Consumer<String> onViewProfileClicked) {
+        this.onViewProfileClicked = onViewProfileClicked;
+    }
     public void setOnAction(Runnable action) {
         this.onAction = action;
     }

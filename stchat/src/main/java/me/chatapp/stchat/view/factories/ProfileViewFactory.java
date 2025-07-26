@@ -6,6 +6,8 @@ import javafx.geometry.Pos;
 import javafx.scene.SnapshotParameters;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.WritableImage;
@@ -30,34 +32,42 @@ import java.util.function.Consumer;
 
 
 public class ProfileViewFactory {
-
-    public static VBox create(User currentUser, Runnable onBackClicked) {
+    public static VBox create(User currentUser, User profileUser, Runnable onBackClicked) {
+        boolean isOwnProfile = currentUser.getId() == profileUser.getId();
         VBox mainContainer = new VBox();
         mainContainer.setStyle("-fx-background-color: #36393f;");
 
-        VBox header = createHeader(onBackClicked);
+        final boolean[] isEditMode = {false};
 
-        // Placeholder để gắn sau khi có window
+        Runnable toggleEditMode = () -> {
+            isEditMode[0] = !isEditMode[0];
+            VBox content = createProfileContent(currentUser, mainContainer.getScene().getWindow(), isEditMode[0]);
+            mainContainer.getChildren().set(1, content);
+        };
+
+        Runnable onSave = () -> {
+
+        };
+
+        VBox header = createHeader(onBackClicked, toggleEditMode, isOwnProfile, isEditMode[0], onSave);
+
+
         VBox contentPlaceholder = new VBox();
         VBox.setVgrow(contentPlaceholder, javafx.scene.layout.Priority.ALWAYS);
+
         mainContainer.getChildren().addAll(header, contentPlaceholder);
 
         mainContainer.sceneProperty().addListener((obs, oldScene, newScene) -> {
             if (newScene != null) {
-                Window window = newScene.getWindow();
-                VBox content = createProfileContent(currentUser, window);
-
-                mainContainer.getChildren().set(1, content); // Replace placeholder
-                VBox.setVgrow(content, javafx.scene.layout.Priority.ALWAYS);
+                VBox content = createProfileContent(currentUser, newScene.getWindow(), isEditMode[0]);
+                mainContainer.getChildren().set(1, content);
             }
         });
 
         return mainContainer;
     }
 
-
-    private static VBox createHeader(Runnable onBackClicked) {
-        VBox header = new VBox();
+    private static VBox createHeader(Runnable onBackClicked, Runnable toggleEditMode, boolean isOwnProfile, boolean isEditMode, Runnable onSave) {        VBox header = new VBox();
         header.setStyle("-fx-background-color: linear-gradient(to bottom, #7c4dff, #5e35b1); -fx-min-height: 120;");
         header.setPadding(new Insets(15));
 
@@ -72,7 +82,6 @@ public class ProfileViewFactory {
         backButton.setGraphic(backIcon);
         backButton.setStyle("-fx-background-color: transparent; -fx-border-color: transparent;");
         backButton.setOnAction(e -> onBackClicked.run());
-
         Label title = new Label("My Profile");
         title.setStyle("-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;");
 
@@ -86,24 +95,36 @@ public class ProfileViewFactory {
         HBox spacer = new HBox();
         HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
 
-        topBar.getChildren().addAll(backButton, title, spacer, menuButton);
+        if (isOwnProfile) {
+            if (isEditMode) {
+                Button saveButton = new Button("💾 Save");
+                saveButton.setOnAction(e -> onSave.run());
+                topBar.getChildren().addAll(backButton, title, spacer, saveButton, menuButton);
+            } else {
+                Button editButton = new Button("📝 Edit");
+                editButton.setOnAction(e -> toggleEditMode.run());
+                topBar.getChildren().addAll(backButton, title, spacer, editButton, menuButton);
+            }
+        } else {
+            topBar.getChildren().addAll(backButton, title, spacer, menuButton);
+        }
+
+
         header.getChildren().add(topBar);
 
         return header;
     }
 
-    private static VBox createProfileContent(User currentUser, Window window) {
+    private static VBox createProfileContent(User currentUser, Window window, boolean isEditMode) {
         VBox content = new VBox();
         content.setStyle("-fx-background-color: #36393f;");
         content.setPadding(new Insets(0, 20, 20, 20));
 
-        VBox profileSection = createProfileSection(currentUser, window, newAvatarUrl -> {
-            currentUser.setAvatarUrl(newAvatarUrl);
-            System.out.println("✅ Avatar URL updated to: " + newAvatarUrl);
-        });
+        VBox profileSection = createProfileSection(currentUser, window, currentUser::setAvatarUrl, isEditMode);
 
-        VBox quoteSection = createQuoteSection();
-        VBox contactSection = createContactSection(currentUser);
+
+        VBox quoteSection = createQuoteSection(currentUser, isEditMode);
+        VBox contactSection = createContactSection(currentUser, isEditMode); // <-- cập nhật
         VBox mediaSection = createMediaSection();
         VBox filesSection = createAttachedFilesSection();
 
@@ -112,7 +133,8 @@ public class ProfileViewFactory {
     }
 
 
-    private static VBox createProfileSection(User currentUser, Window window, Consumer<String> onAvatarUpdated) {
+
+    private static VBox createProfileSection(User currentUser, Window window, Consumer<String> onAvatarUpdated, boolean isEditMode) {
         VBox section = new VBox();
         section.setAlignment(Pos.CENTER);
         section.setSpacing(15);
@@ -200,10 +222,17 @@ public class ProfileViewFactory {
         nameLabel.setStyle("-fx-text-fill: white; -fx-font-size: 22px; -fx-font-weight: bold;");
 
         // Role label
-        Label titleLabel = new Label("Front end Developer");
-        titleLabel.setStyle("-fx-text-fill: #b9bbbe; -fx-font-size: 14px;");
+        if (isEditMode) {
+            TextField titleField = new TextField(currentUser.getTitle());
+            titleField.setStyle("-fx-background-color: #40444b; -fx-text-fill: white; -fx-border-color: transparent;");
+            titleField.setMaxWidth(250);
+            section.getChildren().addAll(avatarStack, nameLabel, titleField);
+        } else {
+            Label titleLabel = new Label(currentUser.getTitle());
+            titleLabel.setStyle("-fx-text-fill: #b9bbbe; -fx-font-size: 14px;");
+            section.getChildren().addAll(avatarStack, nameLabel, titleLabel);
+        }
 
-        section.getChildren().addAll(avatarStack, nameLabel, titleLabel);
         return section;
     }
 
@@ -229,9 +258,8 @@ public class ProfileViewFactory {
                 int responseCode = conn.getResponseCode();
                 if (responseCode == 200) {
                     try (BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
-                        String responseLine = in.readLine();
 
-                        String fullUrl = responseLine;
+                        String fullUrl = in.readLine();
 
                         System.out.println("✅ New avatar URL: " + fullUrl);
 
@@ -247,37 +275,44 @@ public class ProfileViewFactory {
     }
 
 
-    private static VBox createQuoteSection() {
+    private static VBox createQuoteSection(User currentUser, boolean isEditMode) {
         VBox section = new VBox();
         section.setSpacing(10);
         section.setPadding(new Insets(10, 0, 20, 0));
 
-        Label quote = new Label("If several languages coalesce, the grammar of the resulting language is more simple.");
-        quote.setStyle("-fx-text-fill: #b9bbbe; -fx-font-size: 14px; -fx-wrap-text: true;");
-        quote.setWrapText(true);
-
-        section.getChildren().add(quote);
+        if (isEditMode) {
+            TextArea quoteArea = new TextArea(currentUser.getBio());
+            quoteArea.setWrapText(true);
+            quoteArea.setStyle("-fx-background-color: #40444b; -fx-border-color: transparent;");
+            quoteArea.setPrefRowCount(3);
+            section.getChildren().add(quoteArea);
+        } else {
+            Label quote = new Label(currentUser.getBio());
+            quote.setStyle("-fx-text-fill: #b9bbbe; -fx-font-size: 14px;");
+            quote.setWrapText(true);
+            section.getChildren().add(quote);
+        }
 
         return section;
     }
 
-    private static VBox createContactSection(User currentUser) {
+
+    private static VBox createContactSection(User currentUser, boolean isEditMode) {
         VBox section = new VBox();
         section.setSpacing(15);
         section.setPadding(new Insets(0, 0, 20, 0));
 
-        HBox nameRow = createInfoRow(MaterialDesignA.ACCOUNT, currentUser != null ? currentUser.getUsername() : "Adam Zampa");
-        HBox emailRow = createInfoRow(MaterialDesignE.EMAIL, "admin@themesbrand.com");
-        HBox locationRow = createInfoRow(MaterialDesignL.LOCATION_ENTER, "California, USA");
-
+        HBox nameRow = createInfoRow(MaterialDesignA.ACCOUNT, currentUser.getUsername(), isEditMode);
+        HBox emailRow = createInfoRow(MaterialDesignE.EMAIL, currentUser.getEmail(), isEditMode);
+        HBox locationRow = createInfoRow(MaterialDesignL.LOCATION_ENTER, "California, USA", isEditMode);
 
         section.getChildren().addAll(nameRow, emailRow, locationRow);
-
         return section;
     }
 
 
-    private static HBox createInfoRow(Ikon ikon, String text) {
+
+    private static HBox createInfoRow(Ikon ikon, String text, boolean isEditMode) {
         HBox row = new HBox();
         row.setSpacing(15);
         row.setAlignment(Pos.CENTER_LEFT);
@@ -286,14 +321,20 @@ public class ProfileViewFactory {
         icon.setIconColor(Color.valueOf("#7c4dff"));
         icon.setIconSize(18);
 
-        Label label = new Label(text);
-        label.setStyle("-fx-text-fill: #b9bbbe; -fx-font-size: 14px;");
+        if (isEditMode) {
+            TextField input = new TextField(text);
+            input.setStyle("-fx-background-color: #40444b; -fx-text-fill: white; -fx-border-color: transparent;");
+            input.setPrefWidth(200);
 
-        row.getChildren().addAll(icon, label);
+            row.getChildren().addAll(icon, input);
+        } else {
+            Label label = new Label(text);
+            label.setStyle("-fx-text-fill: #b9bbbe; -fx-font-size: 14px;");
+            row.getChildren().addAll(icon, label);
+        }
+
         return row;
     }
-
-
 
     private static VBox createMediaSection() {
         VBox section = new VBox();
@@ -429,4 +470,5 @@ public class ProfileViewFactory {
 
         return fileItem;
     }
+
 }

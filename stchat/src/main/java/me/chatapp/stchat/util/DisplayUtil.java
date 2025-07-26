@@ -3,22 +3,19 @@ package me.chatapp.stchat.util;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
-import javafx.scene.effect.DropShadow;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.text.*;
 import me.chatapp.stchat.model.AttachmentMessage;
-import me.chatapp.stchat.model.Message;
+import org.kordamp.ikonli.feather.Feather;
 import org.kordamp.ikonli.fontawesome.FontAwesome;
 import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.io.File;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.List;
 
 import static me.chatapp.stchat.util.CSSUtil.*;
 import static me.chatapp.stchat.util.CSSUtil.normalStyle;
@@ -56,7 +53,15 @@ public class DisplayUtil {
         circle.setTranslateY(translateY);
         return circle;
     }
-
+    public static void styleDialog(TextInputDialog dialog, Color iconColor) {
+        FontIcon icon = new FontIcon(Feather.HASH);
+        icon.setIconSize(30);
+        icon.setIconColor(iconColor);
+        dialog.getDialogPane().setGraphic(icon);
+        dialog.getDialogPane().setStyle("-fx-background-color: #2f3136; -fx-padding: 20;");
+        dialog.getDialogPane().lookupButton(ButtonType.OK).setStyle("-fx-background-color: #5865f2; -fx-text-fill: white;");
+        dialog.getDialogPane().lookupButton(ButtonType.CANCEL).setStyle("-fx-background-color: #99aab5; -fx-text-fill: black;");
+    }
     public static VBox createPasswordContainer(String labelText, String promptText) {
         VBox container = new VBox(8);
 
@@ -72,7 +77,22 @@ public class DisplayUtil {
         container.getChildren().addAll(label, passwordField);
         return container;
     }
+    public static ChoiceDialog<String> createStyledChoiceDialog(String title, String header, List<String> items, Feather iconType) {
+        ChoiceDialog<String> dialog = new ChoiceDialog<>(items.get(0), items);
+        dialog.setTitle(title);
+        dialog.setHeaderText(header);
+        dialog.setContentText("Username:");
 
+        FontIcon icon = new FontIcon(iconType);
+        icon.setIconSize(30);
+        icon.setIconColor(Color.web("#5865F2"));
+        dialog.getDialogPane().setGraphic(icon);
+        dialog.getDialogPane().setStyle("-fx-background-color: #2f3136; -fx-padding: 20;");
+        dialog.getDialogPane().lookupButton(ButtonType.OK).setStyle("-fx-background-color: #5865f2; -fx-text-fill: white;");
+        dialog.getDialogPane().lookupButton(ButtonType.CANCEL).setStyle("-fx-background-color: #99aab5; -fx-text-fill: black;");
+
+        return dialog;
+    }
     public static void addFieldFocusEffects(TextField... fields) {
         String focusStyle =
                 "-fx-background-color: #ffffff;" +
@@ -167,134 +187,6 @@ public class DisplayUtil {
         });
     }
 
-    public static void styleMessageBubble(VBox bubble, Label senderLabel, TextFlow contentFlow, Message message) {
-        switch (message.getType()) {
-            case USER:
-                bubble.setStyle("-fx-background-color: #3498db; -fx-background-radius: 18 18 4 18;");
-                senderLabel.setTextFill(Color.WHITE);
-                contentFlow.getChildren().forEach(node -> {
-                    if (node instanceof Text) {
-                        ((Text) node).setFill(Color.WHITE);
-                    }
-                });
-                break;
-
-            case BOT:
-                if (message.getContent().startsWith("(Private)")) {
-                    bubble.setStyle("-fx-background-color: #fdf2f2; -fx-background-radius: 18 18 18 4; -fx-border-color: #e74c3c; -fx-border-width: 1; -fx-border-radius: 18 18 18 4;");
-                    senderLabel.setTextFill(Color.web("#c0392b"));
-                    contentFlow.getChildren().forEach(node -> {
-                        if (node instanceof Text) {
-                            ((Text) node).setFill(Color.web("#2c3e50"));
-                        }
-                    });
-                } else {
-                    bubble.setStyle("-fx-background-color: #f8f9fa; -fx-background-radius: 18 18 18 4; -fx-border-color: #e9ecef; -fx-border-width: 1; -fx-border-radius: 18 18 18 4;");
-                    senderLabel.setTextFill(Color.web("#27ae60"));
-                    contentFlow.getChildren().forEach(node -> {
-                        if (node instanceof Text) {
-                            ((Text) node).setFill(Color.web("#2c3e50"));
-                        }
-                    });
-                }
-                break;
-
-            case SYSTEM:
-                bubble.setStyle("-fx-background-color: #fff3cd; -fx-background-radius: 12; -fx-border-color: #ffeaa7; -fx-border-width: 1; -fx-border-radius: 12;");
-                senderLabel.setTextFill(Color.web("#856404"));
-                contentFlow.getChildren().forEach(node -> {
-                    if (node instanceof Text) {
-                        ((Text) node).setFill(Color.web("#856404"));
-                    }
-                });
-                break;
-        }
-
-        DropShadow shadow = new DropShadow();
-        shadow.setColor(Color.rgb(0, 0, 0, 0.08));
-        shadow.setRadius(4);
-        shadow.setOffsetX(0);
-        shadow.setOffsetY(2);
-        bubble.setEffect(shadow);
-    }
-
-
-    public static Circle createAvatar(Message message) {
-        Circle avatar = new Circle(16);
-
-        switch (message.getType()) {
-            case USER:
-                avatar.setFill(Color.web("#3498db"));
-                break;
-            case BOT:
-                if (message.getContent().startsWith("(Private)")) {
-                    avatar.setFill(Color.web("#e74c3c"));
-                } else {
-                    avatar.setFill(Color.web("#27ae60"));
-                }
-                break;
-            case SYSTEM:
-                avatar.setFill(Color.web("#f39c12"));
-                break;
-        }
-
-        // Add subtle shadow
-        DropShadow shadow = new DropShadow();
-        shadow.setColor(Color.rgb(0, 0, 0, 0.1));
-        shadow.setRadius(2);
-        shadow.setOffsetX(0);
-        shadow.setOffsetY(1);
-        avatar.setEffect(shadow);
-
-        return avatar;
-    }
-
-    public static Region createSeparator() {
-        Region separator = new Region();
-        separator.setPrefHeight(1);
-        separator.setStyle(STYLE_SEPARATOR);
-        return separator;
-    }
-
-    public static TextFlow parseMessageToTextFlow(String rawContent) {
-        TextFlow flow = new TextFlow();
-
-        Pattern pattern = Pattern.compile(":(\\w[\\w\\-]*):");
-        Matcher matcher = pattern.matcher(rawContent);
-
-        int lastEnd = 0;
-
-        while (matcher.find()) {
-            if (matcher.start() > lastEnd) {
-                String text = rawContent.substring(lastEnd, matcher.start());
-                flow.getChildren().add(new Text(text));
-            }
-
-            String iconLiteral = matcher.group(1);
-            try {
-                FontIcon icon = new FontIcon(iconLiteral);
-                icon.setIconSize(16);
-                flow.getChildren().add(icon);
-            } catch (Exception e) {
-                flow.getChildren().add(new Text(matcher.group()));
-            }
-
-            lastEnd = matcher.end();
-        }
-
-        if (lastEnd < rawContent.length()) {
-            String remaining = rawContent.substring(lastEnd);
-            flow.getChildren().add(new Text(remaining));
-        }
-
-        flow.setLineSpacing(4);
-        flow.setTextAlignment(TextAlignment.LEFT);
-
-        flow.setMaxWidth(Double.MAX_VALUE);
-        flow.setPrefWidth(Region.USE_COMPUTED_SIZE);
-
-        return flow;
-    }
 
     public static Button createModernButton(String text, FontAwesome icon) {
         Button button = new Button(text);

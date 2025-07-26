@@ -7,6 +7,7 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import me.chatapp.stchat.AppContext;
+import me.chatapp.stchat.api.UserApiClient;
 import me.chatapp.stchat.model.User;
 import me.chatapp.stchat.api.SocketClient;
 import me.chatapp.stchat.view.components.molecules.Item.ChannelItem;
@@ -18,7 +19,10 @@ import me.chatapp.stchat.view.handlers.NavigationSidebarHandlerBinder;
 import me.chatapp.stchat.view.init.SceneManager;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 
 public class NavigationSidebar {
@@ -27,15 +31,14 @@ public class NavigationSidebar {
     private final VBox favoritesContainer;
     private final VBox directMessagesContainer;
     private final VBox channelsContainer;
-    private final VBox friendsContainer;
     private final ScrollPane scrollPane;
     private User currentUser;
+    private final Set<String> favoriteUsernameSet = new HashSet<>();
     private SidebarFooter footer;
 
     private Runnable onAddFavoriteClicked;
     private Runnable onAddDirectMessageClicked;
     private Runnable onAddChannelClicked;
-    private Runnable onAddFriendClicked;
 
     private VBox currentMainContent;
     private VBox originalContent;
@@ -46,6 +49,8 @@ public class NavigationSidebar {
     private Consumer<String> onChannelSelected;
     private Consumer<String> onDirectMessageSelected;
     private Runnable onSettingsClicked;
+    private Consumer<String> onRemoveFavoriteClicked;
+
     private final Stage stage;
     Stage currentStage = SceneManager.getStage();
     private final SocketClient socketClient = AppContext.getInstance().getSocketClient();
@@ -57,7 +62,6 @@ public class NavigationSidebar {
         this.root = new VBox();
         this.favoritesContainer = new VBox();
         this.directMessagesContainer = new VBox();
-        this.friendsContainer = new VBox();
         this.channelsContainer = new VBox();
         this.scrollPane = new ScrollPane();
 
@@ -75,7 +79,6 @@ public class NavigationSidebar {
         switch (contentType.toLowerCase()) {
             case "chats":
             case "default":
-                // Tạo lại originalContent với dữ liệu mới nhất
                 newContent = createMainContent();
                 originalContent = newContent;
                 break;
@@ -102,7 +105,6 @@ public class NavigationSidebar {
             currentMainContent = newContent;
             updateScrollContent();
 
-            // Nếu switch về chats, reload favorites
             if ("chats".equalsIgnoreCase(contentType) && currentUser != null) {
                 Platform.runLater(() -> {
                     NavigationSidebarHandlerBinder.fetchFavoritesForUser(currentUser, this, chatView);
@@ -119,9 +121,12 @@ public class NavigationSidebar {
         scrollPane.setContent(currentMainContent);
     }
 
-    // Tạo nội dung cho từng loại
     private VBox createProfileContent() {
-        return ProfileViewFactory.create(currentUser, () -> switchContent("chats"));
+        return ProfileViewFactory.create(currentUser, currentUser, () -> switchContent("chats"));
+    }
+
+    private VBox createOtherUserProfile(User profileUser) {
+        return ProfileViewFactory.create(currentUser, profileUser, () -> switchContent("chats"));
     }
 
 
@@ -223,9 +228,6 @@ public class NavigationSidebar {
         // Direct Messages section
         VBox directMessagesSection = createSection("DIRECT MESSAGES", directMessagesContainer);
 
-        VBox friendsSection = createSection("FRIENDS", friendsContainer);
-
-
         // Channels section
         VBox channelsSection = createSection("CHANNELS", channelsContainer);
 
@@ -235,14 +237,12 @@ public class NavigationSidebar {
                 createSeparator(),
                 directMessagesSection,
                 createSeparator(),
-                friendsSection,
                 createSeparator(),
                 channelsSection
         );
 
         return content;
     }
-
 
     private VBox createSection(String title, VBox container) {
         VBox section = new VBox();
@@ -285,10 +285,6 @@ public class NavigationSidebar {
                 if (onAddChannelClicked != null) onAddChannelClicked.run();
             });
 
-            case "FRIENDS" -> addButton.setOnAction(e -> {
-                if (onAddFriendClicked != null) onAddFriendClicked.run();
-            });
-
         }
         return addButton;
     }
@@ -303,26 +299,56 @@ public class NavigationSidebar {
     }
 
     public List<String> getFavoriteUsernames() {
-        return favoritesContainer.getChildren().stream()
-                .filter(node -> node instanceof HBox)
-                .map(node -> ((Label) ((HBox) node).getChildren().get(1)).getText()) // giả sử label chứa username nằm ở index 1
-                .toList();
+        return new ArrayList<>(favoriteUsernameSet);
     }
+
 
 
     private void setupDefaultItems() {
 
     }
 
-    public void addFavorite(String name, String avatarUrl, boolean isOnline) {
-        DirectMessageItem item = new DirectMessageItem(name, avatarUrl, isOnline, null);
-        item.setOnline(isOnline);
+    public void addFavorite(User targetUser) {
+        if (favoriteUsernameSet.contains(targetUser.getUsername())) return;
+        favoriteUsernameSet.add(targetUser.getUsername());
+        DirectMessageItem item = new DirectMessageItem(targetUser.getUsername(), targetUser.getAvatarUrl(), targetUser.isActive(), null);
+        item.setOnline(targetUser.isActive());
+        item.setOnViewProfileClicked(username -> {
+            System.out.println("👤 View profile of: " + username);
+            VBox profileView = createOtherUserProfile(targetUser);
+            currentMainContent = profileView;
+            updateScrollContent();
+        });
+
+
+
         item.setOnAction(() -> {
             if (onDirectMessageSelected != null) {
-                onDirectMessageSelected.accept(name);
+                onDirectMessageSelected.accept(targetUser.getUsername());
             }
         });
+
+        item.setOnRemoveClicked(username -> {
+            if (onRemoveFavoriteClicked != null) onRemoveFavoriteClicked.accept(username);
+            favoritesContainer.getChildren().remove(item.getComponent());
+            favoriteUsernameSet.remove(username);
+        });
+
         favoritesContainer.getChildren().add(item.getComponent());
+    }
+
+
+    public void removeFavorite(String username) {
+        for (var node : favoritesContainer.getChildren()) {
+            if (node instanceof HBox hbox) {
+                for (var child : hbox.getChildren()) {
+                    if (child instanceof Label label && label.getText().equals(username)) {
+                        favoritesContainer.getChildren().remove(hbox);
+                        return;
+                    }
+                }
+            }
+        }
     }
 
 
@@ -359,10 +385,9 @@ public class NavigationSidebar {
         this.onDirectMessageSelected = handler;
     }
 
-    public void setOnAddFriendClicked(Runnable handler) {
-        this.onAddFriendClicked = handler;
+    public void setOnRemoveFavoriteClicked(Consumer<String> handler){
+        this.onRemoveFavoriteClicked = handler;
     }
-
     public void setOnSettingsClicked(Runnable handler) {
         this.onSettingsClicked = handler;
     }

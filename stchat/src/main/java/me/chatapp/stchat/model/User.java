@@ -20,6 +20,10 @@ public class User {
     @JsonProperty("passwordHash")
     private String passwordHash;
 
+    @JsonProperty("title")
+    private String title;
+
+
     @JsonProperty("firstName")
     private String firstName;
 
@@ -90,6 +94,14 @@ public class User {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
     }
 
     public String getPasswordHash() {

@@ -1,10 +1,8 @@
 package me.chatapp.stchat.view.handlers;
 
 import javafx.application.Platform;
-import javafx.scene.control.ButtonType;
 import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.TextInputDialog;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import me.chatapp.stchat.api.ConversationApiClient;
@@ -12,18 +10,21 @@ import me.chatapp.stchat.api.FavouriteApiClient;
 import me.chatapp.stchat.api.UserApiClient;
 import me.chatapp.stchat.controller.ConversationController;
 import me.chatapp.stchat.controller.MessageController;
+import me.chatapp.stchat.model.Favourite;
 import me.chatapp.stchat.model.User;
 import me.chatapp.stchat.view.components.organisms.Bar.NavigationSidebar;
 import me.chatapp.stchat.view.components.organisms.Header.ChatHeader;
 import me.chatapp.stchat.view.components.organisms.Panel.ChatPanel;
 import me.chatapp.stchat.view.components.pages.ChatView;
-import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.feather.Feather;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
+
+import static me.chatapp.stchat.util.DisplayUtil.createStyledChoiceDialog;
+import static me.chatapp.stchat.util.DisplayUtil.styleDialog;
 
 public class NavigationSidebarHandlerBinder {
 
@@ -40,6 +41,7 @@ public class NavigationSidebarHandlerBinder {
         setupAddChannelHandler(chatView, navigationSidebar);
         setupChannelSelectionHandler(chatView, chatPanel, chatHeader, messageController, conversationController);
         setupDirectMessageSelectionHandler(chatView, chatPanel, chatHeader, messageController, currentUser, conversationController);
+        setupRemoveFavoriteHandler(chatView,navigationSidebar,currentUser);
 
         navigationSidebar.setOnSettingsClicked(() ->
                 chatView.showInfo("Settings", "Settings panel will be implemented soon!"));
@@ -56,48 +58,69 @@ public class NavigationSidebarHandlerBinder {
                         .filter(name -> !name.equals(currentUser.getUsername()))
                         .toList();
 
-                List<String> alreadyAdded = navigationSidebar.getFavoriteUsernames();
-                List<String> selectableUsernames = allUsernames.stream()
-                        .filter(name -> !alreadyAdded.contains(name))
-                        .toList();
-
-                Platform.runLater(() -> {
-                    if (selectableUsernames.isEmpty()) {
-                        chatView.showInfo("No more users", "All users are already in favorites.");
-                        return;
-                    }
-
-                    List<String> emojiNames = selectableUsernames.stream()
-                            .map(name -> "😊 " + name)
+                favouriteApiClient.getFavouritesByUserId(currentUser.getId()).thenCompose(favoriteList -> {
+                    List<Integer> favoriteIds = favoriteList.stream()
+                            .map(Favourite::getFavoriteUserId)
                             .toList();
 
-                    ChoiceDialog<String> dialog = createStyledChoiceDialog("Add Favorite",
-                            "👤 Select a user to add to favorites", emojiNames, Feather.USER_PLUS);
+                    List<String> alreadyAddedUsernames = users.stream()
+                            .filter(u -> favoriteIds.contains(u.getId()))
+                            .map(User::getUsername)
+                            .toList();
 
-                    dialog.showAndWait().ifPresent(selectedUsername -> {
-                        String username = selectedUsername.replace("😊 ", "").trim();
+                    List<String> selectableUsernames = allUsernames.stream()
+                            .filter(name -> !alreadyAddedUsernames.contains(name))
+                            .toList();
 
-                        userApiClient.findUserByUsername(username).ifPresentOrElse(targetUser -> {
-                            favouriteApiClient.addFavorite(currentUser.getId(), targetUser.getId()).thenAccept(success -> {
-                                if (success) {
-                                    Platform.runLater(() -> {
-                                        navigationSidebar.addFavorite(username, "😊", targetUser.isActive());
-                                        chatView.showInfo("✅ Success", username + " has been added to favorites.");
-                                    });
-                                } else {
-                                    Platform.runLater(() -> chatView.showError("❌ Failed to add " + username + " to favorites."));
-                                }
-                            }).exceptionally(ex -> {
-                                ex.printStackTrace();
-                                Platform.runLater(() -> chatView.showError("❌ Network error while adding favorite."));
-                                return null;
-                            });
-                        }, () -> Platform.runLater(() -> chatView.showError("❌ User not found in system.")));
+                    return CompletableFuture.completedFuture(selectableUsernames);
+                }).thenAccept(selectableUsernames -> {
+                    Platform.runLater(() -> {
+                        if (selectableUsernames.isEmpty()) {
+                            chatView.showInfo("No more users", "All users are already in favorites.");
+                            System.out.println("All usernames: " + allUsernames);
+                            System.out.println("Already added favorites: " + users);
+                            System.out.println("Selectable usernames: " + selectableUsernames);
+
+                            return;
+                        }
+
+                        List<String> emojiNames = selectableUsernames.stream()
+                                .map(name -> "😊 " + name)
+                                .toList();
+
+                        ChoiceDialog<String> dialog = createStyledChoiceDialog("Add Favorite",
+                                "👤 Select a user to add to favorites", emojiNames, Feather.USER_PLUS);
+
+                        dialog.showAndWait().ifPresent(selectedUsername -> {
+                            String username = selectedUsername.replace("😊 ", "").trim();
+
+                            userApiClient.findUserByUsername(username).ifPresentOrElse(targetUser -> {
+                                favouriteApiClient.addFavorite(currentUser.getId(), targetUser.getId()).thenAccept(success -> {
+                                    if (success) {
+                                        Platform.runLater(() -> {
+                                            navigationSidebar.addFavorite(targetUser);
+                                            chatView.showInfo("✅ Success", username + " has been added to favorites.");
+                                        });
+                                    } else {
+                                        Platform.runLater(() -> chatView.showError("❌ Failed to add " + username + " to favorites."));
+                                    }
+                                }).exceptionally(ex -> {
+                                    ex.printStackTrace();
+                                    Platform.runLater(() -> chatView.showError("❌ Network error while adding favorite."));
+                                    return null;
+                                });
+                            }, () -> Platform.runLater(() -> chatView.showError("❌ User not found in system.")));
+                        });
                     });
+                }).exceptionally(ex -> {
+                    ex.printStackTrace();
+                    Platform.runLater(() -> chatView.showError("❌ Failed to fetch current favorites."));
+                    return null;
                 });
             });
         });
     }
+
 
     private static void setupAddDirectMessageHandler(ChatView chatView, NavigationSidebar navigationSidebar, User currentUser) {
         navigationSidebar.setOnAddDirectMessageClicked(() -> {
@@ -132,7 +155,7 @@ public class NavigationSidebarHandlerBinder {
             dialog.setHeaderText("Enter new channel name");
             dialog.setContentText("Channel name:");
 
-            styleDialog(dialog, Feather.HASH, Color.web("#FBBF24"));
+            styleDialog(dialog, Color.web("#FBBF24"));
 
             dialog.showAndWait().ifPresent(channelName -> {
                 channelName = channelName.trim();
@@ -214,33 +237,6 @@ public class NavigationSidebarHandlerBinder {
         });
     }
 
-    private static ChoiceDialog<String> createStyledChoiceDialog(String title, String header, List<String> items, Feather iconType) {
-        ChoiceDialog<String> dialog = new ChoiceDialog<>(items.get(0), items);
-        dialog.setTitle(title);
-        dialog.setHeaderText(header);
-        dialog.setContentText("Username:");
-
-        FontIcon icon = new FontIcon(iconType);
-        icon.setIconSize(30);
-        icon.setIconColor(Color.web("#5865F2"));
-        dialog.getDialogPane().setGraphic(icon);
-        dialog.getDialogPane().setStyle("-fx-background-color: #2f3136; -fx-padding: 20;");
-        dialog.getDialogPane().lookupButton(ButtonType.OK).setStyle("-fx-background-color: #5865f2; -fx-text-fill: white;");
-        dialog.getDialogPane().lookupButton(ButtonType.CANCEL).setStyle("-fx-background-color: #99aab5; -fx-text-fill: black;");
-
-        return dialog;
-    }
-
-    private static void styleDialog(TextInputDialog dialog, Feather iconType, Color iconColor) {
-        FontIcon icon = new FontIcon(iconType);
-        icon.setIconSize(30);
-        icon.setIconColor(iconColor);
-        dialog.getDialogPane().setGraphic(icon);
-        dialog.getDialogPane().setStyle("-fx-background-color: #2f3136; -fx-padding: 20;");
-        dialog.getDialogPane().lookupButton(ButtonType.OK).setStyle("-fx-background-color: #5865f2; -fx-text-fill: white;");
-        dialog.getDialogPane().lookupButton(ButtonType.CANCEL).setStyle("-fx-background-color: #99aab5; -fx-text-fill: black;");
-    }
-
     public static void fetchFavoritesForUser(User user, NavigationSidebar navigationSidebar, ChatView chatView) {
         FavouriteApiClient favouriteApiClient = new FavouriteApiClient();
         UserApiClient userApiClient = new UserApiClient();
@@ -258,8 +254,7 @@ public class NavigationSidebarHandlerBinder {
                             .toList());
         }).thenAccept(favoriteUsers -> {
             Platform.runLater(() -> {
-                navigationSidebar.clearFavorites();
-                favoriteUsers.forEach(favUser -> navigationSidebar.addFavorite(favUser.getUsername(), favUser.getAvatarUrl(), true));
+                favoriteUsers.forEach(navigationSidebar::addFavorite);
             });
         }).exceptionally(ex -> {
             ex.printStackTrace();
@@ -267,4 +262,33 @@ public class NavigationSidebarHandlerBinder {
             return null;
         });
     }
+
+    private static void setupRemoveFavoriteHandler(ChatView chatView, NavigationSidebar navigationSidebar, User currentUser) {
+        FavouriteApiClient favouriteApiClient = new FavouriteApiClient();
+        UserApiClient userApiClient = new UserApiClient();
+
+        navigationSidebar.setOnRemoveFavoriteClicked(username -> {
+            Platform.runLater(() -> {
+                userApiClient.findUserByUsername(username).ifPresentOrElse(targetUser -> {
+                    favouriteApiClient.removeFavorite(currentUser.getId(), targetUser.getId())
+                            .thenAccept(success -> {
+                                if (success) {
+                                    Platform.runLater(() -> {
+                                        navigationSidebar.removeFavorite(username); // Cập nhật giao diện
+                                        chatView.showInfo("✅ Removed", username + " has been removed from favorites.");
+                                    });
+                                } else {
+                                    Platform.runLater(() -> chatView.showError("❌ Failed to remove " + username + " from favorites."));
+                                }
+                            }).exceptionally(ex -> {
+                                ex.printStackTrace();
+                                Platform.runLater(() -> chatView.showError("❌ Network error while removing favorite."));
+                                return null;
+                            });
+                }, () -> Platform.runLater(() -> chatView.showError("❌ User not found: " + username)));
+            });
+        });
+    }
+
+
 }
