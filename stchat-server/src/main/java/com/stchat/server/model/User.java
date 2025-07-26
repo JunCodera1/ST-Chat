@@ -25,7 +25,7 @@ public class User {
         this.email = email;
     }
 
-    public User(int id, String username, String firstName, String lastName, String email, Timestamp createdAt, String avatarUrl) {
+    public User(int id, String username, String firstName, String lastName, String email, Timestamp createdAt, String avatarUrl, Boolean isActive) {
         this.id = id;
         this.username = username;
         this.firstName = firstName;
@@ -33,6 +33,7 @@ public class User {
         this.email = email;
         this.createdAt = createdAt;
         this.avatarUrl = avatarUrl;
+        this.isActive = isActive;
     }
 
     // --- Getters and Setters ---

@@ -3,6 +3,7 @@ package com.stchat.server.service;
 import com.stchat.server.dao.UserDAO;
 import com.stchat.server.model.User;
 
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
 
@@ -63,6 +64,14 @@ public class UserService {
 
     public Optional<User> getUserById(int id) {
         return userDAO.getUserById(id);
+    }
+
+    public boolean setUserActiveStatus(int userId, boolean isActive) {
+        return userDAO.setUserActiveStatus(userId, isActive);
+    }
+
+    public boolean setLastSeen(int userId, Timestamp lastSeen) {
+        return userDAO.setLastSeen(userId, lastSeen);
     }
 
 }

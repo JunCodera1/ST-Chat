@@ -1,6 +1,7 @@
 package com.stchat.server.handler;
 
-import com.stchat.server.dao.PendingPasswordChangeDAO;
+import com.stchat.server.Main;
+import com.stchat.server.context.ServerContext;
 import com.stchat.server.dao.UserDAO;
 import com.stchat.server.model.User;
 import com.stchat.server.service.AuthService;
@@ -15,18 +16,22 @@ import java.util.Base64;
 import java.util.UUID;
 
 public class AuthProcessor {
+    private final Main server;
 
-    public static JSONObject handle(JSONObject request) {
+    public JSONObject handle(JSONObject request) {
         String type = request.optString("type");
         return switch (type.toUpperCase()) {
             case "LOGIN" -> handleLogin(request);
             case "REGISTER" -> handleRegister(request);
             case "FORGOT_PASSWORD" -> handleForgotPassword(request);
             case "CHANGE_PASSWORD" -> handleChangePassword(request);
+            case "LOGOUT" -> handleLogout(request);
             default -> JsonResponseUtil.error("Unknown auth type.");
         };
     }
-
+    public AuthProcessor(Main server) {
+        this.server = server;
+    }
     private static JSONObject handleLogin(JSONObject request) {
         String username = request.optString("username");
         String password = request.optString("password");
@@ -43,6 +48,10 @@ public class AuthProcessor {
                 return JsonResponseUtil.error("User not found.");
             }
 
+            // ✅ Cập nhật trạng thái online
+            userDAO.setUserActiveStatus(user.getId(), true);
+            user.setActive(true); // Đồng bộ lại user object để phản hồi JSON đúng
+
             JSONObject userJson = new JSONObject();
             userJson.put("id", user.getId());
             userJson.put("username", user.getUsername());
@@ -53,20 +62,10 @@ public class AuthProcessor {
             userJson.put("phone", user.getPhone());
             userJson.put("bio", user.getBio());
             userJson.put("status", user.getStatus());
-            userJson.put("lastSeen", user.getLastSeen() != null ? user.getLastSeen().toString() : null);
-            userJson.put("isActive", user.isActive());
-            userJson.put("createdAt", user.getCreatedAt() != null ? user.getCreatedAt().toString() : null);
-            userJson.put("updatedAt", user.getUpdatedAt() != null ? user.getUpdatedAt().toString() : null);
-
-            userJson.put("lastSeen", user.getLastSeen() != null
-                    ? user.getLastSeen().toLocalDateTime().toString()
-                    : null);
-            userJson.put("createdAt", user.getCreatedAt() != null
-                    ? user.getCreatedAt().toLocalDateTime().toString()
-                    : null);
-            userJson.put("updatedAt", user.getUpdatedAt() != null
-                    ? user.getUpdatedAt().toLocalDateTime().toString()
-                    : null);
+            userJson.put("lastSeen", user.getLastSeen() != null ? user.getLastSeen().toLocalDateTime().toString() : null);
+            userJson.put("isActive", user.isActive()); // ✅ sẽ là true
+            userJson.put("createdAt", user.getCreatedAt() != null ? user.getCreatedAt().toLocalDateTime().toString() : null);
+            userJson.put("updatedAt", user.getUpdatedAt() != null ? user.getUpdatedAt().toLocalDateTime().toString() : null);
 
             return new JSONObject()
                     .put("status", "success")
@@ -76,6 +75,8 @@ public class AuthProcessor {
             return JsonResponseUtil.error("Invalid username or password.");
         }
     }
+
+
 
 
     private static JSONObject handleRegister(JSONObject request) {
@@ -160,5 +161,29 @@ public class AuthProcessor {
             return JsonResponseUtil.error("Invalid current password or user not found.");
         }
     }
+
+    private static JSONObject handleLogout(JSONObject request) {
+        int userId = request.optInt("userId", -1);
+
+        if (userId == -1) {
+            return JsonResponseUtil.error("User ID is required for logout.");
+        }
+
+        UserDAO userDAO = new UserDAO();
+        String username = userDAO.getUsernameById(userId);
+        boolean success = userDAO.setUserActiveStatus(userId, false);
+
+        if (success) {
+            Main server = ServerContext.getInstance().getMainServer();
+            if (username != null) {
+                server.removeClient(username);
+            }
+            return JsonResponseUtil.success("Logout successful.");
+        } else {
+            return JsonResponseUtil.error("Failed to log out user.");
+        }
+    }
+
+
 }
 

@@ -1,5 +1,7 @@
 package com.stchat.server.web.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.stchat.server.handler.WebSocketManager;
 import com.stchat.server.model.Message;
 import com.stchat.server.service.ConversationService;
 import com.stchat.server.service.MessageService;
@@ -93,13 +95,11 @@ public class MessageController {
         }
     }
 
-    // 📌 Lấy các tin nhắn được ghim
     private static void getPinnedMessages(Context ctx) {
         int conversationId = Integer.parseInt(Objects.requireNonNull(ctx.queryParam("conversationId")));
         ctx.json(messageService.getPinnedMessages(conversationId));
     }
 
-    // 📅 Lọc tin nhắn theo khoảng thời gian
     private static void getMessagesByTimeRange(Context ctx) {
         int conversationId = Integer.parseInt(Objects.requireNonNull(ctx.queryParam("conversationId")));
         Timestamp from = Timestamp.valueOf(Objects.requireNonNull(ctx.queryParam("from"))); // Format: yyyy-[m]m-[d]d hh:mm:ss
@@ -126,6 +126,13 @@ public class MessageController {
         boolean success = messageService.sendMessage(message);
 
         if (success) {
+            try {
+                String json = new ObjectMapper().writeValueAsString(message);
+                WebSocketManager.sendMessageToUser(receiverId, json);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
             ctx.status(201).json(Map.of(
                     "status", "success",
                     "conversationId", conversation.getId()
@@ -134,4 +141,5 @@ public class MessageController {
             ctx.status(500).result("Failed to send message");
         }
     }
+
 }

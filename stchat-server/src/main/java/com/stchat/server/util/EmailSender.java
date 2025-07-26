@@ -9,7 +9,7 @@ import java.util.Properties;
 public class EmailSender {
 
     private static final String FROM_EMAIL = "minhtien0601200@gmail.com";
-    private static final String APP_PASSWORD = "lvht jlfj dgqk kwcm";
+    private static final String APP_PASSWORD = "etqn jvfy lkvv vamu";
 
     public static boolean send(String toEmail, String subject, String content) {
         Properties props = new Properties();
@@ -60,7 +60,7 @@ public class EmailSender {
             });
 
             Message message = new MimeMessage(session);
-            message.setFrom(new InternetAddress("noreply@stchat.com"));
+            message.setFrom(new InternetAddress(FROM_EMAIL));
             message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(to));
             message.setSubject(subject);
             message.setContent(htmlContent, "text/html; charset=utf-8");

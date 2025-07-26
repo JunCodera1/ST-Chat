@@ -1,5 +1,6 @@
 package com.stchat.server;
 
+import com.stchat.server.context.ServerContext;
 import com.stchat.server.handler.ClientHandler;
 import com.stchat.server.web.server.*;
 
@@ -33,6 +34,17 @@ public class Main {
             return clients.get(username);
         }
     }
+
+
+    public void broadcast(String message) {
+        synchronized (clientsLock) {
+            for (ClientHandler client : clients.values()) {
+                client.sendMessage(message);
+            }
+        }
+    }
+
+
     public void start(int port) {
         try {
             serverSocket = new ServerSocket(port);
@@ -88,7 +100,6 @@ public class Main {
 
             broadcastMessage("User", username + " joined", null);
 
-            // Gửi danh sách người dùng online cho client mới
             sendUserList(clientHandler);
         }
     }
@@ -98,7 +109,6 @@ public class Main {
             if (clients.remove(username) != null) {
                 System.out.println("[" + getCurrentTime() + "] User '" + username + "' Disconnected. Users online: " + clients.size());
 
-                // Thông báo cho tất cả client về người dùng rời đi
                 broadcastMessage("System", username + " đã rời khỏi phòng chat", null);
             }
         }
@@ -154,6 +164,7 @@ public class Main {
         ConversationServer.start();
         UserServer.start();
         FavouriteServer.start();
+        ServerContext.getInstance().setMainServer(server);
 
         // Start socket server
         int port = DEFAULT_PORT;

@@ -16,7 +16,7 @@ public class FavouriteController {
 
     public static void registerRoutes(Javalin app) {
         app.post("/api/favourites/add", FavouriteController::addFavourite);
-        app.delete("/api/favourites", FavouriteController::removeFavourite);
+        app.delete("/api/favourites/{userId}/{favoriteUserId}", FavouriteController::removeFavourite);
         app.get("/api/favourites/{userId}", FavouriteController::getFavoritesByUserId);
         app.get("/api/favourites/check", FavouriteController::checkFavoriteExists);
     }
@@ -44,17 +44,22 @@ public class FavouriteController {
     }
 
     private static void removeFavourite(Context ctx) {
-        Map<String, Integer> body = ctx.bodyAsClass(Map.class);
-        int userId = body.get("userId");
-        int favoriteUserId = body.get("favoriteUserId");
+        try {
+            int userId = Integer.parseInt(ctx.pathParam("userId"));
+            int favoriteUserId = Integer.parseInt(ctx.pathParam("favoriteUserId"));
 
-        boolean removed = favouriteService.removeFavourite(userId, favoriteUserId);
-        if (removed) {
-            ctx.result("Favourite removed successfully");
-        } else {
-            ctx.status(400).result("Failed to remove favourite");
+            boolean removed = favouriteService.removeFavourite(userId, favoriteUserId);
+            if (removed) {
+                ctx.result("Favourite removed successfully");
+            } else {
+                ctx.status(400).result("Failed to remove favourite");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            ctx.status(500).result("Server error: " + e.getMessage());
         }
     }
+
 
     private static void getFavoritesByUserId(Context ctx) {
         try {

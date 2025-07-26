@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
 
+import static com.stchat.server.database.DatabaseConnection.getConnection;
+
 public class UserDAO {
     public static final Logger LOGGER = Logger.getLogger(UserDAO.class.getName());
 
@@ -29,7 +31,7 @@ public class UserDAO {
             return false;
         }
 
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             String hashedPassword = PasswordUtil.hashPassword(password);
@@ -58,9 +60,9 @@ public class UserDAO {
 
 
     public User getUserByUsername(String username) {
-        String sql = "SELECT id, username, email, created_at, first_name, last_name, avatar_url FROM users WHERE username = ?";
+        String sql = "SELECT id, username, email, created_at, first_name, last_name, avatar_url, is_active FROM users WHERE username = ?";
 
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, username);
@@ -74,7 +76,8 @@ public class UserDAO {
                         rs.getString("last_name"),
                         rs.getString("email"),
                         rs.getTimestamp("created_at"),
-                        rs.getString("avatar_url")
+                        rs.getString("avatar_url"),
+                        rs.getBoolean("is_active")
                 );
             }
 
@@ -88,9 +91,9 @@ public class UserDAO {
 
 
     public User getUserByEmail(String email) {
-        String sql = "SELECT id, username, first_name, last_name, email, created_at, avatar_url FROM users WHERE email = ?";
+        String sql = "SELECT id, username, first_name, last_name, email, created_at, avatar_url, is_active FROM users WHERE email = ?";
 
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, email);
@@ -104,7 +107,8 @@ public class UserDAO {
                         rs.getString("last_name"),
                         rs.getString("email"),
                         rs.getTimestamp("created_at"),
-                        rs.getString("avatar_url")
+                        rs.getString("avatar_url"),
+                        rs.getBoolean("is_active")
                 );
 
             }
@@ -118,7 +122,7 @@ public class UserDAO {
 
     public Optional<User> getUserById(int id) {
         String sql = "SELECT * FROM users WHERE id = ?";
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, id);
             ResultSet rs = stmt.executeQuery();
@@ -130,7 +134,8 @@ public class UserDAO {
                         rs.getString("last_name"),
                         rs.getString("email"),
                         rs.getTimestamp("created_at"),
-                        rs.getString("avatar_url")
+                        rs.getString("avatar_url"),
+                        rs.getBoolean("is_active")
                 );
 
                 return Optional.of(user);
@@ -145,7 +150,7 @@ public class UserDAO {
     public boolean isUsernameExists(String username) {
         String sql = "SELECT COUNT(*) FROM users WHERE username = ?";
 
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, username);
@@ -165,7 +170,7 @@ public class UserDAO {
     public boolean isEmailExists(String email) {
         String sql = "SELECT COUNT(*) FROM users WHERE email = ?";
 
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, email);
@@ -184,9 +189,9 @@ public class UserDAO {
 
     public List<User> getAllUsers() {
         List<User> users = new ArrayList<>();
-        String sql = "SELECT id, username, first_name, last_name, email, created_at, avatar_url FROM users ORDER BY created_at DESC";
+        String sql = "SELECT id, username, first_name, last_name, email, created_at, avatar_url, is_active FROM users ORDER BY created_at DESC";
 
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql);
              ResultSet rs = pstmt.executeQuery()) {
 
@@ -198,7 +203,8 @@ public class UserDAO {
                         rs.getString("last_name"),
                         rs.getString("email"),
                         rs.getTimestamp("created_at"),
-                        rs.getString("avatar_url")
+                        rs.getString("avatar_url"),
+                        rs.getBoolean("is_active")
                 );
 
                 users.add(user);
@@ -214,7 +220,7 @@ public class UserDAO {
     public boolean updateUser(int userId, String username, String email) {
         String sql = "UPDATE users SET username = ?, email = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
 
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, username);
@@ -237,7 +243,7 @@ public class UserDAO {
 
     public String getUsernameByEmail(String email) {
         String sql = "SELECT username FROM users WHERE email = ?";
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, email);
@@ -255,7 +261,7 @@ public class UserDAO {
     public boolean deleteUser(int userId) {
         String sql = "DELETE FROM users WHERE id = ?";
 
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, userId);
@@ -275,7 +281,7 @@ public class UserDAO {
     }
 
     public String resetPassword(String email) {
-        try (Connection conn = DatabaseConnection.getConnection()) {
+        try (Connection conn = getConnection()) {
             String query = "SELECT username FROM users WHERE email = ?";
             PreparedStatement stmt = conn.prepareStatement(query);
             stmt.setString(1, email);
@@ -312,7 +318,7 @@ public class UserDAO {
     public int getUserCount() {
         String sql = "SELECT COUNT(*) FROM users";
 
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql);
              ResultSet rs = pstmt.executeQuery()) {
 
@@ -330,7 +336,7 @@ public class UserDAO {
     public boolean updatePassword(String email, String hashed) {
         String sql = "UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE email = ?";
 
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, hashed);
@@ -349,7 +355,7 @@ public class UserDAO {
     public boolean updateAvatarUrl(int userId, String avatarUrl) {
         String sql = "UPDATE users SET avatar_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
 
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, avatarUrl);
@@ -367,5 +373,46 @@ public class UserDAO {
 
         return false;
     }
+
+    public boolean setUserActiveStatus(int userId, boolean isActive) {
+        String sql = "UPDATE users SET is_active = ? WHERE id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setBoolean(1, isActive);
+            stmt.setInt(2, userId);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean setLastSeen(int userId, Timestamp lastSeen) {
+        String sql = "UPDATE users SET last_seen = ? WHERE id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setTimestamp(1, lastSeen);
+            stmt.setInt(2, userId);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public String getUsernameById(int userId) {
+        String sql = "SELECT username FROM users WHERE id = ?";
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, userId);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getString("username");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
 
 }
